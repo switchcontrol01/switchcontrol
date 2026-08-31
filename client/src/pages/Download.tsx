@@ -4,6 +4,7 @@ import { useAuth } from "@/components/ProtectedRoute";
 import { motion } from "framer-motion";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
+import { useTranslation } from "@/lib/i18n";
 import faviconImg from "@/assets/favicon.png";
 import { INSTALLER_CONFIG, installerUrl } from "@shared/downloadConfig";
 
@@ -31,6 +32,7 @@ interface DownloadMaintenance {
 }
 
 function PatchNotesCard() {
+  const { t } = useTranslation();
   const [notes, setNotes] = useState<PatchNotes | null>(null);
   useEffect(() => { fetch("/patch-notes.json").then(r => r.json()).then(setNotes).catch(() => {}); }, []);
   if (!notes) return null;
@@ -52,7 +54,7 @@ function PatchNotesCard() {
       <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
         <Sparkles size={11} style={{ color: "rgba(192,155,255,0.65)" }} />
         <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(192,155,255,0.60)" }}>
-          What&apos;s New
+          {t("What's New")}
         </span>
         <span style={{
           fontSize: "10px", fontWeight: 500, padding: "1px 7px", borderRadius: "5px", marginLeft: "4px",
@@ -61,14 +63,14 @@ function PatchNotesCard() {
         }}>v{notes.version}</span>
       </div>
       <div style={{ flex: 1, minWidth: "200px" }}>
-        <p style={{ fontSize: "12.5px", fontWeight: 600, color: "rgba(255,255,255,0.75)", margin: "0 0 3px" }}>{notes.title}</p>
-        <p style={{ fontSize: "11.5px", color: "rgba(255,255,255,0.34)", margin: 0, lineHeight: 1.45 }}>{notes.headline}</p>
+        <p style={{ fontSize: "12.5px", fontWeight: 600, color: "rgba(255,255,255,0.75)", margin: "0 0 3px" }}>{t(notes.title, notes.title)}</p>
+        <p style={{ fontSize: "11.5px", color: "rgba(255,255,255,0.34)", margin: 0, lineHeight: 1.45 }}>{t(notes.headline, notes.headline)}</p>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 20px" }}>
         {notes.changes.slice(0, 3).map((c, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <div style={{ width: "3px", height: "3px", borderRadius: "50%", flexShrink: 0, background: "rgba(139,92,246,0.55)" }} />
-            <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.36)" }}>{c}</span>
+            <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.36)" }}>{t(c, c)}</span>
           </div>
         ))}
       </div>
@@ -79,6 +81,7 @@ function PatchNotesCard() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function DownloadPage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const launched = true;
   const [maintenance, setMaintenance] = useState<DownloadMaintenance | null>(null);
   const [maintenanceChecked, setMaintenanceChecked] = useState(false);
@@ -455,7 +458,7 @@ export default function DownloadPage() {
               width: "28px", height: "28px", borderRadius: "50%",
               border: "2px solid rgba(167,139,250,0.25)", borderTopColor: "#a78bfa",
               animation: "spin 0.8s linear infinite",
-            }} aria-label="Checking download availability" />
+             }} aria-label={t("Checking download availability")} />
           </div>
         ) : maintenance?.enabled ? (
           <motion.div
@@ -490,20 +493,20 @@ export default function DownloadPage() {
                 letterSpacing: "0.13em", textTransform: "uppercase",
               }}>
                 <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#fbbf24" }} />
-                Maintenance in progress
+                 {t("Maintenance in progress")}
               </div>
               <h1 style={{
                 fontSize: "clamp(32px,5vw,54px)", fontWeight: 800, letterSpacing: "-0.035em",
                 lineHeight: 1.06, color: "rgba(255,255,255,0.97)", margin: "0 0 14px",
                 textShadow: "0 4px 42px rgba(139,92,246,0.30)",
               }}>
-                We&apos;ll be back soon
+                 {t("We'll be back soon")}
               </h1>
               <p style={{
                 maxWidth: "510px", margin: "0 auto", color: "rgba(255,255,255,0.56)",
                 fontSize: "15px", lineHeight: 1.65,
               }}>
-                {maintenance.message}
+                 {t(maintenance.message)}
               </p>
               {maintenance.returnTime && (
                 <div style={{
@@ -513,11 +516,11 @@ export default function DownloadPage() {
                   color: "rgba(255,255,255,0.64)", fontSize: "12px",
                 }}>
                   <Clock size={14} style={{ color: "#67e8f9" }} />
-                  Expected back: <strong style={{ color: "rgba(255,255,255,0.88)" }}>{maintenance.returnTime}</strong>
+                   {t("Expected back:")} <strong style={{ color: "rgba(255,255,255,0.88)" }}>{maintenance.returnTime}</strong>
                 </div>
               )}
               <p style={{ margin: "24px auto 0", color: "rgba(255,255,255,0.32)", fontSize: "12px" }}>
-                Please check back in a little while. Your account and settings are safe.
+                 {t("Please check back in a little while. Your account and settings are safe.")}
               </p>
               <div style={{ display: "flex", justifyContent: "center", gap: "10px", flexWrap: "wrap", marginTop: "24px" }}>
                 <button
@@ -528,14 +531,14 @@ export default function DownloadPage() {
                     background: "linear-gradient(135deg,#00D4FF,#6d28d9)", border: "none",
                   }}
                 >
-                  <RefreshCw size={14} /> Check again
+                   <RefreshCw size={14} /> {t("Check again")}
                 </button>
                 <Link href="/" style={{
                   display: "inline-flex", alignItems: "center", padding: "10px 15px", borderRadius: "10px",
                   color: "rgba(255,255,255,0.58)", fontSize: "12px", fontWeight: 600,
                   border: "1px solid rgba(255,255,255,0.12)", textDecoration: "none",
                 }}>
-                  Return home
+                   {t("Return home")}
                 </Link>
               </div>
             </div>
@@ -580,12 +583,12 @@ export default function DownloadPage() {
                 margin: 0,
               }}>
                 {launched ? (
-                  <>SwitchControl is{" "}
-                    <span style={{ background: "linear-gradient(135deg,#a78bfa,#67e8f9)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>live</span>
+                   <>{t("SwitchControl is")}{" "}
+                     <span style={{ background: "linear-gradient(135deg,#a78bfa,#67e8f9)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>{t("live")}</span>
                   </>
                 ) : (
-                  <>SwitchControl{" "}
-                    <span style={{ background: "linear-gradient(135deg,#a78bfa,#67e8f9)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>launches in</span>
+                   <>SwitchControl{" "}
+                     <span style={{ background: "linear-gradient(135deg,#a78bfa,#67e8f9)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>{t("launches in")}</span>
                   </>
                 )}
               </h1>
@@ -637,7 +640,7 @@ export default function DownloadPage() {
                     <span style={{
                       fontSize: "10px", fontWeight: 700, letterSpacing: "0.14em",
                       textTransform: "uppercase", color: "rgba(134,239,172,0.92)",
-                    }}>Live</span>
+                     }}>{t("Live")}</span>
                   </div>
                   <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.30)", fontWeight: 500 }}>
                     v{INSTALLER_CONFIG.version}
@@ -654,12 +657,12 @@ export default function DownloadPage() {
                   fontWeight: 800, letterSpacing: "-0.025em", lineHeight: 1.1,
                   margin: "0 0 8px", color: "rgba(255,255,255,0.95)",
                 }}>
-                  Available{" "}
+                   {t("Available")}{" "}
                   <span style={{
                     background: "linear-gradient(135deg,#a78bfa,#67e8f9)",
                     WebkitBackgroundClip: "text", backgroundClip: "text",
                     WebkitTextFillColor: "transparent",
-                  }}>now</span>
+                   }}>{t("now")}</span>
                 </p>
 
                 {/* Subtext */}
@@ -667,19 +670,19 @@ export default function DownloadPage() {
                   fontSize: "13px", color: "rgba(255,255,255,0.40)",
                   margin: "0 0 16px", lineHeight: 1.55, fontWeight: 500,
                 }}>
-                  Download the live Windows installer and start optimizing today.
+                   {t("Download the live Windows installer and start optimizing today.")}
                 </p>
 
                 {/* Platform tags */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
-                  {["Windows 10 / 11", "64-bit", "Free to try"].map((tag) => (
+                   {["Windows 10 / 11", "64-bit", "Free to try"].map((tag) => (
                     <span key={tag} style={{
                       fontSize: "10.5px", fontWeight: 600, padding: "3px 11px",
                       borderRadius: "100px",
                       background: "rgba(255,255,255,0.04)",
                       border: "1px solid rgba(255,255,255,0.10)",
                       color: "rgba(255,255,255,0.38)",
-                    }}>{tag}</span>
+                     }}>{t(tag)}</span>
                   ))}
                 </div>
               </div>
@@ -720,7 +723,7 @@ export default function DownloadPage() {
                   }} />
                   <img
                     src={faviconImg}
-                    alt="SwitchControl"
+                    alt={t("SwitchControl")}
                     style={{
                       position: "relative",
                       width: "72px", height: "72px",
@@ -743,7 +746,7 @@ export default function DownloadPage() {
                     color: "rgba(255,255,255,0.97)", letterSpacing: "-0.015em", margin: 0,
                   }}>SwitchControl.exe</h2>
                   <p style={{ fontSize: "11.5px", color: "rgba(255,255,255,0.38)", margin: "2px 0 0" }}>
-                    {user?.firstName ? `Welcome, ${user.firstName}!` : "Windows desktop app"}
+                     {user?.firstName ? t("Welcome, {name}!", `Welcome, ${user.firstName}!`, { name: user.firstName }) : t("Windows desktop app")}
                   </p>
                 </div>
               </div>
@@ -753,13 +756,13 @@ export default function DownloadPage() {
                 {/* Spec rows */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
                   {[
-                    { icon: CheckCircle, color: "#34d399", text: "Latest build" },
-                    { icon: Monitor, color: "#a78bfa", text: "Windows 10/11 64-bit · .exe installer" },
-                    { icon: Clock, color: "#fbbf24", text: "~110 MB · Under 30 seconds" },
+                     { icon: CheckCircle, color: "#34d399", text: "Latest build" },
+                     { icon: Monitor, color: "#a78bfa", text: "Windows 10/11 64-bit · .exe installer" },
+                     { icon: Clock, color: "#fbbf24", text: "~110 MB · Under 30 seconds" },
                   ].map(({ icon: Icon, color, text }, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: "9px" }}>
                       <Icon size={13} style={{ color, flexShrink: 0 }} />
-                      <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.44)" }}>{text}</span>
+                       <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.44)" }}>{t(text)}</span>
                     </div>
                   ))}
                 </div>
@@ -789,7 +792,7 @@ export default function DownloadPage() {
                   }}
                 >
                   <Download size={16} />
-                  Download SwitchControl.exe
+                   {t("Download SwitchControl.exe")}
                   <ArrowRight size={14} style={{ opacity: 0.70 }} />
                 </button>
 
@@ -798,10 +801,10 @@ export default function DownloadPage() {
                   fontSize: "10.5px", textAlign: "center",
                   color: "rgba(255,255,255,0.25)", marginTop: "10px",
                 }}>
-                  By downloading you agree to our{" "}
-                  <Link href="/terms" style={{ color: "rgba(139,92,246,0.75)", textDecoration: "none" }}>Terms</Link>
+                   {t("By downloading you agree to our")}{" "}
+                   <Link href="/terms" style={{ color: "rgba(139,92,246,0.75)", textDecoration: "none" }}>{t("Terms")}</Link>
                   {" "}&amp;{" "}
-                  <Link href="/privacy" style={{ color: "rgba(139,92,246,0.75)", textDecoration: "none" }}>Privacy Policy</Link>.
+                   <Link href="/privacy" style={{ color: "rgba(139,92,246,0.75)", textDecoration: "none" }}>{t("Privacy Policy")}</Link>.
                 </p>
 
                 {/* Install steps, compact */}
@@ -811,10 +814,10 @@ export default function DownloadPage() {
                   display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "6px",
                 }}>
                   {[
-                    { n: "1", label: "Download", icon: Download },
-                    { n: "2", label: "Install", icon: Monitor },
-                    { n: "3", label: "Launch", icon: Zap },
-                    { n: "4", label: "Optimize", icon: CheckCircle },
+                     { n: "1", label: "Download", icon: Download },
+                     { n: "2", label: "Install", icon: Monitor },
+                     { n: "3", label: "Launch", icon: Zap },
+                     { n: "4", label: "Optimize", icon: CheckCircle },
                   ].map(({ n, label, icon: Icon }, i) => (
                     <div key={i} data-testid={`step-install-${n}`} style={{
                       display: "flex", flexDirection: "column", alignItems: "center", gap: "4px",
@@ -823,7 +826,7 @@ export default function DownloadPage() {
                     }}>
                       <Icon size={12} style={{ color: "rgba(139,92,246,0.65)" }} />
                       <span style={{ fontSize: "12px", fontWeight: 700, color: "rgba(255,255,255,0.45)" }}>{n}</span>
-                      <span style={{ fontSize: "8.5px", color: "rgba(255,255,255,0.28)", textAlign: "center" }}>{label}</span>
+                      <span style={{ fontSize: "8.5px", color: "rgba(255,255,255,0.28)", textAlign: "center" }}>{t(label)}</span>
                     </div>
                   ))}
                 </div>

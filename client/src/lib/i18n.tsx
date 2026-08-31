@@ -15,6 +15,7 @@ import { ADVISOR_AUTH_TRANSLATIONS } from "./authenticatedTranslations/advisors"
 import { SETTINGS_HISTORY_AUTH_TRANSLATIONS } from "./authenticatedTranslations/settingsHistory";
 
 export type { Locale };
+import { PUBLIC_PAGE_TRANSLATIONS } from "./publicWebsiteTranslations/pages";
 
 export const LOCALES: Array<{ code: Locale; nativeName: string; englishName: string; dir: "ltr" | "rtl" }> = [
   { code: "en", nativeName: "English", englishName: "English", dir: "ltr" },
@@ -2140,6 +2141,7 @@ const PUBLIC_RAW_CHART_COPY: MessageCatalog = {
 export const PUBLIC_CATALOG_KEYS = Object.freeze([
   ...Object.keys(PUBLIC_TAMIL_COPY),
   ...Object.keys(PUBLIC_RAW_CHART_COPY),
+  ...Object.keys(PUBLIC_PAGE_TRANSLATIONS.en),
 ]);
 
 // Product and social-platform names are identifiers, not prose. Keeping these
@@ -2156,6 +2158,36 @@ export const PUBLIC_TECHNICAL_KEYS = Object.freeze([
   "Contact",
   "TikTok · SwitchTech",
   "TikTok · SwitchControl",
+  "Premium",
+  "Download",
+  "Google",
+  "Discord",
+  "EAC · Vanguard · FACEIT",
+  "100% reversible",
+  "AI Advisor",
+  "BIOS Advisor",
+  "Control",
+  "CPU",
+  "Debloater",
+  "FAQ",
+  "Login",
+  "Monitor",
+  "N/A",
+  "NIC Tuning",
+  "No",
+  "Premium Plan",
+  "RAM",
+  "GPU",
+  "IMC",
+  "PBO",
+  "PBO/MCE",
+  "PCIe",
+  "PCIe Gen 4",
+  "TEMP",
+  "XMP/EXPO",
+  "Stripe-encrypted",
+  "USD",
+  "Windows 10 / 11",
 ]);
 
 const PUBLIC_TRANSLATIONS: Record<string, Record<string, string>> = {
@@ -2169,7 +2201,7 @@ const PUBLIC_TRANSLATIONS: Record<string, Record<string, string>> = {
 for (const key of PUBLIC_CATALOG_KEYS) {
   CATALOGS.en[key] = PUBLIC_RAW_CHART_COPY[key] ?? key;
   for (const locale of Object.keys(PUBLIC_TRANSLATIONS) as Exclude<Locale, "en">[]) {
-    const translated = PUBLIC_TRANSLATIONS[locale]?.[key];
+    const translated = PUBLIC_PAGE_TRANSLATIONS[locale]?.[key] ?? PUBLIC_TRANSLATIONS[locale]?.[key];
     if (translated) {
       CATALOGS[locale][key] = translated;
     }

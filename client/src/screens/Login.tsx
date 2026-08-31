@@ -26,6 +26,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useAuthStore, exchangeToken } from "@/lib/auth-store";
+import { useTranslation } from "@/lib/i18n";
 import logoImg from "@/assets/logo.webp";
 
 const AUTH_DOMAIN = "https://switchcontrol.org";
@@ -127,6 +128,7 @@ function Spinner() {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function Login({ succeeded = false }: { succeeded?: boolean }) {
+  const { t } = useTranslation();
   const [loginState, setLoginState] = useState<LoginState>("idle");
   const [loginProvider, setLoginProvider] = useState<"google" | "discord" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -170,16 +172,16 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
         useAuthStore.getState().setUser(user);
         useAuthStore.getState().setElectronAuthState("authenticated");
       } else {
-        setError("Sign-in failed. Please try again.");
+        setError(t("Sign-in failed. Please try again."));
         setLoginState("failed");
         useAuthStore.getState().setElectronAuthState("failed");
       }
     } catch {
-      setError("Sign-in failed. Please try again.");
+      setError(t("Sign-in failed. Please try again."));
       setLoginState("failed");
       useAuthStore.getState().setElectronAuthState("failed");
     }
-  }, [stopPolling, clearSoftTimeout]);
+  }, [stopPolling, clearSoftTimeout, t]);
 
   // Auth progressed successfully, clear UI back to idle / let App.tsx handle transition
   useEffect(() => {
@@ -248,7 +250,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
 
     if (!isElectron) {
       setLoginState("failed");
-      setError("This app must be run inside the SwitchControl desktop app.");
+       setError(t("This app must be run inside the SwitchControl desktop app."));
       return;
     }
 
@@ -317,9 +319,9 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
     } catch {
       useAuthStore.getState().setElectronAuthState("failed");
       setLoginState("failed");
-      setError("Failed to open browser. Please try again.");
+      setError(t("Failed to open browser. Please try again."));
     }
-  }, [clearSoftTimeout, stopPolling, handlePollSuccess]);
+  }, [clearSoftTimeout, stopPolling, handlePollSuccess, t]);
 
   const handleRetry = useCallback(() => {
     if (loginProvider) {
@@ -341,16 +343,16 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
         useAuthStore.getState().setUser(user);
         useAuthStore.getState().setElectronAuthState("authenticated");
       } else {
-        setError("Invalid or expired code. Please sign in via your browser again.");
+        setError(t("Invalid or expired code. Please sign in via your browser again."));
         useAuthStore.getState().setElectronAuthState("failed");
       }
     } catch {
-      setError("Code verification failed. Please try again.");
+      setError(t("Code verification failed. Please try again."));
       useAuthStore.getState().setElectronAuthState("failed");
     } finally {
       setIsPasting(false);
     }
-  }, [pastedCode]);
+  }, [pastedCode, t]);
 
   return (
     <div className="absolute inset-0 bg-[#080810] overflow-hidden flex items-center justify-center">
@@ -582,7 +584,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
               />
               <motion.img
                 src={logoImg}
-                alt="SwitchControl"
+                alt={t("SwitchControl")}
                 className="w-20 h-20 max-w-[80px] max-h-[80px] object-contain rounded-[22%]"
                 animate={{ rotate: [0, 1.5, -1.5, 0] }}
                 transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
@@ -596,7 +598,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                Welcome to{" "}
+                 {t("Welcome to")}{" "}
                 <span className="bg-gradient-to-r from-primary to-pink-400 bg-clip-text text-transparent">
                   SwitchControl
                 </span>
@@ -607,7 +609,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
               >
-                Sign in to optimize your gaming experience
+                 {t("Sign in to optimize your gaming experience")}
               </motion.p>
             </div>
           </div>
@@ -622,7 +624,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                 transition={{ duration: 0.2 }}
                 className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center"
               >
-                {error}
+                 {t(error)}
               </motion.div>
             )}
           </AnimatePresence>
@@ -642,8 +644,8 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                   className="flex flex-col items-center gap-4 py-4"
                 >
                   <Spinner />
-                  <span className="text-sm text-white/70 font-medium">Verifying your account...</span>
-                  <p className="text-[11px] text-white/35">Securely connecting · this may take a moment</p>
+                   <span className="text-sm text-white/70 font-medium">{t("Verifying your account...")}</span>
+                   <p className="text-[11px] text-white/35">{t("Securely connecting · this may take a moment")}</p>
                 </motion.div>
 
               ) : loginState === "authorizing" ? (
@@ -658,15 +660,15 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                 >
                   <Spinner />
                   <span className="text-sm text-white/70 font-medium">
-                    Complete sign-in in your browser
+                     {t("Complete sign-in in your browser")}
                   </span>
 
                   {/* Step-by-step instructions */}
                   <div className="w-full rounded-xl bg-white/[0.03] border border-white/[0.07] px-4 py-3 space-y-1.5 text-left">
-                    <p className="text-[11px] text-white/50 font-medium mb-2">After signing in with Google or Discord:</p>
-                    <p className="text-[11px] text-white/60">① On the <span className="text-purple-300/80 font-medium">"You're signed in"</span> page in your browser</p>
-                    <p className="text-[11px] text-white/60">② Click the <span className="text-purple-300/80 font-medium">"Open SwitchControl"</span> button</p>
-                    <p className="text-[11px] text-white/40 mt-1">If your browser asks permission, click <span className="text-white/55">Allow</span> or <span className="text-white/55">Open</span></p>
+                    <p className="text-[11px] text-white/50 font-medium mb-2">{t("After signing in with Google or Discord:")}</p>
+                    <p className="text-[11px] text-white/60">① {t("On the")} <span className="text-purple-300/80 font-medium">{t("\"You're signed in\"")}</span> {t("page in your browser")}</p>
+                    <p className="text-[11px] text-white/60">② {t("Click the")} <span className="text-purple-300/80 font-medium">{t("\"Open SwitchControl\"")}</span> {t("button")}</p>
+                    <p className="text-[11px] text-white/40 mt-1">{t("If your browser asks permission, click")} <span className="text-white/55">{t("Allow")}</span> {t("or")} <span className="text-white/55">{t("Open")}</span></p>
                   </div>
 
                   {/* Paste code fallback, revealed after delay so it feels like a last resort */}
@@ -680,7 +682,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                         className="w-full border-t border-white/[0.06] pt-3 space-y-2"
                       >
                         <p className="text-[11px] text-white/30 text-center">
-                          App didn't open? Paste the code shown on the sign-in page:
+                           {t("App didn't open? Paste the code shown on the sign-in page:")}
                         </p>
                         <div className="flex gap-2">
                           <input
@@ -688,7 +690,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                             value={pastedCode}
                             onChange={(e) => setPastedCode(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && handlePasteCode()}
-                            placeholder="Paste auth code..."
+                             placeholder={t("Paste auth code...")}
                             className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white/70 placeholder:text-white/25 focus:outline-none focus:border-purple-400/30 focus:bg-white/[0.06] transition-all"
                             data-testid="input-paste-code-authorizing"
                           />
@@ -698,7 +700,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                             className="h-auto px-4 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300/80 text-xs rounded-xl border border-purple-400/20 disabled:opacity-30 disabled:cursor-not-allowed"
                             data-testid="button-paste-verify-authorizing"
                           >
-                            {isPasting ? "Verifying..." : "Verify"}
+                             {isPasting ? t("Verifying...") : t("Verify")}
                           </Button>
                         </div>
                       </motion.div>
@@ -711,7 +713,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                     whileTap={{ scale: 0.96 }}
                     data-testid="button-login-cancel"
                   >
-                    Cancel and go back
+                     {t("Cancel and go back")}
                   </motion.button>
                 </motion.div>
 
@@ -726,8 +728,8 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                   className="flex flex-col gap-4 py-2"
                 >
                   <div className="text-center">
-                    <p className="text-sm text-white/60 font-medium">Login is taking longer than expected</p>
-                    <p className="text-[11px] text-white/30 mt-1">Still waiting for your browser, you can retry or wait a bit longer</p>
+                     <p className="text-sm text-white/60 font-medium">{t("Login is taking longer than expected")}</p>
+                     <p className="text-[11px] text-white/30 mt-1">{t("Still waiting for your browser, you can retry or wait a bit longer")}</p>
                   </div>
 
                   {/* Primary: retry */}
@@ -738,7 +740,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                     whileTap={{ scale: 0.97 }}
                     data-testid="button-login-retry"
                   >
-                    Retry Login
+                     {t("Retry Login")}
                   </motion.button>
 
                   {/* Cancel, secondary */}
@@ -747,7 +749,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                     className="text-xs text-white/30 hover:text-white/55 transition-colors text-center"
                     data-testid="button-login-cancel-recovery"
                   >
-                    Cancel and go back
+                     {t("Cancel and go back")}
                   </button>
 
                   {/* Expandable manual recovery */}
@@ -757,7 +759,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                       className="w-full flex items-center justify-between text-[11px] text-white/30 hover:text-white/50 transition-colors"
                       data-testid="button-recovery-expand"
                     >
-                      <span>Having trouble? Manual recovery</span>
+                       <span>{t("Having trouble? Manual recovery")}</span>
                       <motion.span
                         animate={{ rotate: recoveryExpanded ? 180 : 0 }}
                         transition={{ duration: 0.2 }}
@@ -778,7 +780,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                         >
                           <div className="pt-3 space-y-2">
                             <p className="text-[11px] text-white/25 text-center">
-                              If your browser blocked the app, paste your auth code below
+                               {t("If your browser blocked the app, paste your auth code below")}
                             </p>
                             <div className="flex gap-2">
                               <input
@@ -786,7 +788,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                                 value={pastedCode}
                                 onChange={(e) => setPastedCode(e.target.value)}
                                 onKeyDown={(e) => e.key === "Enter" && handlePasteCode()}
-                                placeholder="Paste auth code..."
+                                 placeholder={t("Paste auth code...")}
                                 className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white/70 placeholder:text-white/25 focus:outline-none focus:border-purple-400/30 focus:bg-white/[0.06] transition-all"
                                 data-testid="input-paste-code"
                               />
@@ -796,7 +798,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                                 className="h-auto px-4 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300/80 text-xs rounded-xl border border-purple-400/20 disabled:opacity-30 disabled:cursor-not-allowed"
                                 data-testid="button-paste-verify"
                               >
-                                {isPasting ? "Verifying..." : "Verify"}
+                                 {isPasting ? t("Verifying...") : t("Verify")}
                               </Button>
                             </div>
                           </div>
@@ -823,7 +825,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                     whileTap={{ scale: 0.97 }}
                     data-testid="button-login-try-again"
                   >
-                    Try Again
+                     {t("Try Again")}
                   </motion.button>
                 </motion.div>
 
@@ -850,7 +852,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                       data-testid="button-login-google"
                     >
                       <GoogleIcon className="w-5 h-5 mr-3" />
-                      Continue with Google
+                       {t("Sign in with Google")}
                     </Button>
                   </motion.div>
 
@@ -867,7 +869,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                       data-testid="button-login-discord"
                     >
                       <DiscordIcon className="w-5 h-5 mr-3" />
-                      Continue with Discord
+                       {t("Sign in with Discord")}
                     </Button>
                   </motion.div>
                 </motion.div>
@@ -881,7 +883,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
           >
-            By signing in, you agree to our Terms of Service and Privacy Policy
+             {t("By signing in, you agree to our Terms of Service and Privacy Policy")}
           </motion.p>
         </div>
       </motion.div>

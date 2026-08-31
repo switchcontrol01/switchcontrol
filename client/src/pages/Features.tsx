@@ -12,6 +12,7 @@ import { GlowButton } from "@/components/website/GlowButton";
 import { GhostButton } from "@/components/website/GhostButton";
 import { SectionHeader } from "@/components/website/SectionHeader";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 // ─── Reveal wrapper ───────────────────────────────────────────────────────────
 function Reveal({ children, delay = 0, className }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -193,6 +194,7 @@ const AI_MESSAGES = [
 ];
 
 function AIChatPreview() {
+  const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
   const [visible, setVisible] = useState(0);
@@ -222,10 +224,10 @@ function AIChatPreview() {
         >
           {msg.role === "ai" && (
             <div className="flex items-center gap-1.5 mb-1.5 text-xs text-primary/80 font-medium">
-              <Bot className="w-3 h-3" /> AI Advisor
+              <Bot className="w-3 h-3" /> {t("AI Advisor")}
             </div>
           )}
-          {msg.text}
+          {t(msg.text)}
         </motion.div>
       ))}
     </div>
@@ -246,6 +248,7 @@ const BIOS_EDGES = [
 ];
 
 function BiosNodeGraph() {
+  const { t } = useTranslation();
   const svgRef = useRef<SVGSVGElement>(null);
   const inView = useInView(svgRef as any, { once: true });
 
@@ -285,7 +288,7 @@ function BiosNodeGraph() {
           >
             <circle cx={n.x * 2} cy={n.y * 1.1} r="8" fill={`url(#ng-${n.id})`} />
             <circle cx={n.x * 2} cy={n.y * 1.1} r="4" fill={n.color} opacity={n.active ? 1 : 0.35} />
-            <text x={n.x * 2} y={n.y * 1.1 + 14} textAnchor="middle" fontSize="5.5" fill="rgba(255,255,255,0.55)">{n.label}</text>
+            <text x={n.x * 2} y={n.y * 1.1 + 14} textAnchor="middle" fontSize="5.5" fill="rgba(255,255,255,0.55)">{t(n.label)}</text>
             {n.active && (
               <motion.circle
                 cx={n.x * 2} cy={n.y * 1.1} r="9"
@@ -312,6 +315,7 @@ const WORKFLOW_STEPS = [
 ];
 
 function WorkflowTimeline() {
+  const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
   return (
@@ -349,8 +353,8 @@ function WorkflowTimeline() {
                 {i + 1}
               </div>
             </div>
-            <p className="text-sm font-semibold text-[#E6EAF0] mb-1">{step.label}</p>
-            <p className="text-xs text-[#6B7380] leading-relaxed">{step.desc}</p>
+            <p className="text-sm font-semibold text-[#E6EAF0] mb-1">{t(step.label)}</p>
+            <p className="text-xs text-[#6B7380] leading-relaxed">{t(step.desc)}</p>
           </motion.div>
         ))}
       </div>
@@ -372,6 +376,7 @@ const FEATURE_CARDS = [
 ];
 
 function FeatureCard({ feature, delay }: { feature: typeof FEATURE_CARDS[0]; delay: number }) {
+  const { t } = useTranslation();
   const [hovered, setHovered] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
@@ -398,8 +403,8 @@ function FeatureCard({ feature, delay }: { feature: typeof FEATURE_CARDS[0]; del
       >
         <feature.icon className="w-5 h-5" style={{ color: feature.color }} />
       </div>
-      <h3 className="font-semibold text-[#E6EAF0] mb-2">{feature.title}</h3>
-      <p className="text-sm text-[#A0A8B3] leading-relaxed">{feature.desc}</p>
+      <h3 className="font-semibold text-[#E6EAF0] mb-2">{t(feature.title)}</h3>
+      <p className="text-sm text-[#A0A8B3] leading-relaxed">{t(feature.desc)}</p>
       {hovered && (
         <motion.div
           className="absolute inset-0 rounded-2xl pointer-events-none"
@@ -430,6 +435,7 @@ const COMPARE_ROWS = [
 
 // ─── Telemetry dashboard preview ──────────────────────────────────────────────
 function TelemetryDashboard() {
+  const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: false });
   const frameRef = useRef<number>(0);
@@ -520,9 +526,9 @@ function TelemetryDashboard() {
       <div className="flex items-center justify-between px-5 py-3 ">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-primary/80 animate-pulse" />
-          <span className="text-xs text-[#A0A8B3] font-mono">Live System Monitor</span>
+          <span className="text-xs text-[#A0A8B3] font-mono">{t("Live System Monitor")}</span>
         </div>
-        <span className="text-[10px] text-[#6B7380] font-mono">60Hz · 4 sensors</span>
+        <span className="text-[10px] text-[#6B7380] font-mono">{t("60Hz · 4 sensors")}</span>
       </div>
 
       {/* Metric rows */}
@@ -530,7 +536,7 @@ function TelemetryDashboard() {
         {METRICS_DISPLAY.map((m) => (
           <div key={m.label} className="bg-[rgba(10,8,28,0.9)] p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-[#6B7380] font-mono">{m.label}</span>
+              <span className="text-xs text-[#6B7380] font-mono">{t(m.label)}</span>
               <span className="text-base font-bold font-mono" style={{ color: m.color }}>
                 {m.value}{m.unit}
               </span>
@@ -552,7 +558,7 @@ function TelemetryDashboard() {
 
       {/* Bottom chart */}
       <div className="px-5 pt-3 pb-4">
-        <div className="text-[10px] text-[#6B7380] font-mono mb-1">30s history</div>
+        <div className="text-[10px] text-[#6B7380] font-mono mb-1">{t("30s history")}</div>
         <LiveLineChart height={56} />
       </div>
     </div>
@@ -561,6 +567,7 @@ function TelemetryDashboard() {
 
 // ─── Hero dashboard mockup ────────────────────────────────────────────────────
 function HeroDashboardMockup() {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 32, scale: 0.96 }}
@@ -585,7 +592,7 @@ function HeroDashboardMockup() {
           <div className="flex gap-1.5">
             {["#ef4444","#f59e0b","#34d399"].map(c => <div key={c} className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />)}
           </div>
-          <div className="text-[11px] text-[#6B7380] font-mono ml-2">SwitchControl · Dashboard</div>
+          <div className="text-[11px] text-[#6B7380] font-mono ml-2">{t("SwitchControl · Dashboard")}</div>
         </div>
 
         <div className="grid grid-cols-3 gap-px bg-[#21262D]">
@@ -594,13 +601,13 @@ function HeroDashboardMockup() {
             {["Dashboard","Tweaks","Power Plan","AI Advisor","BIOS Advisor","Telemetry"].map((label, i) => (
               <div key={label} className={cn("text-[10px] px-2 py-1.5 rounded-lg font-medium",
                 i === 0 ? "bg-primary/15 text-primary/90" : "text-[#6B7380]"
-              )}>{label}</div>
+              )}>{t(label)}</div>
             ))}
           </div>
 
           {/* Main content */}
           <div className="col-span-2 bg-[rgba(10,8,28,0.9)] p-4 space-y-3">
-            <div className="text-[11px] text-[#A0A8B3] font-semibold">System Overview</div>
+            <div className="text-[11px] text-[#A0A8B3] font-semibold">{t("System Overview")}</div>
 
             {/* Metric bars */}
             {[
@@ -610,7 +617,7 @@ function HeroDashboardMockup() {
             ].map(m => (
               <div key={m.label} className="space-y-0.5">
                 <div className="flex justify-between text-[9px]">
-                  <span className="text-[#6B7380]">{m.label}</span>
+                  <span className="text-[#6B7380]">{t(m.label)}</span>
                   <span style={{ color: m.color }} className="font-mono">{m.val}%</span>
                 </div>
                 <div className="h-1 rounded-full bg-[#21262D]">
@@ -630,11 +637,11 @@ function HeroDashboardMockup() {
             {/* Optimization score */}
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-[10px] text-[#6B7380]">Readiness Estimate</div>
-                <div className="text-xl font-bold text-primary font-mono">N/A<span className="text-xs text-[#6B7380]">/100</span></div>
+                <div className="text-[10px] text-[#6B7380]">{t("Readiness Estimate")}</div>
+                <div className="text-xl font-bold text-primary font-mono">{t("N/A")}<span className="text-xs text-[#6B7380]">/100</span></div>
               </div>
               <div className="text-[10px] text-right text-[#6B7380]">
-                <div>Run a scan for your estimate</div>
+                <div>{t("Run a scan for your estimate")}</div>
               </div>
             </div>
           </div>
@@ -646,6 +653,7 @@ function HeroDashboardMockup() {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function Features() {
+  const { t } = useTranslation();
   return (
     <WebsiteShell variant="full" bgVariant="landing">
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
@@ -671,11 +679,11 @@ export default function Features() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
               >
-                Not just tweaks.<br />
+                {t("Not just tweaks.")}<br />
                 <span className="bg-gradient-to-r from-primary via-[#00D4FF] to-sky-400 bg-clip-text text-transparent">
-                  Real performance
+                  {t("Real performance")}
                 </span>{" "}
-                intelligence.
+                {t("intelligence.")}
               </motion.h1>
 
               <motion.p
@@ -684,7 +692,7 @@ export default function Features() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
               >
-                SwitchControl analyzes, explains, and optimizes your system with AI-driven guidance, BIOS insight, live telemetry, and real tuning workflows, not blind scripts.
+                {t("SwitchControl analyzes, explains, and optimizes your system with AI-driven guidance, BIOS insight, live telemetry, and real tuning workflows, not blind scripts.")}
               </motion.p>
 
               <motion.div
@@ -695,11 +703,11 @@ export default function Features() {
               >
                 <Link href="/download">
                   <GlowButton size="lg">
-                    Download Free <ArrowRight className="w-4 h-4" />
+                    {t("Download Free")} <ArrowRight className="w-4 h-4" />
                   </GlowButton>
                 </Link>
                 <Link href="/pricing">
-                  <GhostButton size="lg">View Pricing</GhostButton>
+                  <GhostButton size="lg">{t("View Pricing")}</GhostButton>
                 </Link>
               </motion.div>
 
@@ -717,9 +725,9 @@ export default function Features() {
                 ].map(s => (
                   <div key={s.label}>
                     <div className="text-2xl font-bold text-[#E6EAF0] font-mono">
-                      {s.text}
+                      {t(s.text)}
                     </div>
-                    <div className="text-xs text-[#6B7380] mt-0.5">{s.label}</div>
+                      <div className="text-xs text-[#6B7380] mt-0.5">{t(s.label)}</div>
                   </div>
                 ))}
               </motion.div>
@@ -735,11 +743,11 @@ export default function Features() {
       <section className="py-24 px-6">
         <div className="max-w-6xl mx-auto">
           <SectionHeader
-            pill="The Difference"
+            pill={t("The Difference")}
             pillIcon={<GitBranch className="w-3 h-3" />}
-            title="Most tools just"
-            titleAccent="apply scripts."
-            subtitle="SwitchControl is an optimization platform built around understanding your system, not guessing at it."
+            title={t("Most tools just")}
+            titleAccent={t("apply scripts.")}
+            subtitle={t("SwitchControl is an optimization platform built around understanding your system, not guessing at it.")}
           />
 
           <div className="grid md:grid-cols-2 gap-6">
@@ -753,7 +761,7 @@ export default function Features() {
                   <div className="w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center">
                     <XIcon className="w-3 h-3 text-red-400" />
                   </div>
-                  <span className="text-sm font-semibold text-red-400">Generic Optimizer Tools</span>
+                  <span className="text-sm font-semibold text-red-400">{t("Generic Optimizer Tools")}</span>
                 </div>
                 <ul className="space-y-3">
                   {[
@@ -765,10 +773,10 @@ export default function Features() {
                     "Optimize once, never revisit or refine",
                     "Random script packs from forum threads",
                     "One-click button that feels like placebo",
-                  ].map(t => (
-                    <li key={t} className="flex items-start gap-2.5 text-sm text-[#A0A8B3]">
+                  ].map(text => (
+                    <li key={text} className="flex items-start gap-2.5 text-sm text-[#A0A8B3]">
                       <XIcon className="w-3.5 h-3.5 text-red-400/60 mt-0.5 shrink-0" />
-                      {t}
+                      {t(text)}
                     </li>
                   ))}
                 </ul>
@@ -786,7 +794,7 @@ export default function Features() {
                   <div className="w-6 h-6 rounded-full bg-primary/25 flex items-center justify-center">
                     <Check className="w-3 h-3 text-primary" />
                   </div>
-                  <span className="text-sm font-semibold text-primary/90">SwitchControl</span>
+                  <span className="text-sm font-semibold text-primary/90">{t("SwitchControl")}</span>
                 </div>
                 <ul className="space-y-3">
                   {[
@@ -798,10 +806,10 @@ export default function Features() {
                     "Guided workflow from scan to refinement",
                     "Curated, tested, and validated optimization paths",
                     "Transparent control, you decide, you understand",
-                  ].map(t => (
-                    <li key={t} className="flex items-start gap-2.5 text-sm text-[#E6EAF0]/75">
+                  ].map(text => (
+                    <li key={text} className="flex items-start gap-2.5 text-sm text-[#E6EAF0]/75">
                       <Check className="w-3.5 h-3.5 text-primary/80 mt-0.5 shrink-0" />
-                      {t}
+                      {t(text)}
                     </li>
                   ))}
                 </ul>
@@ -833,12 +841,12 @@ export default function Features() {
                     <Bot className="w-3.5 h-3.5 text-primary/80" />
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-[#E6EAF0]">AI Advisor</div>
-                    <div className="text-[10px] text-[#6B7380]">Precision diagnosis engine</div>
+                    <div className="text-xs font-semibold text-[#E6EAF0]">{t("AI Advisor")}</div>
+                    <div className="text-[10px] text-[#6B7380]">{t("Precision diagnosis engine")}</div>
                   </div>
                   <div className="ml-auto flex items-center gap-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                    <span className="text-[10px] text-[#6B7380]">Live</span>
+                    <span className="text-[10px] text-[#6B7380]">{t("Live")}</span>
                   </div>
                 </div>
                 <div className="p-4 min-h-[320px]">
@@ -847,7 +855,7 @@ export default function Features() {
                 {/* Input bar */}
                 <div className="px-4 pb-4">
                   <div className="h-10 rounded-xl bg-[#21262D] border border-[#2A313A] flex items-center px-3">
-                    <span className="text-xs text-[#6B7380]">Ask about your setup...</span>
+                    <span className="text-xs text-[#6B7380]">{t("Ask about your setup...")}</span>
                   </div>
                 </div>
               </div>
@@ -857,11 +865,11 @@ export default function Features() {
             <div>
               <Reveal>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium mb-5 bg-primary/10 border border-primary/20 text-primary/90">
-                  <Bot className="w-3 h-3" /> AI Advisor
+                  <Bot className="w-3 h-3" /> {t("AI Advisor")}
                 </span>
                 <h2 className="text-4xl font-extrabold text-[#E6EAF0] leading-tight mb-4">
-                  Ask why, not{" "}
-                  <span className="bg-gradient-to-r from-primary to-[#00D4FF] bg-clip-text text-transparent">just what.</span>
+                  {t("Ask why, not")}{" "}
+                  <span className="bg-gradient-to-r from-primary to-[#00D4FF] bg-clip-text text-transparent">{t("just what.")}</span>
                 </h2>
                 <p className="text-[#A0A8B3] leading-relaxed mb-6">
                   AI Advisor isn't a chatbot bolted on for marketing. It reads your live system state, understands your hardware, and gives ranked recommendations with real explanations, so you stop copying settings blindly and start optimizing with clarity.
@@ -880,8 +888,8 @@ export default function Features() {
                         <item.icon className="w-4 h-4 text-primary/80" />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-[#E6EAF0] mb-0.5">{item.title}</div>
-                        <div className="text-sm text-[#A0A8B3]">{item.desc}</div>
+                        <div className="text-sm font-semibold text-[#E6EAF0] mb-0.5">{t(item.title)}</div>
+                        <div className="text-sm text-[#A0A8B3]">{t(item.desc)}</div>
                       </div>
                     </div>
                   </Reveal>
@@ -904,14 +912,14 @@ export default function Features() {
             <div>
               <Reveal>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium mb-5 bg-sky-500/10 border border-sky-500/20 text-sky-400">
-                  <CircuitBoard className="w-3 h-3" /> BIOS Advisor
+                  <CircuitBoard className="w-3 h-3" /> {t("BIOS Advisor")}
                 </span>
                 <h2 className="text-4xl font-extrabold text-[#E6EAF0] leading-tight mb-4">
                   The settings most tools{" "}
-                  <span className="bg-gradient-to-r from-sky-400 to-cyan-300 bg-clip-text text-transparent">never touch.</span>
+                  <span className="bg-gradient-to-r from-sky-400 to-cyan-300 bg-clip-text text-transparent">{t("never touch.")}</span>
                 </h2>
                 <p className="text-[#A0A8B3] leading-relaxed mb-6">
-                  BIOS configuration is the single largest untapped performance lever for most systems. Memory subtimings, power delivery, PCIe settings, they matter enormously. SwitchControl makes them understandable and actionable without requiring an engineering degree.
+                  {t("BIOS configuration is the single largest untapped performance lever for most systems. Memory subtimings, power delivery, PCIe settings, they matter enormously. SwitchControl makes them understandable and actionable without requiring an engineering degree.")}
                 </p>
               </Reveal>
 
@@ -922,7 +930,7 @@ export default function Features() {
                   { label: "PCIe Gen Selection",   impact: 64, color: "#34d399" },
                   { label: "DRAM Subtimings",      impact: 52, color: "#f59e0b" },
                 ].map(item => (
-                  <AnimBar key={item.label} value={item.impact} color={item.color} label={item.label} sublabel="Estimated impact score" />
+                  <AnimBar key={item.label} value={item.impact} color={item.color} label={t(item.label)} sublabel={t("Estimated impact score")} />
                 ))}
               </div>
             </div>
@@ -936,7 +944,7 @@ export default function Features() {
               }}>
                 <div className="flex items-center gap-2.5 px-5 py-3.5 ">
                   <CircuitBoard className="w-4 h-4 text-sky-400/70" />
-                  <span className="text-xs font-semibold text-[#E6EAF0]">BIOS Advisor · Configuration Map</span>
+                  <span className="text-xs font-semibold text-[#E6EAF0]">{t("BIOS Advisor · Configuration Map")}</span>
                 </div>
                 <div className="p-5">
                   <BiosNodeGraph />
@@ -952,7 +960,7 @@ export default function Features() {
                         background: item.color + "12",
                         border: `1px solid ${item.color}28`,
                       }}>
-                        <div className="text-[#A0A8B3] mb-0.5">{item.label}</div>
+                        <div className="text-[#A0A8B3] mb-0.5">{t(item.label)}</div>
                         <div className="font-semibold" style={{ color: item.color }}>{item.status}</div>
                       </div>
                     ))}
@@ -970,9 +978,9 @@ export default function Features() {
           <SectionHeader
             pill="Live Telemetry"
             pillIcon={<Activity className="w-3 h-3" />}
-            title="See your system."
+            title={t("See your system.")}
             titleAccent="In real time."
-            subtitle="Optimization without visibility is guessing. SwitchControl shows you CPU, RAM, GPU, disk, temps, and network, live, so you know what's actually happening."
+            subtitle={t("Optimization without visibility is guessing. SwitchControl shows you CPU, RAM, GPU, disk, temps, and network, live, so you know what's actually happening.")}
           />
 
           <div className="grid lg:grid-cols-5 gap-8 items-start">
@@ -984,10 +992,10 @@ export default function Features() {
                 backdropFilter: "blur(24px)",
               }}>
                 <div className="flex items-center justify-between">
-                  <div className="text-sm font-semibold text-[#E6EAF0]">CPU + RAM Load, Live</div>
+                  <div className="text-sm font-semibold text-[#E6EAF0]">{t("CPU + RAM Load, Live")}</div>
                   <div className="flex items-center gap-3 text-[11px] text-[#6B7380]">
-                    <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-primary inline-block rounded" /> CPU</span>
-                    <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-sky-400 inline-block rounded" /> RAM</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-primary inline-block rounded" /> {t("CPU")}</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-sky-400 inline-block rounded" /> {t("RAM")}</span>
                   </div>
                 </div>
                 <LiveLineChart height={140} />
@@ -1007,7 +1015,7 @@ export default function Features() {
                     }}>
                       <m.icon className="w-3.5 h-3.5 mx-auto mb-1" style={{ color: m.color + "bb" }} />
                       <div className="text-lg font-bold font-mono" style={{ color: m.color }}>{m.val}%</div>
-                      <div className="text-[10px] text-[#6B7380]">{m.label}</div>
+                      <div className="text-[10px] text-[#6B7380]">{t(m.label)}</div>
                     </div>
                   ))}
                 </div>
@@ -1030,9 +1038,9 @@ export default function Features() {
           <SectionHeader
             pill="Guided Workflow"
             pillIcon={<Layers className="w-3 h-3" />}
-            title="A system. Not"
+            title={t("A system. Not")}
             titleAccent="a button."
-            subtitle="Real optimization is a process. SwitchControl guides you through it, from first scan to sustained performance."
+            subtitle={t("Real optimization is a process. SwitchControl guides you through it, from first scan to sustained performance.")}
           />
           <WorkflowTimeline />
         </div>
@@ -1044,7 +1052,7 @@ export default function Features() {
           <SectionHeader
             pill="Capabilities"
             pillIcon={<Zap className="w-3 h-3" />}
-            title="Everything you need."
+            title={t("Everything you need.")}
             titleAccent="Nothing you don't."
           />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1061,7 +1069,7 @@ export default function Features() {
           <SectionHeader
             pill="Comparison"
             pillIcon={<BarChart3 className="w-3 h-3" />}
-            title="See the difference"
+            title={t("See the difference")}
             titleAccent="side by side."
           />
 
@@ -1072,9 +1080,9 @@ export default function Features() {
             }}>
               {/* Header row */}
               <div className="grid grid-cols-3 bg-[#1A1F26] ">
-                <div className="px-6 py-4 text-sm text-[#6B7380]">Feature</div>
-                <div className="px-4 py-4 text-sm text-center font-semibold text-[#A0A8B3]">Typical Optimizer</div>
-                <div className="px-4 py-4 text-sm text-center font-semibold text-primary/90">SwitchControl</div>
+                <div className="px-6 py-4 text-sm text-[#6B7380]">{t("Feature")}</div>
+                <div className="px-4 py-4 text-sm text-center font-semibold text-[#A0A8B3]">{t("Typical Optimizer")}</div>
+                <div className="px-4 py-4 text-sm text-center font-semibold text-primary/90">{t("SwitchControl")}</div>
               </div>
 
               {COMPARE_ROWS.map((row, i) => (
@@ -1089,12 +1097,12 @@ export default function Features() {
                     i % 2 === 0 ? "bg-[#1A1F26]" : ""
                   )}
                 >
-                  <div className="px-6 py-3.5 text-sm text-[#A0A8B3]">{row.label}</div>
+                  <div className="px-6 py-3.5 text-sm text-[#A0A8B3]">{t(row.label)}</div>
                   <div className="px-4 py-3.5 flex justify-center">
                     {row.them === true ? (
                       <Check className="w-4 h-4 text-[#6B7380]" />
                     ) : row.them === "partial" ? (
-                      <span className="text-[11px] text-[#6B7380] font-medium">Partial</span>
+                      <span className="text-[11px] text-[#6B7380] font-medium">{t("Partial")}</span>
                     ) : (
                       <XIcon className="w-4 h-4 text-red-400/50" />
                     )}
@@ -1121,9 +1129,9 @@ export default function Features() {
           <SectionHeader
             pill="Performance Data"
             pillIcon={<TrendingUp className="w-3 h-3" />}
-            title="Real numbers."
+            title={t("Real numbers.")}
             titleAccent="Real gains."
-            subtitle="Measured results from optimized systems, not marketing estimates."
+            subtitle={t("Measured results from optimized systems, not marketing estimates.")}
           />
 
           <div className="grid md:grid-cols-2 gap-8">
@@ -1135,8 +1143,8 @@ export default function Features() {
                 backdropFilter: "blur(24px)",
               }}>
                 <div className="flex items-center justify-between mb-5">
-                  <div className="text-sm font-semibold text-[#E6EAF0]">Frame Consistency</div>
-                  <span className="text-xs text-primary/70 bg-primary/10 px-2 py-1 rounded-full">illustrative</span>
+                  <div className="text-sm font-semibold text-[#E6EAF0]">{t("Frame Consistency")}</div>
+                  <span className="text-xs text-primary/70 bg-primary/10 px-2 py-1 rounded-full">{t("illustrative")}</span>
                 </div>
                 <div className="space-y-4">
                   {[
@@ -1147,8 +1155,8 @@ export default function Features() {
                   ].map((g, i) => (
                     <div key={g.game} className="space-y-1.5">
                       <div className="flex justify-between text-xs text-[#A0A8B3]">
-                        <span>{g.game}</span>
-                        <span style={{ color: g.color }} className="font-semibold">{g.feel}</span>
+                        <span>{t(g.game)}</span>
+                        <span style={{ color: g.color }} className="font-semibold">{t(g.feel)}</span>
                       </div>
                       <div className="relative h-6 rounded-lg overflow-hidden bg-[#21262D]">
                         {/* Before */}
@@ -1174,8 +1182,8 @@ export default function Features() {
                   ))}
                 </div>
                 <div className="flex gap-4 mt-4 pt-4  text-[11px] text-[#6B7380]">
-                  <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded bg-[#2A313A] inline-block" />Baseline</span>
-                  <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded bg-primary/60 inline-block" />After SwitchControl</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded bg-[#2A313A] inline-block" />{t("Baseline")}</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded bg-primary/60 inline-block" />{t("After SwitchControl")}</span>
                 </div>
               </div>
             </Reveal>
@@ -1188,8 +1196,8 @@ export default function Features() {
                 backdropFilter: "blur(24px)",
               }}>
                 <div className="flex items-center justify-between mb-5">
-                  <div className="text-sm font-semibold text-[#E6EAF0]">1% Lows & Frametimes</div>
-                  <span className="text-xs text-sky-400/70 bg-sky-400/10 px-2 py-1 rounded-full">Smoothness</span>
+                  <div className="text-sm font-semibold text-[#E6EAF0]">{t("1% Lows & Frametimes")}</div>
+                  <span className="text-xs text-sky-400/70 bg-sky-400/10 px-2 py-1 rounded-full">{t("Smoothness")}</span>
                 </div>
 
                 <LiveLineChart height={100} color="#38bdf8" color2="#00D4FF" />
@@ -1203,9 +1211,9 @@ export default function Features() {
                     <div key={s.label} className="rounded-xl p-3 text-center" style={{
                       background: s.color + "0a", border: `1px solid ${s.color}22`,
                     }}>
-                      <div className="text-base font-bold font-mono mb-0.5" style={{ color: s.color }}>{s.val}</div>
-                      <div className="text-[10px] text-[#6B7380] leading-tight">{s.label}</div>
-                      <div className="text-[9px] text-[#6B7380] mt-0.5">{s.sub}</div>
+                      <div className="text-base font-bold font-mono mb-0.5" style={{ color: s.color }}>{t(s.val)}</div>
+                      <div className="text-[10px] text-[#6B7380] leading-tight">{t(s.label)}</div>
+                      <div className="text-[9px] text-[#6B7380] mt-0.5">{t(s.sub)}</div>
                     </div>
                   ))}
                 </div>
@@ -1224,16 +1232,16 @@ export default function Features() {
         <div className="max-w-3xl mx-auto text-center relative">
           <Reveal>
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium mb-6 bg-primary/10 border border-primary/20 text-primary/90">
-              <Clock className="w-3 h-3" /> Stop guessing. Start knowing.
+              <Clock className="w-3 h-3" /> {t("Stop guessing. Start knowing.")}
             </span>
             <h2 className="text-5xl font-extrabold text-[#E6EAF0] mb-6 leading-tight">
-              Your system deserves better than{" "}
+              {t("Your system deserves better than")}{" "}
               <span className="bg-gradient-to-r from-primary via-[#00D4FF] to-sky-400 bg-clip-text text-transparent">
-                blind scripts.
+                {t("blind scripts.")}
               </span>
             </h2>
             <p className="text-lg text-[#A0A8B3] leading-relaxed mb-10 max-w-xl mx-auto">
-              SwitchControl gives you the analysis, the intelligence, and the workflow to optimize your system with clarity, not chance.
+              {t("SwitchControl gives you the analysis, the intelligence, and the workflow to optimize your system with clarity, not chance.")}
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link href="/download">
@@ -1243,7 +1251,7 @@ export default function Features() {
               </Link>
               <Link href="/pricing">
                 <GhostButton size="lg">
-                  View Pricing <ChevronRight className="w-4 h-4" />
+                  {t("View Pricing")} <ChevronRight className="w-4 h-4" />
                 </GhostButton>
               </Link>
             </div>
@@ -1255,8 +1263,8 @@ export default function Features() {
                 { val: "AI",    label: "Guided advisor"  },
               ].map(s => (
                 <div key={s.label} className="text-center">
-                  <div className="text-3xl font-bold text-[#E6EAF0] mb-1">{s.val}</div>
-                  <div className="text-sm text-[#6B7380]">{s.label}</div>
+                  <div className="text-3xl font-bold text-[#E6EAF0] mb-1">{t(s.val)}</div>
+                  <div className="text-sm text-[#6B7380]">{t(s.label)}</div>
                 </div>
               ))}
             </div>

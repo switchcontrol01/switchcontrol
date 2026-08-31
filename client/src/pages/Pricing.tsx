@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
 import { GlowButton } from "@/components/website/GlowButton";
 import { countFreeTweaks, countPremiumTweaks } from "@/lib/premium-config";
+import { useTranslation } from "@/lib/i18n";
 
 interface IconItem {
   icon: ElementType;
@@ -70,7 +71,7 @@ const PREMIUM_TWEAK_COUNT = countPremiumTweaks();
 
 const FREE_BENEFITS = [
   { text: "Live activity monitor",        note: "CPU, RAM, GPU, disk, and network" },
-  { text: `${FREE_TWEAK_COUNT} free system tweaks`, note: "Safe, reversible, and explained" },
+  { text: "{count} free system tweaks", count: FREE_TWEAK_COUNT, note: "Safe, reversible, and explained" },
   { text: "RAM cleanup tools",             note: "Free standing-memory cleanup" },
   { text: "Startup app manager",           note: "Control what launches with Windows" },
   { text: "System cleaner",               note: "Junk files, temp data, and cleanup scans" },
@@ -82,8 +83,8 @@ const FREE_BENEFITS = [
 ];
 
 const PREMIUM_BENEFITS = [
-  { text: "Everything in Free",           note: `All free tools and ${FREE_TWEAK_COUNT} free tweaks` },
-  { text: `${PREMIUM_TWEAK_COUNT} advanced system tweaks`, note: "Hardware-sensitive controls and profiles" },
+  { text: "Everything in Free",           note: "All free tools and {count} free tweaks", count: FREE_TWEAK_COUNT },
+  { text: "{count} advanced system tweaks", count: PREMIUM_TWEAK_COUNT, note: "Hardware-sensitive controls and profiles" },
   { text: "AI Advisor",                   note: "Hardware-aware optimization" },
   { text: "BIOS Advisor",                 note: "Firmware scoring and guided tuning" },
   { text: "Network Tweaks",               note: "DNS, jitter, TCP, and adapter tuning" },
@@ -172,8 +173,8 @@ const COMPARISON_CATEGORIES = [
   {
     label: "Optimization",
     rows: [
-      { feature: `${FREE_TWEAK_COUNT} free system tweaks`,             free: true,  premium: true  },
-      { feature: `${PREMIUM_TWEAK_COUNT} advanced system tweaks`,     free: false, premium: true  },
+      { feature: "{count} free system tweaks", count: FREE_TWEAK_COUNT, free: true, premium: true  },
+      { feature: "{count} advanced system tweaks", count: PREMIUM_TWEAK_COUNT, free: false, premium: true  },
       { feature: "Power Plan profiles",                                free: false, premium: true  },
       { feature: "App process priority booster",                       free: false, premium: true  },
     ],
@@ -206,7 +207,8 @@ const OBJECTIONS = [
   },
   {
     q: "What does Premium add beyond the free tools?",
-    a: `The Free plan already includes useful tools and system tweaks. Premium adds ${PREMIUM_TWEAK_COUNT} advanced controls, hardware-aware AI guidance, BIOS recommendations, power profiles, network analysis, and deeper performance diagnostics. Each option is explained so you can decide whether it fits your setup.`,
+    a: "The Free plan already includes useful tools and system tweaks. Premium adds {count} advanced controls, hardware-aware AI guidance, BIOS recommendations, power profiles, network analysis, and deeper performance diagnostics. Each option is explained so you can decide whether it fits your setup.",
+    count: PREMIUM_TWEAK_COUNT,
     accent: "rgba(168,85,247,",
     badge: "Value",
   },
@@ -340,7 +342,7 @@ function TelemetryLines() {
 }
 
 // ── Mini perf graph inside premium card ────────────────────────────────────
-function PremiumPerfGraph() {
+function PremiumPerfGraph({ t }: { t: (source: string, fallback?: string, values?: Record<string, string | number>) => string }) {
   const points = [18, 28, 22, 8, 14, 6, 10, 4, 8, 3, 5, 2];
   const w = 220; const h = 48;
   const max = Math.max(...points);
@@ -350,8 +352,8 @@ function PremiumPerfGraph() {
   return (
     <div className="mt-4 mb-2">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#00D4FF]/70">System latency, demo illustration</span>
-        <span className="text-[10px] font-bold text-emerald-400/40">Demo only</span>
+        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#00D4FF]/70">{t("System latency, demo illustration")}</span>
+        <span className="text-[10px] font-bold text-emerald-400/40">{t("Demo only")}</span>
       </div>
       <svg width="100%" viewBox={`0 0 ${w} ${h}`} fill="none" className="overflow-visible">
         <defs>
@@ -390,8 +392,8 @@ function PremiumPerfGraph() {
         />
       </svg>
       <div className="flex justify-between text-[9px] text-[#6B7380]/50 mt-0.5">
-        <span>Unoptimized</span>
-        <span>After Premium</span>
+        <span>{t("Unoptimized")}</span>
+        <span>{t("After Premium")}</span>
       </div>
     </div>
   );
@@ -451,7 +453,7 @@ function ScrollFade({ children, delay = 0, className }: { children: React.ReactN
 }
 
 // ── Objection item ─────────────────────────────────────────────────────────
-function ObjectionItem({ item, index }: { item: typeof OBJECTIONS[number]; index: number }) {
+function ObjectionItem({ item, index, t }: { item: typeof OBJECTIONS[number]; index: number; t: (source: string, fallback?: string, values?: Record<string, string | number>) => string }) {
   const [open, setOpen] = useState(false);
   return (
     <ScrollFade delay={index * 0.05}>
@@ -480,11 +482,11 @@ function ObjectionItem({ item, index }: { item: typeof OBJECTIONS[number]; index
               className="shrink-0 text-[9px] font-bold uppercase tracking-[0.14em] px-2 py-1 rounded-md mt-0.5"
               style={{ background: `${item.accent}0.1)`, border: `1px solid ${item.accent}0.2)`, color: item.accent + "0.85)" }}
             >
-              {item.badge}
+              {t(item.badge)}
             </div>
             <div className="flex-1">
               <span className="text-[14px] font-semibold" style={{ color: open ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.7)" }}>
-                {item.q}
+                {t(item.q)}
               </span>
             </div>
             <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.28, ease: EASE_IO }}>
@@ -501,7 +503,7 @@ function ObjectionItem({ item, index }: { item: typeof OBJECTIONS[number]; index
                 className="overflow-hidden"
               >
                 <div className="px-5 pb-4 pl-[5.5rem] text-[13.5px] text-[#A0A8B3] leading-relaxed">
-                  {item.a}
+                  {t(item.a, undefined, "count" in item ? { count: item.count } : undefined)}
                 </div>
               </motion.div>
             )}
@@ -514,6 +516,7 @@ function ObjectionItem({ item, index }: { item: typeof OBJECTIONS[number]; index
 
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function Pricing() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const { user, isAuthenticated, isPremium } = useAuth();
@@ -541,33 +544,33 @@ export default function Pricing() {
         // Server sets Retry-After as seconds remaining in the rate-limit window
         // (standardHeaders: true in express-rate-limit). Parse it and tell the
         // user exactly how long to wait instead of a generic "try again later".
-        let waitMsg = "Please try again later.";
+        let waitMsg = t("Please try again later.");
         try {
           const retryAfterSec = Number(res.headers.get("Retry-After"));
           if (!isNaN(retryAfterSec) && retryAfterSec > 0) {
             const mins = Math.ceil(retryAfterSec / 60);
             waitMsg = mins <= 1
-              ? "Please try again in about a minute."
-              : `Please try again in ${mins} minutes.`;
+              ? t("Please try again in about a minute.")
+              : t("Please try again in {mins} minutes.", undefined, { mins });
           }
         } catch {
           // header missing or unparseable, fall back to generic message
         }
         toast({
-          title: "Checkout Error",
-          description: `Checkout rate limit reached. ${waitMsg}`,
+          title: t("Checkout Error"),
+          description: `${t("Checkout rate limit reached.")} ${waitMsg}`,
           variant: "destructive",
         });
         return;
       }
 
-      if (!res.ok) throw new Error(data.error || "Failed to create checkout session");
+      if (!res.ok) throw new Error(data.error || t("Failed to create checkout session"));
       if (data.url) window.location.href = data.url;
-      else throw new Error("No checkout URL received");
+      else throw new Error(t("No checkout URL received"));
     } catch (error: any) {
       toast({
-        title: "Checkout Error",
-        description: error.message || "Failed to start checkout. Please try again.",
+        title: t("Checkout Error"),
+        description: error.message || t("Failed to start checkout. Please try again."),
         variant: "destructive",
       });
     } finally {
@@ -635,7 +638,7 @@ export default function Pricing() {
           {/* Headline */}
           <FadeUp delay={0.08}>
             <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.06] mb-6">
-              <span className="text-[#E6EAF0]">Stop guessing.</span>
+                <span className="text-[#E6EAF0]">{t("Stop guessing.")}</span>
               <br />
               <span
                 style={{
@@ -645,7 +648,7 @@ export default function Pricing() {
                   WebkitTextFillColor: "transparent",
                 }}
               >
-                Start winning.
+                {t("Start winning.")}
               </span>
             </h1>
           </FadeUp>
@@ -653,8 +656,7 @@ export default function Pricing() {
           {/* Sub */}
           <FadeUp delay={0.17}>
             <p className="text-[17px] text-[#E6EAF0]/42 max-w-lg mx-auto leading-relaxed mb-12">
-              Every millisecond matters. SwitchControl gives you the intelligence,
-              the control, and the precision to use every one of them.
+              {t("Every millisecond matters. SwitchControl gives you the intelligence, the control, and the precision to use every one of them.")}
             </p>
           </FadeUp>
 
@@ -675,16 +677,16 @@ export default function Pricing() {
                   className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] px-2.5 py-1 rounded-lg mb-5 w-fit"
                   style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", color: "rgba(255,255,255,0.4)" }}
                 >
-                  Entry Layer
+                  {t("Entry Layer")}
                 </div>
 
-                <h3 className="text-2xl font-bold text-[#E6EAF0] mb-1" data-testid="text-plan-free">Free</h3>
+                <h3 className="text-2xl font-bold text-[#E6EAF0] mb-1" data-testid="text-plan-free">{t("Free")}</h3>
                 <div className="flex items-baseline gap-1.5 mb-1">
                   <span className="text-5xl font-extrabold text-[#E6EAF0] tracking-tight">$0</span>
-                  <span className="text-[#6B7380] text-sm">forever</span>
+                  <span className="text-[#6B7380] text-sm">{t("forever")}</span>
                 </div>
                 <p className="text-[13px] text-[#6B7380] mb-6 leading-relaxed">
-                  A solid starting point. Real tools, real value, with room to grow.
+                  {t("A solid starting point. Real tools, real value, with room to grow.")}
                 </p>
 
                 <ul className="space-y-2.5 mb-8 flex-1">
@@ -698,8 +700,8 @@ export default function Pricing() {
                     >
                       <Check className="size-3.5 text-emerald-400/70 shrink-0 mt-[3px]" />
                       <div>
-                        <span className="text-[13px] text-[#E6EAF0]/65 font-medium">{b.text}</span>
-                        <span className="text-[11px] text-[#6B7380] ml-1.5">{b.note}</span>
+                        <span className="text-[13px] text-[#E6EAF0]/65 font-medium">{t(b.text, undefined, "count" in b ? { count: b.count } : undefined)}</span>
+                        <span className="text-[11px] text-[#6B7380] ml-1.5">{t(b.note, undefined, "count" in b ? { count: b.count } : undefined)}</span>
                       </div>
                     </motion.li>
                   ))}
@@ -715,7 +717,7 @@ export default function Pricing() {
                   data-testid="button-select-free"
                   onClick={handleGetStarted}
                 >
-                  Get Started Free
+                  {t("Get Started Free")}
                 </button>
               </div>
             </FadeUp>
@@ -761,28 +763,28 @@ export default function Pricing() {
                       style={{ background: "rgba(139,92,246,0.2)", border: "1px solid rgba(168,85,247,0.35)", color: "rgba(192,132,252,0.95)" }}
                     >
                       <Crown className="size-3" />
-                      Full Control
+                      {t("Full Control")}
                     </div>
                     <div
                       className="text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 rounded-full"
                       style={{ background: "rgba(52,211,153,0.12)", border: "1px solid rgba(52,211,153,0.25)", color: "rgba(52,211,153,0.85)" }}
                     >
-                      Best Value
+                      {t("Best Value")}
                     </div>
                   </div>
 
-                  <h3 className="text-2xl font-bold text-[#E6EAF0] mb-1" data-testid="text-plan-premium">Premium</h3>
+                  <h3 className="text-2xl font-bold text-[#E6EAF0] mb-1" data-testid="text-plan-premium">{t("Premium")}</h3>
                   <div className="flex items-baseline gap-1.5 mb-1">
                     <span className="text-5xl font-extrabold text-[#E6EAF0] tracking-tight">39</span>
-                    <span className="mb-1 text-sm font-semibold text-[#A0A8B3]">USD</span>
-                    <span className="text-[#6B7380] text-sm">one-time</span>
+                    <span className="mb-1 text-sm font-semibold text-[#A0A8B3]">{t("USD")}</span>
+                    <span className="text-[#6B7380] text-sm">{t("one-time")}</span>
                   </div>
                   <p className="text-[13px] text-[#A0A8B3] mb-2 leading-relaxed">
-                    The complete SwitchControl experience. Lifetime access. No subscription, ever.
+                    {t("The complete SwitchControl experience. Lifetime access. No subscription, ever.")}
                   </p>
 
                   {/* Mini perf graph */}
-                  <PremiumPerfGraph />
+                  <PremiumPerfGraph t={t} />
 
                   <ul className="space-y-2.5 mb-8 flex-1 mt-4">
                     {PREMIUM_BENEFITS.map((b, i) => (
@@ -800,8 +802,8 @@ export default function Pricing() {
                           <Check className="size-2.5 text-[#33E0FF]" />
                         </div>
                         <div>
-                          <span className="text-[13px] text-[#E6EAF0] font-medium">{b.text}</span>
-                          <span className="text-[11px] text-[#6B7380] ml-1.5">{b.note}</span>
+                          <span className="text-[13px] text-[#E6EAF0] font-medium">{t(b.text, undefined, "count" in b ? { count: b.count } : undefined)}</span>
+                          <span className="text-[11px] text-[#6B7380] ml-1.5">{t(b.note, undefined, "count" in b ? { count: b.count } : undefined)}</span>
                         </div>
                       </motion.li>
                     ))}
@@ -815,19 +817,19 @@ export default function Pricing() {
                     data-testid="button-select-premium"
                   >
                     {isCheckoutLoading ? (
-                      <><Loader2 className="size-4 animate-spin" />Processing...</>
+                      <><Loader2 className="size-4 animate-spin" />{t("Processing...")}</>
                     ) : isPremium ? (
-                      <><Check className="size-4" />Purchased</>
+                      <><Check className="size-4" />{t("Purchased")}</>
                     ) : !isAuthenticated ? (
-                      "Log in to purchase"
+                      t("Log in to purchase")
                     ) : (
-                      <>Get Premium, 39 USD<ArrowRight className="size-4" /></>
+                      <>{t("Get Premium, 39 USD")}<ArrowRight className="size-4" /></>
                     )}
                   </GlowButton>
 
                   {/* Footnote */}
                   <p className="text-center text-[11px] text-[#E6EAF0]/22 mt-3">
-                    One payment · Lifetime access · No recurring fees
+                    {t("One payment · Lifetime access · No recurring fees")}
                   </p>
                 </div>
               </div>
@@ -837,12 +839,12 @@ export default function Pricing() {
           {/* Trust micro row */}
           <FadeUp delay={0.52}>
             <div className="mt-8 flex flex-wrap justify-center gap-3 md:gap-5">
-              {TRUST_ITEMS.map((t) => {
-                const TIcon = t.icon;
+              {TRUST_ITEMS.map((trustItem) => {
+                const TIcon = trustItem.icon;
                 return (
-                  <div key={t.label} className="flex items-center gap-1.5 text-[#6B7380]">
+                  <div key={trustItem.label} className="flex items-center gap-1.5 text-[#6B7380]">
                     <TIcon className="size-3.5 text-[#00D4FF]/60" />
-                    <span className="text-[12px] font-medium">{t.label}</span>
+                    <span className="text-[12px] font-medium">{t(trustItem.label)}</span>
                   </div>
                 );
               })}
@@ -869,7 +871,7 @@ export default function Pricing() {
                 </span>
               </h2>
               <p className="text-[#E6EAF0]/38 text-[15px] max-w-xl mx-auto leading-relaxed">
-                Premium exists to give you precision that generic optimizers never will.
+                {t("Premium exists to give you precision that generic optimizers never will.")}
               </p>
             </div>
           </ScrollFade>
@@ -899,8 +901,8 @@ export default function Pricing() {
                     <MiniBarChart bars={o.bars} accent={o.accent} />
                   </div>
 
-                  <h3 className="text-[14.5px] font-bold text-[#E6EAF0] leading-snug">{o.title}</h3>
-                  <p className="text-[12.5px] text-[#E6EAF0]/42 leading-relaxed flex-1">{o.body}</p>
+                  <h3 className="text-[14.5px] font-bold text-[#E6EAF0] leading-snug">{t(o.title)}</h3>
+                  <p className="text-[12.5px] text-[#E6EAF0]/42 leading-relaxed flex-1">{t(o.body)}</p>
                 </div>
               </ScrollFade>
             ))}
@@ -919,13 +921,13 @@ export default function Pricing() {
           <ScrollFade>
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-5xl font-extrabold text-[#E6EAF0] tracking-tight leading-tight mb-4">
-                Free vs{" "}
+                {t("Free vs")}{" "}
                 <span style={{ background: "linear-gradient(90deg, #c084fc, #818cf8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                  Premium
+                  {t("Premium")}
                 </span>
               </h2>
               <p className="text-[#E6EAF0]/38 text-[15px] max-w-lg mx-auto">
-                Exactly what you get with each plan, no vague marketing.
+                {t("Exactly what you get with each plan, no vague marketing.")}
               </p>
             </div>
           </ScrollFade>
@@ -934,12 +936,12 @@ export default function Pricing() {
           <ScrollFade delay={0.1}>
             <div className="grid grid-cols-[1fr_80px_80px] md:grid-cols-[1fr_100px_100px] gap-x-3 mb-4 px-4">
               <div />
-              <div className="text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B7380]">Free</div>
+              <div className="text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B7380]">{t("Free")}</div>
               <div
                 className="text-center text-[11px] font-bold uppercase tracking-[0.14em] px-2 py-1 rounded-lg"
                 style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.2)", color: "rgba(192,132,252,0.9)" }}
               >
-                Premium
+                {t("Premium")}
               </div>
             </div>
           </ScrollFade>
@@ -959,7 +961,7 @@ export default function Pricing() {
                     className="px-4 py-2.5"
                     style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.015)" }}
                   >
-                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6B7380]">{cat.label}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6B7380]">{t(cat.label)}</span>
                   </div>
 
                   {cat.rows.map((row, ri) => (
@@ -969,7 +971,7 @@ export default function Pricing() {
                       style={{ borderBottom: ri < cat.rows.length - 1 ? "1px solid rgba(255,255,255,0.035)" : "none" }}
                     >
                       <span className="text-[13px]" style={{ color: row.free ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.3)" }}>
-                        {row.feature}
+                        {t(row.feature, undefined, "count" in row ? { count: row.count } : undefined)}
                       </span>
                       <div className="flex justify-center">
                         {row.free
@@ -1014,9 +1016,9 @@ export default function Pricing() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <ScrollFade>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {TRUST_ITEMS.map((t, i) => (
+              {TRUST_ITEMS.map((trust, i) => (
                 <motion.div
-                  key={t.label}
+                  key={trust.label}
                   initial={{ opacity: 0, y: 12 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -1031,9 +1033,9 @@ export default function Pricing() {
                     className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none"
                     style={{ background: "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(139,92,246,0.07) 0%, transparent 70%)" }}
                   />
-                  {(() => { const TIcon = t.icon; return <TIcon className="size-4 text-[#00D4FF]/70 mx-auto mb-2" />; })()}
-                  <div className="text-[11.5px] font-bold text-[#E6EAF0]/75 leading-tight mb-0.5">{t.label}</div>
-                  <div className="text-[10px] text-[#E6EAF0]/28">{t.sub}</div>
+                  {(() => { const TIcon = trust.icon; return <TIcon className="size-4 text-[#00D4FF]/70 mx-auto mb-2" />; })()}
+                  <div className="text-[11.5px] font-bold text-[#E6EAF0]/75 leading-tight mb-0.5">{t(trust.label)}</div>
+                  <div className="text-[10px] text-[#E6EAF0]/28">{t(trust.sub)}</div>
                 </motion.div>
               ))}
             </div>
@@ -1052,9 +1054,9 @@ export default function Pricing() {
           <ScrollFade>
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-extrabold text-[#E6EAF0] tracking-tight mb-4">
-                Before you go
+                {t("Before you go")}
               </h2>
-              <p className="text-[#E6EAF0]/38 text-[15px]">The questions people actually ask.</p>
+              <p className="text-[#E6EAF0]/38 text-[15px]">{t("The questions people actually ask.")}</p>
             </div>
           </ScrollFade>
 
@@ -1113,14 +1115,13 @@ export default function Pricing() {
               </div>
 
               <h2 className="text-3xl md:text-4xl font-extrabold text-[#E6EAF0] mb-4 tracking-tight">
-                Your system,{" "}
+                {t("Your system,")}{" "}
                 <span style={{ background: "linear-gradient(90deg, #c084fc, #22d3ee)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                  at full power.
+                  {t("at full power.")}
                 </span>
               </h2>
               <p className="text-[#E6EAF0]/42 text-[15px] max-w-md mx-auto leading-relaxed mb-10">
-                One payment. Lifetime access. The complete SwitchControl
-                experience, AI, BIOS, Network, Power, and full control, forever.
+                {t("One payment. Lifetime access. The complete SwitchControl experience, AI, BIOS, Network, Power, and full control, forever.")}
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -1132,11 +1133,11 @@ export default function Pricing() {
                   data-testid="button-cta-premium"
                 >
                   {isCheckoutLoading ? (
-                    <><Loader2 className="size-4 animate-spin" />Processing...</>
+                    <><Loader2 className="size-4 animate-spin" />{t("Processing...")}</>
                   ) : isPremium ? (
-                    <><Check className="size-4" />Already Premium</>
+                    <><Check className="size-4" />{t("Already Premium")}</>
                   ) : (
-                    <>Get Premium, 39 USD<ArrowRight className="size-4" /></>
+                    <>{t("Get Premium, 39 USD")}<ArrowRight className="size-4" /></>
                   )}
                 </GlowButton>
 
@@ -1146,7 +1147,7 @@ export default function Pricing() {
                   onClick={handleGetStarted}
                   data-testid="button-cta-free"
                 >
-                  Start free first
+                  {t("Start free first")}
                 </button>
               </div>
 
@@ -1161,7 +1162,7 @@ export default function Pricing() {
                   return (
                     <div key={trust.text} className="flex items-center gap-1.5 text-[12px] text-[#E6EAF0]/28">
                       <TIcon className="size-3.5 text-[#00D4FF]/50" />
-                      {trust.text}
+                      {t(trust.text)}
                     </div>
                   );
                 })}

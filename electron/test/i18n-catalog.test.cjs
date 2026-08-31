@@ -37,6 +37,17 @@ test("localization keeps all supported locales and public catalog coverage", asy
     "No items available for this role + mode combination.", "Requires admin",
     "Risk distribution",
   ];
+  const publicPageKeys = [
+    "Not just tweaks.",
+    "Real performance intelligence.",
+    "Checkout Error",
+    "Please try again in {mins} minutes.",
+    "How is SwitchControl different from other PC optimizers?",
+    "Maintenance in progress",
+    "Checking download availability",
+    "Sign-in failed. Please try again.",
+    "Invalid or expired code. Please sign in via your browser again.",
+  ];
 
   assert.deepEqual(LOCALES.map((locale) => locale.code), expectedCodes);
   assert.deepEqual(Object.keys(translationCatalogs).sort(), [...expectedCodes].sort());
@@ -65,8 +76,15 @@ test("localization keeps all supported locales and public catalog coverage", asy
         assert.notEqual(value, englishFeature, `${code} falls back to English feature copy: ${key}`);
       }
     }
+    for (const key of publicPageKeys) {
+      assert.equal(typeof catalog[key], "string", `${code} is missing public-page copy: ${key}`);
+      assert.ok(catalog[key].trim(), `${code} has empty public-page copy: ${key}`);
+      if (code !== "en") {
+        assert.notEqual(catalog[key], translationCatalogs.en[key], `${code} falls back to English public-page copy: ${key}`);
+      }
+    }
   }
-  assert.ok(PUBLIC_CATALOG_KEYS.length > 200, "public catalog should cover landing and chart copy");
+  assert.ok(PUBLIC_CATALOG_KEYS.length > 500, "public catalog should cover landing, charts, and all public pages");
   for (const key of PUBLIC_CATALOG_KEYS) {
     for (const code of expectedCodes) {
       const value = translationCatalogs[code][key];

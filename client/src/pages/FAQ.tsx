@@ -19,6 +19,7 @@ import {
   Star,
 } from "lucide-react";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
+import { useTranslation } from "@/lib/i18n";
 
 // ── Easings ──────────────────────────────────────────────────────────────────
 const EASE_OUT  = [0.22, 1, 0.36, 1] as const;
@@ -210,6 +211,7 @@ function HeroBackground() {
 // ── Accordion item ────────────────────────────────────────────────────────────
 function AccordionItem({ item, index }: { item: FAQItem; index: number }) {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
   const cat = CATEGORIES.find(c => c.id === item.category)!;
 
   return (
@@ -265,7 +267,7 @@ function AccordionItem({ item, index }: { item: FAQItem; index: number }) {
                   className="text-[15px] font-semibold leading-snug"
                   style={{ color: open ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.78)" }}
                 >
-                  {item.question}
+                   {t(item.question, item.question)}
                 </span>
                 {item.badge && (
                   <span
@@ -276,7 +278,7 @@ function AccordionItem({ item, index }: { item: FAQItem; index: number }) {
                       color: cat.color + "0.9)",
                     }}
                   >
-                    {item.badge}
+                     {t(item.badge, item.badge)}
                   </span>
                 )}
               </div>
@@ -308,7 +310,7 @@ function AccordionItem({ item, index }: { item: FAQItem; index: number }) {
                     style={{ background: `linear-gradient(90deg, ${cat.color}0.2), transparent)` }}
                   />
                   <p className="text-[14px] leading-relaxed text-[#A0A8B3]">
-                    {item.answer}
+                     {t(item.answer, item.answer)}
                   </p>
                 </div>
               </motion.div>
@@ -339,6 +341,7 @@ function CategoryPill({
   count: number;
   onClick: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <motion.button
       onClick={onClick}
@@ -365,7 +368,7 @@ function CategoryPill({
           className="text-[12.5px] font-semibold leading-none"
           style={{ color: active ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.4)" }}
         >
-          {cat.label}
+          {t(cat.label)}
         </div>
       </div>
       <div
@@ -433,6 +436,7 @@ function InfoCard({
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function FAQPage() {
   const [activeCategory, setActiveCategory] = useState<CategoryId | "all">("general");
+  const { t } = useTranslation();
 
   const countFor = (id: CategoryId) => FAQ_ITEMS.filter(q => q.category === id).length;
 
@@ -450,7 +454,7 @@ export default function FAQPage() {
             transition={{ duration: 0.65, delay: 0.08, ease: EASE_OUT }}
             className="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.08] mb-5"
           >
-            <span className="text-[#E6EAF0]">Real answers,</span>
+             <span className="text-[#E6EAF0]">{t("Real answers,")}</span>
             <br />
             <span
               style={{
@@ -460,7 +464,7 @@ export default function FAQPage() {
                 WebkitTextFillColor: "transparent",
               }}
             >
-              not corporate copy.
+               {t("not corporate copy.")}
             </span>
           </motion.h1>
 
@@ -471,8 +475,7 @@ export default function FAQPage() {
             transition={{ duration: 0.6, delay: 0.18, ease: EASE_OUT }}
             className="text-[16px] text-[#A0A8B3] max-w-xl mx-auto leading-relaxed mb-10"
           >
-            We answer the questions that actually matter: safety, compatibility,
-            what to expect, and what makes SwitchControl worth using.
+             {t("We answer the questions that actually matter: safety, compatibility, what to expect, and what makes SwitchControl worth using.")}
           </motion.p>
 
           {/* Trust pills */}
@@ -482,17 +485,17 @@ export default function FAQPage() {
             transition={{ duration: 0.6, delay: 0.28, ease: EASE_OUT }}
             className="flex flex-wrap justify-center gap-2.5"
           >
-            {TRUST_ITEMS.map((t, i) => (
+            {TRUST_ITEMS.map((trust, i) => (
               <div
-                key={t.label}
+                key={trust.label}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full"
                 style={{
                   background: "rgba(255,255,255,0.03)",
                   border: "1px solid rgba(255,255,255,0.08)",
                 }}
               >
-                <t.icon className="size-3" style={{ color: t.color }} />
-                <span className="text-[11.5px] font-medium text-[#A0A8B3]">{t.label}</span>
+                <trust.icon className="size-3" style={{ color: trust.color }} />
+                <span className="text-[11.5px] font-medium text-[#A0A8B3]">{t(trust.label, trust.label)}</span>
               </div>
             ))}
           </motion.div>
@@ -512,9 +515,9 @@ export default function FAQPage() {
       <section className="py-10 relative">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {TRUST_ITEMS.map((t, i) => (
+            {TRUST_ITEMS.map((trust, i) => (
               <motion.div
-                key={t.label}
+                key={trust.label}
                 initial={{ opacity: 0, y: 14 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -527,16 +530,16 @@ export default function FAQPage() {
               >
                 <div
                   className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                  style={{ background: `radial-gradient(ellipse 80% 60% at 50% 0%, ${t.color}0.07) 0%, transparent 70%)` }}
+                  style={{ background: `radial-gradient(ellipse 80% 60% at 50% 0%, ${trust.color}0.07) 0%, transparent 70%)` }}
                 />
                 <div
                   className="inline-flex size-9 rounded-xl items-center justify-center mb-2.5"
-                  style={{ background: `${t.color}0.1)`, border: `1px solid ${t.color}0.2)` }}
+                  style={{ background: `${trust.color}0.1)`, border: `1px solid ${trust.color}0.2)` }}
                 >
-                  <t.icon className="size-4" style={{ color: t.color }} />
+                  <trust.icon className="size-4" style={{ color: trust.color }} />
                 </div>
-                <div className="text-[13px] font-bold text-[#E6EAF0]/85 leading-tight mb-0.5">{t.label}</div>
-                <div className="text-[11px] text-[#6B7380]">{t.sub}</div>
+                <div className="text-[13px] font-bold text-[#E6EAF0]/85 leading-tight mb-0.5">{t(trust.label, trust.label)}</div>
+                <div className="text-[11px] text-[#6B7380]">{t(trust.sub, trust.sub)}</div>
               </motion.div>
             ))}
           </div>
@@ -557,11 +560,11 @@ export default function FAQPage() {
                   border: "1px solid rgba(255,255,255,0.07)",
                 }}
               >
-                <div className="px-3 pb-2 pt-1">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6B7380]">Categories</span>
+                 <div className="px-3 pb-2 pt-1">
+                   <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6B7380]">{t("Categories")}</span>
                 </div>
                 <CategoryPill
-                  cat={{ id: "all" as any, label: "All Questions", icon: HelpCircle, color: "rgba(168,85,247," }}
+                   cat={{ id: "all" as any, label: t("All Questions"), icon: HelpCircle, color: "rgba(168,85,247," }}
                   active={activeCategory === "all"}
                   count={FAQ_ITEMS.length}
                   onClick={() => setActiveCategory("all")}
@@ -569,7 +572,7 @@ export default function FAQPage() {
                 {CATEGORIES.map(cat => (
                   <CategoryPill
                     key={cat.id}
-                    cat={cat}
+                     cat={{ ...cat, label: t(cat.label, cat.label) }}
                     active={activeCategory === cat.id}
                     count={countFor(cat.id)}
                     onClick={() => setActiveCategory(cat.id)}
@@ -591,7 +594,7 @@ export default function FAQPage() {
               >
                 {activeCategory === "all" ? (
                   <h2 className="text-xl font-bold text-[#E6EAF0]">
-                    All Questions
+                    {t("All Questions")}
                     <span className="ml-2 text-sm font-normal text-[#6B7380]">({FAQ_ITEMS.length})</span>
                   </h2>
                 ) : (() => {
@@ -605,7 +608,7 @@ export default function FAQPage() {
                         <cat.icon className="size-4" style={{ color: cat.color + "0.9)" }} />
                       </div>
                       <h2 className="text-xl font-bold text-[#E6EAF0]">
-                        {cat.label}
+                        {t(cat.label, cat.label)}
                         <span className="ml-2 text-sm font-normal text-[#6B7380]">({countFor(activeCategory)})</span>
                       </h2>
                     </div>
@@ -630,15 +633,15 @@ export default function FAQPage() {
                 <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-3">
                   <InfoCard
                     icon={Shield}
-                    title="Anti-cheat safe"
-                    body="EAC, Vanguard, FACEIT, and BattlEye are supported. SwitchControl modifies Windows settings only. It does not inject into processes, use kernel hooks, or change game files."
+                    title={t("Anti-cheat safe")}
+                    body={t("EAC, Vanguard, FACEIT, and BattlEye are supported. SwitchControl modifies Windows settings only. It does not inject into processes, use kernel hooks, or change game files.")}
                     accentColor="rgba(52,211,153,"
                     delay={0}
                   />
                   <InfoCard
                     icon={RotateCcw}
-                    title="Full revert guarantee"
-                    body="Every change is logged. Revert individual tweaks or your entire session with one click from the History page. Nothing is permanent unless you want it to be."
+                    title={t("Full revert guarantee")}
+                    body={t("Every change is logged. Revert individual tweaks or your entire session with one click from the History page. Nothing is permanent unless you want it to be.")}
                     accentColor="rgba(6,182,212,"
                     delay={0.07}
                   />
@@ -649,8 +652,8 @@ export default function FAQPage() {
                 <div className="mt-6 grid grid-cols-1 gap-3">
                   <InfoCard
                     icon={Brain}
-                    title="AI Advisor, hardware aware"
-                    body="AI Advisor uses your CPU, GPU, and RAM configuration to provide guidance for your system. Its recommendations are based on your hardware instead of a generic checklist."
+                    title={t("AI Advisor, hardware aware")}
+                    body={t("AI Advisor uses your CPU, GPU, and RAM configuration to provide guidance for your system. Its recommendations are based on your hardware instead of a generic checklist.")}
                     accentColor="rgba(168,85,247,"
                     delay={0.05}
                   />
@@ -661,15 +664,15 @@ export default function FAQPage() {
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
                   <InfoCard
                     icon={Zap}
-                    title="Power plan impact"
-                    body="Power plans can have the greatest effect on AMD Ryzen systems. The right profile can influence boost clock behaviour, memory latency, and scheduling when your hardware supports it."
+                    title={t("Power plan impact")}
+                    body={t("Power plans can have the greatest effect on AMD Ryzen systems. The right profile can influence boost clock behaviour, memory latency, and scheduling when your hardware supports it.")}
                     accentColor="rgba(251,191,36,"
                     delay={0}
                   />
                   <InfoCard
                     icon={Wifi}
-                    title="Network tweaks scope"
-                    body="Network tools focus on jitter and packet loss rather than raw ping. They can reduce the connection spikes that feel like rubber banding, especially on Wi Fi and variable latency connections."
+                    title={t("Network tweaks scope")}
+                    body={t("Network tools focus on jitter and packet loss rather than raw ping. They can reduce the connection spikes that feel like rubber banding, especially on Wi Fi and variable latency connections.")}
                     accentColor="rgba(59,130,246,"
                     delay={0.07}
                   />
@@ -712,10 +715,10 @@ export default function FAQPage() {
             </div>
 
             <h2 className="text-2xl md:text-3xl font-bold text-[#E6EAF0] mb-3">
-              Still have a question?
+              {t("Still have a question?")}
             </h2>
             <p className="text-[#6B7380] mb-8 leading-relaxed text-[15px] max-w-md mx-auto">
-              Join the Discord. We answer questions quickly, and the community has already worked through many common setup scenarios.
+              {t("Join the Discord. We answer questions quickly, and the community has already worked through many common setup scenarios.")}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -732,7 +735,7 @@ export default function FAQPage() {
                 }}
                 data-testid="link-faq-discord"
               >
-                Join Discord
+                {t("Join Discord")}
                 <ArrowRight className="size-4" />
               </a>
               <a
@@ -745,7 +748,7 @@ export default function FAQPage() {
                 }}
                 data-testid="link-faq-email"
               >
-                Email us
+                {t("Email us")}
               </a>
             </div>
 
@@ -758,7 +761,7 @@ export default function FAQPage() {
               ].map(r => (
                 <div key={r.text} className="flex items-center gap-1.5 text-[12px] text-[#6B7380]">
                   <r.icon className="size-3.5 text-emerald-500/60" />
-                  {r.text}
+                  {t(r.text, r.text)}
                 </div>
               ))}
             </div>
