@@ -32,6 +32,7 @@ import { TweakImpactResult } from "@/components/tweaks/TweakImpactResult";
 import { useTweakHardwareVerdict } from "@/hooks/useHardwareProfile";
 import type { TweakHardwareVerdict } from "@shared/hardwareIntelligence";
 import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
+import { useTranslation } from "@/lib/i18n";
 
 // ── Hardware-aware verdict pill ───────────────────────────────────────────────
 // Shows adaptive guidance for the user's actual silicon (e.g. "Detected X3D —
@@ -43,6 +44,7 @@ const VERDICT_STYLE: Record<TweakHardwareVerdict["level"], { icon: typeof Shield
 };
 
 function HardwareVerdict({ verdict }: { verdict: TweakHardwareVerdict }) {
+  const { t } = useTranslation();
   const style = VERDICT_STYLE[verdict.level];
   const Icon = style.icon;
   return (
@@ -52,7 +54,7 @@ function HardwareVerdict({ verdict }: { verdict: TweakHardwareVerdict }) {
     >
       <Icon className="size-3 mt-0.5 shrink-0" />
       <span className="text-[11px] leading-snug">
-        <span className="font-semibold">{style.label}:</span> {verdict.reason}
+        <span className="font-semibold">{t(style.label)}:</span> {t(verdict.reason)}
       </span>
     </div>
   );
@@ -107,6 +109,7 @@ const FAILURE_CONFIG: Record<FailureType, {
 
 // ── Badges ─────────────────────────────────────────────────────────────────────
 const RiskBadge = ({ level }: { level: RiskLevel }) => {
+  const { t } = useTranslation();
   const colors = {
     Safe:     "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(52,211,153,0.1)]",
     Moderate: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20 shadow-[0_0_10px_rgba(250,204,21,0.1)]",
@@ -114,12 +117,13 @@ const RiskBadge = ({ level }: { level: RiskLevel }) => {
   };
   return (
     <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full border uppercase tracking-wider transition-all", colors[level])}>
-      {level}
+      {t(level)}
     </span>
   );
 };
 
 const LevelBadge = ({ level }: { level: TweakLevel }) => {
+  const { t } = useTranslation();
   const colors = {
     Recommended: "bg-primary/10 text-primary border-primary/20",
     Advanced:    "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -128,12 +132,13 @@ const LevelBadge = ({ level }: { level: TweakLevel }) => {
   return (
     <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full border uppercase tracking-wider", colors[level])}>
       {level === "Recommended" && <ShieldCheck className="inline-block size-3 mr-1 -mt-0.5" />}
-      {level}
+      {t(level)}
     </span>
   );
 };
 
 const ImpactPill = ({ label, value }: { label: string; value: ImpactLevel }) => {
+  const { t } = useTranslation();
   if (value === "None") return null;
   const colors = {
     Low:  "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
@@ -142,12 +147,13 @@ const ImpactPill = ({ label, value }: { label: string; value: ImpactLevel }) => 
   };
   return (
     <span className={cn("text-[9px] font-medium px-1.5 py-0.5 rounded border", colors[value])}>
-      {label}: {value}
+      {t(label)}: {t(value)}
     </span>
   );
 };
 
 const ExpectedChange = ({ expected }: { expected: TweakExpected }) => {
+  const { t } = useTranslation();
   const entries: [string, ImpactLevel | undefined][] = [
     ["CPU", expected.cpu], ["GPU", expected.gpu], ["RAM", expected.ram],
     ["Disk", expected.disk], ["Network", expected.network],
@@ -157,7 +163,7 @@ const ExpectedChange = ({ expected }: { expected: TweakExpected }) => {
   if (active.length === 0) return null;
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-medium text-[#E6EAF0]">Expected Change</h4>
+        <h4 className="text-sm font-medium text-[#E6EAF0]">{t("Expected Change")}</h4>
       <div className="flex flex-wrap gap-1.5">
         {active.map(([label, value]) => <ImpactPill key={label} label={label} value={value!} />)}
       </div>
@@ -167,6 +173,7 @@ const ExpectedChange = ({ expected }: { expected: TweakExpected }) => {
 
 // ── Inline failure banner ─────────────────────────────────────────────────────
 function FailureBanner({ info, onDismiss }: { info: FailureInfo; onDismiss: () => void }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const cfg = FAILURE_CONFIG[info.type] ?? FAILURE_CONFIG.unknown;
   const Icon = cfg.icon;
@@ -182,7 +189,7 @@ function FailureBanner({ info, onDismiss }: { info: FailureInfo; onDismiss: () =
       <div className={cn("mx-4 mb-3 rounded-lg border text-xs", cfg.bg, cfg.border)}>
         <div className="flex items-center gap-2 px-3 py-2">
           <Icon className={cn("size-3.5 shrink-0", cfg.color)} />
-          <span className={cn("font-medium flex-1", cfg.color)}>{info.message}</span>
+          <span className={cn("font-medium flex-1")}>{t(info.message)}</span>
           {info.hint && (
             <button
               onClick={() => setExpanded(!expanded)}
@@ -209,7 +216,7 @@ function FailureBanner({ info, onDismiss }: { info: FailureInfo; onDismiss: () =
               transition={{ duration: 0.14 }}
               className="overflow-hidden"
             >
-              <p className="px-3 pb-2.5 text-[#A0A8B3] leading-relaxed">{info.hint}</p>
+              <p className="px-3 pb-2.5 text-[#A0A8B3] leading-relaxed">{t(info.hint)}</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -239,6 +246,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
   const { executeTweak, executing }   = useTweakExecutor();
   const { impacts, measuring, startMeasure, clearImpact } = useTweakImpact();
   const hardwareVerdict               = useTweakHardwareVerdict(tweak.id);
+  const { t }                         = useTranslation();
 
   // ── GPU MSI Mode — adapter selection state ────────────────────────────────
   const isGpuMsiCard                          = tweak.id === 'gpu-msi-mode';
@@ -355,8 +363,8 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
     const badges: any[] = [];
     if (isLocked) badges.push(<PremiumBadge key="premium" className="text-[10px] px-2 py-0.5" />);
     if (isUnsupported) badges.push(
-      <span key="unsupported" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-zinc-500/10 text-zinc-400 border-zinc-500/20">
-        <ShieldOff className="inline-block size-3 mr-0.5 -mt-0.5" /> Unsupported
+        <span key="unsupported" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-zinc-500/10 text-zinc-400 border-zinc-500/20">
+         <ShieldOff className="inline-block size-3 mr-0.5 -mt-0.5" /> {t("Unsupported")}
       </span>
     );
     if (!isLocked && !isUnsupported && tweak.risk === 'Risky') badges.push(
@@ -412,7 +420,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
               <div className="flex-1 min-w-0 space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className={cn("font-medium text-sm transition-colors", isEnabled && !isUnsupported ? "text-[#E6EAF0]" : "text-foreground group-hover:text-[#E6EAF0]")}>
-                    {tweak.title}
+      {t(tweak.title)}
                   </h3>
                   <div className="flex items-center gap-1.5 flex-wrap opacity-80 group-hover:opacity-100 transition-opacity">
                     {visiblePriorityBadges}
@@ -421,7 +429,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground line-clamp-1 group-hover:text-muted-foreground/80 transition-colors">
-                  {isUnsupported ? unsupportedMsg : tweak.description}
+                  {isUnsupported ? t(unsupportedMsg) : t(tweak.description)}
                 </p>
                 {!isUnsupported && hardwareVerdict && <HardwareVerdict verdict={hardwareVerdict} />}
 
@@ -461,7 +469,8 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                     "size-5 border border-primary/25 bg-primary/[0.06] hover:bg-primary/15 transition-all duration-300 rounded-md",
                     trustOpen ? "text-primary opacity-100" : "text-muted-foreground/80 opacity-75 group-hover:opacity-100"
                   )}
-                  title="Show impact details"
+                  title={t("Show impact details")}
+                  aria-label={t("Show impact details")}
                 >
                   <BarChart2 className="size-2.5" />
                 </Button>
@@ -483,7 +492,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                   className="h-8 px-3 text-[10px] text-primary border border-primary/30 bg-primary/10 hover:bg-primary/20"
                   data-testid={`button-unlock-${tweak.id}`}
                 >
-                  <Lock className="size-3 mr-1" /> Unlock
+                  <Lock className="size-3 mr-1" /> {t("Unlock")}
                 </Button>
               ) : isUnsupported ? (
                 <div className="flex items-center justify-center w-11 h-6 opacity-30 cursor-not-allowed">
@@ -499,7 +508,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                 // non-interactive — the !isEnabled variant silently left it clickable.
                 <div
                   className="flex items-center justify-center w-11 h-6 opacity-40 animate-pulse cursor-not-allowed"
-                  title="Verifying system state…"
+                  title={t("Verifying system state…")}
                   data-testid={`switch-tweak-${tweak.id}`}
                 >
                   <Switch checked={false} disabled className="pointer-events-none" />
@@ -575,10 +584,10 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
 
                 <div className="space-y-1.5 pr-8">
                   <h2 className="text-lg font-semibold text-[#E6EAF0] flex items-center gap-2 flex-wrap">
-                    {tweak.title}
+                    {t(tweak.title)}
                     <RiskBadge level={tweak.risk} />
                     {isUnsupported && (
-                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-zinc-500/10 text-zinc-400 border-zinc-500/20">Unsupported</span>
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-zinc-500/10 text-zinc-400 border-zinc-500/20">{t("Unsupported")}</span>
                     )}
                     {tweak.requiresReboot && !isUnsupported && (
                       <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
@@ -592,7 +601,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
                     <h4 className="text-sm font-medium text-[#E6EAF0]">Description</h4>
-                    <p className="text-sm text-muted-foreground">{tweak.description}</p>
+                    <p className="text-sm text-muted-foreground">{t(tweak.description)}</p>
                   </div>
 
                   <ExpectedChange expected={tweak.expected} />
