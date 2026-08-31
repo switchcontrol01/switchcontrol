@@ -25,6 +25,7 @@ import {
   type ComponentKind,
   HEALTH_META,
 } from "@/lib/driver-intel-data";
+import { useTranslation } from "@/lib/i18n";
 
 const NODE_POS: Record<ComponentKind, { x: number; y: number }> = {
   bios: { x: 50, y: 50 }, // center hub (chipset/firmware brain)
@@ -66,6 +67,7 @@ export function MotherboardMap({
   onSelect,
 }: MotherboardMapProps) {
   const { prefersReducedMotion } = useMotion();
+  const { t } = useTranslation();
   const animate = scanning && !prefersReducedMotion;
 
   const hub = NODE_POS.bios;
@@ -201,7 +203,7 @@ export function MotherboardMap({
             className="absolute group cursor-pointer"
             style={{ left: `${p.x}%`, top: `${p.y}%`, transform: "translate(-50%,-50%)" }}
             data-testid={`node-${c.kind}`}
-            title={`${c.title}: ${meta.label} — click for details`}
+            title={`${t(c.title)}: ${t(meta.label)} — ${t("click for details")}`}
           >
             <motion.div
               className="relative flex items-center justify-center rounded-xl"
@@ -233,7 +235,7 @@ export function MotherboardMap({
               className="absolute left-1/2 -translate-x-1/2 mt-1 whitespace-nowrap text-[10px] font-medium"
               style={{ color: "rgba(230,234,240,0.7)", top: "100%" }}
             >
-              {c.title}
+              {t(c.title)}
             </div>
           </button>
         );

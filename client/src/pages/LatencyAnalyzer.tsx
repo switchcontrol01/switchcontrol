@@ -233,10 +233,10 @@ function ControlsCard({
               "bg-[#2A313A] text-[#2A313A]"
             )} />
             <span className="text-xs font-medium text-[#C8D0DA]">
-              {isRunning  ? `Collecting — ${fmtSec(elapsedSec)} elapsed` :
+              {isRunning  ? `${t("Collecting")} — ${fmtSec(elapsedSec)} ${t("elapsed")}` :
                isStopping ? t("Stopping…") :
                sessionStatus === "starting" ? t("Starting…") :
-               sessionStatus === "stopped"  ? `Stopped — ${fmtSec(elapsedSec)} collected` :
+               sessionStatus === "stopped"  ? `${t("Stopped")} — ${fmtSec(elapsedSec)} ${t("collected")}` :
                sessionStatus === "error"    ? t("Error — see below") :
                t("Ready to analyze")}
             </span>
@@ -244,8 +244,8 @@ function ControlsCard({
 
           {isRunning && (
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#7F8997]">
-              {sampleCount} sample{sampleCount !== 1 ? "s" : ""} collected
-              {durationSec > 0 && ` · ${Math.max(0, durationSec - elapsedSec)}s remaining`}
+              {sampleCount} {t(sampleCount === 1 ? "sample collected" : "samples collected")}
+              {durationSec > 0 && ` · ${Math.max(0, durationSec - elapsedSec)}s ${t("remaining")}`}
             </div>
           )}
 
@@ -280,7 +280,7 @@ function ControlsCard({
                       : "bg-[#1A1F26] border-[#2A313A] text-[#A0A8B3] hover:border-[#3A4250]"
                   )}
                 >
-                  {o.label}
+                  {o.label === "Unlimited" ? t(o.label) : o.label}
                 </button>
               ))}
             </div>
@@ -375,7 +375,7 @@ function OverallStatusCard() {
             </span>
           </div>
           <p className="max-w-[480px] text-[11px] leading-relaxed text-[#A0A8B3]">
-            {meta.description}
+            {t(meta.description)}
           </p>
         </div>
 
@@ -439,7 +439,7 @@ function CoreMetricsGrid() {
       id: "avg-dpc",
        label: t("Avg DPC Time"),
       value: hasData ? `${fmt1(avgDpcPct)}%` : "--",
-      sublabel: "% CPU in DPCs",
+      sublabel: t("% CPU in DPCs"),
       color: avgDpcPct < 3 ? "#34d399" : avgDpcPct < 7 ? "#fbbf24" : "#f87171",
       barPct: avgDpcPct,
       barMax: 20,
@@ -449,7 +449,7 @@ function CoreMetricsGrid() {
       id: "peak-dpc",
        label: t("Peak DPC Time"),
       value: hasData ? `${fmt1(peakDpcPct)}%` : "--",
-      sublabel: "highest single sample",
+      sublabel: t("highest single sample"),
       color: peakDpcPct < 5 ? "#34d399" : peakDpcPct < 12 ? "#fbbf24" : "#f87171",
       barPct: peakDpcPct,
       barMax: 25,
@@ -459,7 +459,7 @@ function CoreMetricsGrid() {
       id: "avg-isr",
        label: t("Avg Interrupt Time"),
       value: hasData ? `${fmt1(avgIntrPct)}%` : "--",
-      sublabel: "% CPU in ISRs",
+      sublabel: t("% CPU in ISRs"),
       color: avgIntrPct < 5 ? "#34d399" : avgIntrPct < 10 ? "#fbbf24" : "#f87171",
       barPct: avgIntrPct,
       barMax: 30,
@@ -469,7 +469,7 @@ function CoreMetricsGrid() {
       id: "peak-isr",
        label: t("Peak Interrupt Time"),
       value: hasData ? `${fmt1(peakIntrPct)}%` : "--",
-      sublabel: "highest single sample",
+      sublabel: t("highest single sample"),
       color: peakIntrPct < 7 ? "#34d399" : peakIntrPct < 15 ? "#fbbf24" : "#f87171",
       barPct: peakIntrPct,
       barMax: 35,
@@ -479,7 +479,7 @@ function CoreMetricsGrid() {
       id: "page-faults",
        label: t("Page Faults/sec"),
       value: hasData ? fmtInt(avgPageFaultsSec) : "--",
-      sublabel: "avg per second",
+      sublabel: t("avg per second"),
       color: avgPageFaultsSec < 100 ? "#34d399" : avgPageFaultsSec < 500 ? "#fbbf24" : "#f87171",
       barPct: Math.min(avgPageFaultsSec, 5000),
       barMax: 5000,
@@ -489,7 +489,7 @@ function CoreMetricsGrid() {
       id: "peak-pf",
        label: t("Peak Page Faults"),
       value: hasData ? fmtInt(peakPageFaultsSec) : "--",
-      sublabel: "/sec highest",
+      sublabel: t("/sec highest"),
       color: peakPageFaultsSec < 200 ? "#34d399" : peakPageFaultsSec < 1000 ? "#fbbf24" : "#f87171",
       barPct: Math.min(peakPageFaultsSec, 5000),
       barMax: 5000,
@@ -523,7 +523,7 @@ function CoreMetricsGrid() {
       id: "driver-dpc-us",
        label: t("Per-Driver DPC µs"),
        value: t("Limited"),
-      sublabel: "user-mode restriction",
+      sublabel: t("user-mode restriction"),
       color: "#6B7380",
       barPct: null,
       barMax: null,
@@ -533,7 +533,7 @@ function CoreMetricsGrid() {
       id: "driver-isr-us",
        label: t("Per-Driver ISR µs"),
        value: t("Limited"),
-      sublabel: "user-mode restriction",
+      sublabel: t("user-mode restriction"),
       color: "#6B7380",
       barPct: null,
       barMax: null,
@@ -543,7 +543,7 @@ function CoreMetricsGrid() {
       id: "samples",
        label: t("Samples Collected"),
       value: sampleCount > 0 ? String(sampleCount) : "0",
-      sublabel: "2s interval",
+      sublabel: t("2s interval"),
       color: sampleCount >= 8 ? "#34d399" : "#fbbf24",
       barPct: null,
       barMax: null,
@@ -553,7 +553,7 @@ function CoreMetricsGrid() {
       id: "duration",
        label: t("Collection Duration"),
       value: elapsedSec > 0 ? fmtSec(elapsedSec) : "--",
-      sublabel: "elapsed time",
+      sublabel: t("elapsed time"),
       color: "#A0A8B3",
       barPct: null,
       barMax: null,
@@ -635,9 +635,9 @@ function TimelineChart() {
            {t("Live Activity Timeline")}
         </h3>
         <div className="flex items-center gap-3 text-[10px]">
-          <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-[#f87171] inline-block" /> DPC%</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-[#60a5fa] inline-block" /> ISR%</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-[#a78bfa] inline-block" /> PF×100/s</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-[#f87171] inline-block" /> {t("DPC%")}</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-[#60a5fa] inline-block" /> {t("ISR%")}</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-[#a78bfa] inline-block" /> {t("PF×100/s")}</span>
         </div>
       </div>
 
@@ -693,6 +693,7 @@ function TimelineChart() {
 // ── 5. Driver table ────────────────────────────────────────────────────────────
 
 function DriverTable({ drivers }: { drivers: DriverRow[] }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? drivers : drivers.slice(0, 8);
 
@@ -703,17 +704,15 @@ function DriverTable({ drivers }: { drivers: DriverRow[] }) {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <Layers className="size-4 text-primary" />
-          Installed Kernel Drivers
-          <span className="text-[10px] text-[#6B7380] font-normal">({drivers.length} running)</span>
+          {t("Installed Kernel Drivers")}
+          <span className="text-[10px] text-[#6B7380] font-normal">({drivers.length} {t("running")})</span>
         </h3>
       </div>
 
       <div className="mb-3 flex items-start gap-1.5 text-[10px] text-[#6B7380] bg-[#1A1F26] border border-[#2A313A] rounded-lg px-3 py-2">
         <Info className="size-3 shrink-0 mt-0.5 text-[#6B7380]" />
         <span>
-          Per-driver DPC and ISR execution times require kernel-level ETW instrumentation and are
-          unavailable in user mode. Driver table shows running kernel drivers and cautious suggested actions.
-          Do not uninstall or modify drivers from this page.
+          {t("Per-driver DPC and ISR execution times require kernel-level ETW instrumentation and are unavailable in user mode. Driver table shows running kernel drivers and cautious suggested actions. Do not uninstall or modify drivers from this page.")}
         </span>
       </div>
 
@@ -723,7 +722,7 @@ function DriverTable({ drivers }: { drivers: DriverRow[] }) {
             <tr className="border-b border-[#2A313A]">
               {["Driver", "Description", "Type", "Impact", "DPC count", "ISR count", "Suggested Action"].map((h) => (
                 <th key={h} className="text-left text-[9px] uppercase tracking-wider text-[#6B7380] pb-2 pr-4 font-medium">
-                  {h}
+                  {t(h)}
                 </th>
               ))}
             </tr>
@@ -740,16 +739,16 @@ function DriverTable({ drivers }: { drivers: DriverRow[] }) {
                 >
                   <td className="py-2 pr-4 font-mono text-[10px] text-[#E6EAF0]">{d.name}</td>
                   <td className="py-2 pr-4 text-[#A0A8B3] max-w-[160px] truncate" title={d.description}>{d.description}</td>
-                  <td className="py-2 pr-4 text-[#6B7380]">{d.type}</td>
+                  <td className="py-2 pr-4 text-[#6B7380]">{t(d.type)}</td>
                   <td className="py-2 pr-4">
                     <span className={cn("px-1.5 py-0.5 rounded border text-[9px] font-medium", impactColor(d.impact))}>
-                      {d.impact}
+                      {t(d.impact)}
                     </span>
                   </td>
-                  <td className="py-2 pr-4 text-[#6B7380] italic text-[9px]">Limited*</td>
-                  <td className="py-2 pr-4 text-[#6B7380] italic text-[9px]">Limited*</td>
+                  <td className="py-2 pr-4 text-[#6B7380] italic text-[9px]">{t("Limited")}*</td>
+                  <td className="py-2 pr-4 text-[#6B7380] italic text-[9px]">{t("Limited")}*</td>
                   <td className="py-2 pr-4 text-[#A0A8B3] max-w-[200px]" title={d.suggestedAction}>
-                    <span className="line-clamp-2">{d.suggestedAction}</span>
+                    <span className="line-clamp-2">{t(d.suggestedAction)}</span>
                   </td>
                 </motion.tr>
               ))}
@@ -759,7 +758,7 @@ function DriverTable({ drivers }: { drivers: DriverRow[] }) {
       </div>
 
       <div className="mt-2 text-[9px] text-[#6B7380]/60">
-        * Per-driver DPC/ISR execution times unavailable without kernel-level instrumentation
+        {t("* Per-driver DPC/ISR execution times unavailable without kernel-level instrumentation")}
       </div>
 
       {drivers.length > 8 && (
@@ -768,7 +767,7 @@ function DriverTable({ drivers }: { drivers: DriverRow[] }) {
           className="mt-3 flex items-center gap-1.5 text-[11px] text-primary/70 hover:text-primary transition-colors"
         >
           {expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
-          {expanded ? "Show fewer" : `Show all ${drivers.length} drivers`}
+          {expanded ? t("Show fewer") : `${t("Show all")} ${drivers.length} ${t("drivers")}`}
         </button>
       )}
     </GlassCard>
@@ -780,6 +779,7 @@ function DriverTable({ drivers }: { drivers: DriverRow[] }) {
 function AudioStabilityCard({
   audioDevices,
 }: { audioDevices: { name: string; manufacturer: string; status: string }[] }) {
+  const { t } = useTranslation();
   const { avgDpcPct, avgIntrPct, peakDpcPct, sampleCount } = useLatencyAnalyzerStore();
   const hasData = sampleCount > 0;
   const risk = hasData ? audioRisk(avgDpcPct, avgIntrPct) : null;
@@ -807,23 +807,23 @@ function AudioStabilityCard({
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-[#1A1F26] rounded-lg p-3 border border-[#2A313A]">
-            <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">Audio Suitability</div>
+            <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">{t("Audio Suitability")}</div>
             <div className={cn("text-[11px] font-semibold", rc?.text ?? "text-[#6B7380]")}>{suitability}</div>
           </div>
           <div className="bg-[#1A1F26] rounded-lg p-3 border border-[#2A313A]">
-            <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">Dropout Risk</div>
+            <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">{t("Dropout Risk")}</div>
             <div className={cn("text-[11px] font-semibold", rc?.text ?? "text-[#6B7380]")}>
               {hasData ? risk : "--"}
             </div>
           </div>
           <div className="bg-[#1A1F26] rounded-lg p-3 border border-[#2A313A]">
-            <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">Peak Scheduling Delay</div>
+            <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">{t("Peak Scheduling Delay")}</div>
             <div className="text-[11px] font-semibold text-[#E6EAF0]">
               {hasData ? `${fmt1(peakDpcPct)}% DPC` : "--"}
             </div>
           </div>
           <div className="bg-[#1A1F26] rounded-lg p-3 border border-[#2A313A]">
-            <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">Buffer Underrun Risk</div>
+            <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">{t("Buffer Underrun Risk")}</div>
             <div className={cn("text-[11px] font-semibold", rc?.text ?? "text-[#6B7380]")}>
               {!hasData ? "--" : risk === "Low" ? "Low" : risk === "Moderate" ? "Moderate" : "High"}
             </div>
@@ -832,7 +832,7 @@ function AudioStabilityCard({
 
         {audioDevices.length > 0 && (
           <div>
-            <div className="text-[10px] text-[#6B7380] mb-2 uppercase tracking-wider">Detected Audio Devices</div>
+            <div className="text-[10px] text-[#6B7380] mb-2 uppercase tracking-wider">{t("Detected Audio Devices")}</div>
             <div className="space-y-1.5">
               {audioDevices.map((d, i) => (
                 <div key={i} className="flex items-center justify-between text-[10px] bg-[#1A1F26] rounded-lg px-3 py-2 border border-[#2A313A]">
@@ -864,6 +864,7 @@ function AudioStabilityCard({
 // ── 7. Gaming responsiveness card ─────────────────────────────────────────────
 
 function GamingResponsivenessCard() {
+  const { t } = useTranslation();
   const { avgDpcPct, avgIntrPct, avgPageFaultsSec, sampleCount } = useLatencyAnalyzerStore();
   const hasData = sampleCount > 0;
   const gScore = hasData ? gamingScore(avgDpcPct, avgIntrPct, avgPageFaultsSec) : null;
@@ -878,28 +879,28 @@ function GamingResponsivenessCard() {
 
   const dims = [
     {
-      label: "Scheduler Responsiveness",
-      value: hasData ? (avgDpcPct < 3 ? "Responsive" : avgDpcPct < 7 ? "Moderate" : "Sluggish") : "--",
+      label: t("Scheduler Responsiveness"),
+      value: hasData ? (avgDpcPct < 3 ? t("Responsive") : avgDpcPct < 7 ? t("Moderate") : t("Sluggish")) : "--",
       color: hasData ? (avgDpcPct < 3 ? "#34d399" : avgDpcPct < 7 ? "#fbbf24" : "#f87171") : "#6B7380",
     },
     {
-      label: "Network-Driver Latency Risk",
-      value: hasData ? (avgIntrPct < 5 ? "Low" : avgIntrPct < 10 ? "Moderate" : "High") : "--",
+      label: t("Network-Driver Latency Risk"),
+      value: hasData ? (avgIntrPct < 5 ? t("Low") : avgIntrPct < 10 ? t("Moderate") : t("High")) : "--",
       color: hasData ? (avgIntrPct < 5 ? "#34d399" : avgIntrPct < 10 ? "#fbbf24" : "#f87171") : "#6B7380",
     },
     {
-      label: "GPU-Driver Latency Risk",
-      value: "Limited in user mode",
+      label: t("GPU-Driver Latency Risk"),
+      value: t("Limited in user mode"),
       color: "#6B7380",
     },
     {
-      label: "Storage-Driver Latency Risk",
-      value: hasData ? (avgPageFaultsSec < 100 ? "Low" : avgPageFaultsSec < 500 ? "Moderate" : "Elevated") : "--",
+      label: t("Storage-Driver Latency Risk"),
+      value: hasData ? (avgPageFaultsSec < 100 ? t("Low") : avgPageFaultsSec < 500 ? t("Moderate") : t("Elevated")) : "--",
       color: hasData ? (avgPageFaultsSec < 100 ? "#34d399" : avgPageFaultsSec < 500 ? "#fbbf24" : "#f87171") : "#6B7380",
     },
     {
-      label: "Background Interruption Risk",
-      value: hasData ? (avgDpcPct + avgIntrPct < 6 ? "Low" : avgDpcPct + avgIntrPct < 15 ? "Moderate" : "High") : "--",
+      label: t("Background Interruption Risk"),
+      value: hasData ? (avgDpcPct + avgIntrPct < 6 ? t("Low") : avgDpcPct + avgIntrPct < 15 ? t("Moderate") : t("High")) : "--",
       color: hasData
         ? (avgDpcPct + avgIntrPct < 6 ? "#34d399" : avgDpcPct + avgIntrPct < 15 ? "#fbbf24" : "#f87171")
         : "#6B7380",
@@ -911,11 +912,11 @@ function GamingResponsivenessCard() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <Zap className="size-4 text-primary" />
-          Gaming Responsiveness
+          {t("Gaming Responsiveness")}
         </h3>
         {gScore !== null && (
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[#6B7380]">Score</span>
+            <span className="text-[10px] text-[#6B7380]">{t("Score")}</span>
             <span className={cn("text-xl font-bold tabular-nums", scoreColor2)}>{gScore}</span>
             <span className="text-[10px] text-[#6B7380]">/ 100</span>
           </div>
@@ -932,8 +933,7 @@ function GamingResponsivenessCard() {
       </div>
 
       <div className="text-[9px] text-[#6B7380]/70 leading-snug border-t border-[#2A313A] pt-3">
-        This assessment evaluates Windows scheduling and driver behaviour only. It does not measure
-        network ping, monitor latency, mouse/keyboard latency, in-game FPS, or end-to-end input latency.
+        {t("This assessment evaluates Windows scheduling and driver behaviour only. It does not measure network ping, monitor latency, mouse/keyboard latency, in-game FPS, or end-to-end input latency.")}
       </div>
     </GlassCard>
   );
@@ -942,6 +942,7 @@ function GamingResponsivenessCard() {
 // ── 8. Before / After comparison ──────────────────────────────────────────────
 
 function ComparisonPanel() {
+  const { t } = useTranslation();
   const { baseline, currentResult, saveBaseline, clearBaseline } = useLatencyAnalyzerStore();
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
 
@@ -961,35 +962,35 @@ function ComparisonPanel() {
 
   const rows = baseline && currentResult ? [
     {
-      label: "Avg DPC%",
+      label: t("Avg DPC%"),
       before: `${fmt1(baseline.avgDpcPct)}%`,
       after: `${fmt1(currentResult.avgDpcPct)}%`,
       change: pctChange(baseline.avgDpcPct, currentResult.avgDpcPct),
       color: diffColor(baseline.avgDpcPct, currentResult.avgDpcPct),
     },
     {
-      label: "Peak DPC%",
+      label: t("Peak DPC%"),
       before: `${fmt1(baseline.peakDpcPct)}%`,
       after: `${fmt1(currentResult.peakDpcPct)}%`,
       change: pctChange(baseline.peakDpcPct, currentResult.peakDpcPct),
       color: diffColor(baseline.peakDpcPct, currentResult.peakDpcPct),
     },
     {
-      label: "Avg ISR%",
+      label: t("Avg ISR%"),
       before: `${fmt1(baseline.avgIntrPct)}%`,
       after: `${fmt1(currentResult.avgIntrPct)}%`,
       change: pctChange(baseline.avgIntrPct, currentResult.avgIntrPct),
       color: diffColor(baseline.avgIntrPct, currentResult.avgIntrPct),
     },
     {
-      label: "Page Faults/s",
+      label: t("Page Faults/s"),
       before: fmtInt(baseline.avgPageFaultsSec),
       after: fmtInt(currentResult.avgPageFaultsSec),
       change: pctChange(baseline.avgPageFaultsSec, currentResult.avgPageFaultsSec),
       color: diffColor(baseline.avgPageFaultsSec, currentResult.avgPageFaultsSec),
     },
     {
-      label: "Overall Score",
+      label: t("Overall Score"),
       before: String(Math.round(baseline.overallScore)),
       after: String(Math.round(currentResult.overallScore)),
       change: pctChange(baseline.overallScore, currentResult.overallScore),
@@ -1041,7 +1042,7 @@ function ComparisonPanel() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
           >
-            <span className="text-[11px] text-amber-400 flex-1">Save current result as the "Before" baseline?</span>
+            <span className="text-[11px] text-amber-400 flex-1">{t("Save current result as the \"Before\" baseline?")}</span>
             <Button size="sm" className="h-6 text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30"
               onClick={() => { saveBaseline(); setShowSaveConfirm(false); }}>
               Confirm
@@ -1071,7 +1072,7 @@ function ComparisonPanel() {
 
           <div className="grid grid-cols-2 gap-2 text-[10px]">
             <div className="bg-[#1A1F26] rounded-lg p-3 border border-[#2A313A]">
-              <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">Before</div>
+              <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">{t("Before")}</div>
               <div className="font-semibold text-[#A0A8B3]">{baseline.label}</div>
               <div className="text-[9px] text-[#6B7380] mt-1">
                 {new Date(baseline.timestamp).toLocaleString()} · {fmtSec(baseline.durationSec)}
@@ -1079,7 +1080,7 @@ function ComparisonPanel() {
             </div>
             {currentResult && (
               <div className="bg-[#1A1F26] rounded-lg p-3 border border-[#2A313A]">
-                <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">After</div>
+                <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">{t("After")}</div>
                 <div className="font-semibold text-[#A0A8B3]">{currentResult.label}</div>
                 <div className="text-[9px] text-[#6B7380] mt-1">
                   {new Date(currentResult.timestamp).toLocaleString()} · {fmtSec(currentResult.durationSec)}
@@ -1093,7 +1094,7 @@ function ComparisonPanel() {
               <thead>
                 <tr className="border-b border-[#2A313A]">
                   {["Metric", "Before", "After", "Change"].map((h) => (
-                    <th key={h} className="text-left text-[9px] uppercase tracking-wider text-[#6B7380] pb-2 pr-3 font-medium">{h}</th>
+                    <th key={h} className="text-left text-[9px] uppercase tracking-wider text-[#6B7380] pb-2 pr-3 font-medium">{t(h)}</th>
                   ))}
                 </tr>
               </thead>
@@ -1118,6 +1119,7 @@ function ComparisonPanel() {
 // ── 9. Export + Notes ──────────────────────────────────────────────────────────
 
 function ExportNotesCard() {
+  const { t } = useTranslation();
   const {
     currentResult, testLabel, setTestLabel, sampleCount,
     avgDpcPct, avgIntrPct, peakDpcPct, peakIntrPct,
@@ -1240,18 +1242,18 @@ function ExportNotesCard() {
     <GlassCard className="p-5">
       <h3 className="text-sm font-semibold flex items-center gap-2 mb-4">
         <Download className="size-4 text-primary" />
-        Test Notes &amp; Export
+        {t("Test Notes & Export")}
       </h3>
 
       <div className="space-y-3">
         <div>
-          <label className="text-[10px] text-[#6B7380] uppercase tracking-wider block mb-1.5">Test Label</label>
+          <label className="text-[10px] text-[#6B7380] uppercase tracking-wider block mb-1.5">{t("Test Label")}</label>
           <div className="flex gap-2">
             <input
               type="text"
               value={testLabel}
               onChange={(e) => setTestLabel(e.target.value)}
-              placeholder="e.g. Before SwitchControl / After tweaks / Gaming session"
+              placeholder={t("e.g. Before SwitchControl / After tweaks / Gaming session")}
               maxLength={60}
               className="flex-1 bg-[#1A1F26] border border-[#2A313A] rounded-lg px-3 py-2 text-[11px] text-[#E6EAF0] placeholder:text-[#6B7380] focus:outline-none focus:border-primary/50"
             />
@@ -1263,7 +1265,7 @@ function ExportNotesCard() {
                 onClick={() => setTestLabel(l)}
                 className="text-[9px] px-2 py-0.5 rounded border border-[#2A313A] text-[#6B7380] hover:text-[#A0A8B3] hover:border-[#3A4250] transition-colors"
               >
-                {l}
+                {t(l)}
               </button>
             ))}
           </div>
@@ -1369,6 +1371,7 @@ const BAR_COLORS = [
 ];
 
 function InputDelaySection() {
+  const { t } = useTranslation();
   const intel  = useDashboardIntelligence();
   const latency = intel.latency;
   const store      = useLatencyAnalyzerStore();
@@ -1419,14 +1422,14 @@ function InputDelaySection() {
                   <div className="flex items-center gap-1.5 mb-1.5 ml-1">
                     {trendIcon}
                     <span className={cn("text-sm font-semibold", ql?.text)}>
-                      {latency.quality}
+                      {t(latency.quality)}
                     </span>
                   </div>
                 </>
               ) : latency ? (
                 <div className="flex items-end gap-2">
                   <span className="text-4xl font-semibold text-[#6B7380]">—</span>
-                  <span className="text-sm text-[#6B7380] mb-1">Not enough data</span>
+                  <span className="text-sm text-[#6B7380] mb-1">{t("Not enough data")}</span>
                 </div>
               ) : (
                 <div className="h-12 w-40 rounded-lg bg-[#1C2330] animate-pulse" />
@@ -1440,24 +1443,24 @@ function InputDelaySection() {
           {latency && ql && (
             <div className={cn("shrink-0 rounded-xl border px-4 py-3 text-center min-w-[88px]", ql.badge)}>
               <div className={cn("text-xs font-bold uppercase tracking-wide", ql.text)}>
-                {latency.quality}
+                {t(latency.quality)}
               </div>
-              <div className="text-[9px] text-[#5A6270] mt-0.5">overall</div>
+              <div className="text-[9px] text-[#5A6270] mt-0.5">{t("overall")}</div>
             </div>
           )}
         </div>
 
         {/* ── OS-derived breakdown ─────────────────────────────── */}
-        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider mb-3">OS delay breakdown</p>
+        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider mb-3">{t("OS delay breakdown")}</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mb-2">
           {hasEstimate ? (
             latency.breakdown.map((b, i) => (
               <div key={b.label} className="space-y-1.5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <span className="text-xs font-medium text-[#C0C8D4]">{b.label}</span>
+                    <span className="text-xs font-medium text-[#C0C8D4]">{t(b.label)}</span>
                     <p className="text-[9px] text-[#5A6270] mt-0.5 leading-tight">
-                      {BREAKDOWN_NOTES[b.label] ?? b.note}
+                      {t(BREAKDOWN_NOTES[b.label] ?? b.note)}
                     </p>
                   </div>
                   <span className="text-xs font-mono text-[#A0A8B3] shrink-0 mt-0.5">{b.ms.toFixed(1)}ms</span>
@@ -1491,7 +1494,7 @@ function InputDelaySection() {
                 <div className="space-y-1.5">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <span className="text-xs font-medium text-[#C0C8D4]">DPC scheduling impact</span>
+                      <span className="text-xs font-medium text-[#C0C8D4]">{t("DPC scheduling impact")}</span>
                       <p className="text-[9px] text-[#5A6270] mt-0.5 leading-tight">
                         Deferred procedure calls — avg {fmt1(store.avgDpcPct)}% CPU load
                       </p>
@@ -1505,7 +1508,7 @@ function InputDelaySection() {
                 <div className="space-y-1.5">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <span className="text-xs font-medium text-[#C0C8D4]">ISR interrupt overhead</span>
+                      <span className="text-xs font-medium text-[#C0C8D4]">{t("ISR interrupt overhead")}</span>
                       <p className="text-[9px] text-[#5A6270] mt-0.5 leading-tight">
                         Hardware interrupt service — avg {fmt1(store.avgIntrPct)}% CPU load
                       </p>
@@ -1523,7 +1526,7 @@ function InputDelaySection() {
         {latency && total > 0 && (
           <>
             <div className="border-t border-[#1C2330] my-5" />
-            <p className="text-[10px] text-[#6B7380] uppercase tracking-wider mb-3">Key contributors</p>
+            <p className="text-[10px] text-[#6B7380] uppercase tracking-wider mb-3">{t("Key contributors")}</p>
             <div className="space-y-1.5">
               {latency.breakdown
                 .slice()
@@ -1546,7 +1549,7 @@ function InputDelaySection() {
                           ? <Zap className="size-3 text-amber-400 shrink-0" />
                           : <span className="size-3 shrink-0" />
                         }
-                        <span className="text-[11px] text-[#C0C8D4] truncate">{b.label}</span>
+                        <span className="text-[11px] text-[#C0C8D4] truncate">{t(b.label)}</span>
                       </div>
                       <div className="flex items-center gap-4 shrink-0">
                         <span className="text-[10px] text-[#5A6270]">{pct}% of delay</span>
@@ -1563,9 +1566,7 @@ function InputDelaySection() {
 
         {/* ── Footnote ─────────────────────────────────────────── */}
         <p className="text-[9px] text-[#333C4A] mt-5 leading-relaxed">
-          This estimate covers OS-level scheduling and memory overhead only. It does not include hardware polling
-          rate, USB transport delay, monitor response time, network round-trip, or in-game engine latency.
-          Run the Latency Analyzer above to capture DPC and interrupt-level driver data.
+          {t("This estimate covers OS-level scheduling and memory overhead only. It does not include hardware polling rate, USB transport delay, monitor response time, network round-trip, or in-game engine latency. Run the Latency Analyzer above to capture DPC and interrupt-level driver data.")}
         </p>
       </GlassCard>
     </div>
@@ -1575,16 +1576,13 @@ function InputDelaySection() {
 // ── 11. Limitations notice ─────────────────────────────────────────────────────
 
 function LimitationsNotice() {
+  const { t } = useTranslation();
   return (
     <GlassCard className="p-4 border-[#2A313A]/60" variant="secondary">
       <div className="flex items-start gap-2.5">
         <Info className="size-4 text-[#6B7380] shrink-0 mt-0.5" />
         <p className="text-[10px] text-[#6B7380] leading-relaxed">
-          <span className="font-semibold text-[#A0A8B3]">SwitchControl Latency Analyzer</span> provides user-mode
-          system responsiveness and driver activity analysis. Some low-level ISR and DPC measurements may require
-          kernel-level instrumentation for full accuracy. Results can vary depending on workload, drivers,
-          power settings, background applications, and test duration. This is an original SwitchControl
-          analysis tool — it is not affiliated with, or derived from, any third-party latency analysis products.
+          {t("SwitchControl Latency Analyzer provides user-mode system responsiveness and driver activity analysis. Some low-level ISR and DPC measurements may require kernel-level instrumentation for full accuracy. Results can vary depending on workload, drivers, power settings, background applications, and test duration. This is an original SwitchControl analysis tool — it is not affiliated with, or derived from, any third-party latency analysis products.")}
         </p>
       </div>
     </GlassCard>
@@ -1595,6 +1593,7 @@ function LimitationsNotice() {
 
 function LockedState() {
   const { openUpgradeModal } = useUpgradeModal();
+  const { t } = useTranslation();
   return (
     <AppLayout noPageAnimation>
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] gap-6 px-4">
@@ -1603,9 +1602,9 @@ function LockedState() {
             <Timer className="size-7 text-primary" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-[#E6EAF0]">Latency Analyzer</h2>
+            <h2 className="text-lg font-bold text-[#E6EAF0]">{t("Latency Analyzer")}</h2>
             <p className="text-[11px] text-[#6B7380] mt-1">
-              Real-time DPC, interrupt, and driver activity analysis — Premium feature.
+              {t("Real-time DPC, interrupt, and driver activity analysis — Premium feature.")}
             </p>
           </div>
           <div className="space-y-2 text-left text-[11px] text-[#A0A8B3]">
@@ -1618,7 +1617,7 @@ function LockedState() {
             ].map((f) => (
               <div key={f} className="flex items-center gap-2">
                 <CheckCircle className="size-3.5 text-emerald-400 shrink-0" />
-                {f}
+                {t(f)}
               </div>
             ))}
           </div>
@@ -1627,7 +1626,7 @@ function LockedState() {
             className="w-full gap-2 bg-primary text-black font-semibold"
           >
             <Crown className="size-4" />
-            Unlock Premium
+            {t("Unlock Premium")}
           </Button>
         </GlassCard>
       </div>

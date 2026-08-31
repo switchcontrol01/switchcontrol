@@ -13,6 +13,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { TelemetrySparkline, type SparklinePoint } from "./TelemetrySparkline";
 import { useLiveTelemetryValues } from "@/hooks/useLiveTelemetry";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 const HISTORY_LEN = 50;
 
@@ -90,6 +91,7 @@ function GraphHeader({
   subtitle?: string;
   live?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-2 mb-3">
       <div className="w-5 h-5 rounded-md bg-[#21262D] border border-[#2A313A] flex items-center justify-center shrink-0">
@@ -102,7 +104,7 @@ function GraphHeader({
       {live && (
         <div className="flex items-center gap-1 shrink-0">
           <span className="w-1 h-1 rounded-full bg-cyan-400 animate-pulse" style={{ boxShadow: "0 0 5px #06b6d4" }} />
-          <span className="text-[9px] text-[#6B7380] uppercase tracking-widest">Live</span>
+          <span className="text-[9px] text-[#6B7380] uppercase tracking-widest">{t("Live")}</span>
         </div>
       )}
     </div>
@@ -112,6 +114,7 @@ function GraphHeader({
 // ══ Memory Pressure Graph ════════════════════════════════════════════════════
 
 export function MemoryPressureGraph({ delay = 0 }: { delay?: number }) {
+  const { t } = useTranslation();
   const { telemetry } = useLiveTelemetryValues();
   const H = 72;
   const W = 300;
@@ -143,15 +146,15 @@ export function MemoryPressureGraph({ delay = 0 }: { delay?: number }) {
         className="absolute inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse 60% 50% at 80% -10%, rgba(6,182,212,0.06), transparent)" }}
       />
-      <GraphHeader Icon={MemoryStick} title="Memory Pressure" subtitle="Rolling window" />
+      <GraphHeader Icon={MemoryStick} title={t("Memory Pressure")} subtitle={t("Rolling window")} />
 
       <div className="flex items-center gap-4 mb-2.5">
-        <StatBadge label="Used" value={`${currentUsed.toFixed(0)}%`} color="text-cyan-400" />
-        <StatBadge label="Total" value={`${totalGB.toFixed(0)}G`} color="text-[#A0A8B3]" />
-        <StatBadge label="Live" value={`${usedGB.toFixed(1)}G`} color="text-primary" />
+        <StatBadge label={t("Used")} value={`${currentUsed.toFixed(0)}%`} color="text-cyan-400" />
+        <StatBadge label={t("Total")} value={`${totalGB.toFixed(0)}G`} color="text-[#A0A8B3]" />
+        <StatBadge label={t("Live")} value={`${usedGB.toFixed(1)}G`} color="text-primary" />
         <div className="flex items-center gap-2.5 ml-auto text-[9px] text-[#6B7380] uppercase tracking-widest">
-          <span className="flex items-center gap-1"><span className="inline-block w-5 h-px bg-cyan-400/70" />Used</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-5 h-px bg-primary/50" />Free</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-5 h-px bg-cyan-400/70" />{t("Used")}</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-5 h-px bg-primary/50" />{t("Free")}</span>
         </div>
       </div>
 
@@ -216,6 +219,7 @@ export function MemoryPressureGraph({ delay = 0 }: { delay?: number }) {
 // ══ Storage Activity Graph ═══════════════════════════════════════════════════
 
 export function StorageActivityGraph({ delay = 0 }: { delay?: number }) {
+  const { t } = useTranslation();
   const { telemetry } = useLiveTelemetryValues();
   const H = 72;
   const W = 300;
@@ -245,7 +249,7 @@ export function StorageActivityGraph({ delay = 0 }: { delay?: number }) {
   const diskAvailable = telemetry?.disk.available ?? false;
 
   function fmtKB(v: number | null) {
-    if (v == null) return "Unavailable";
+    if (v == null) return t("Unavailable");
     if (v >= 1024) return `${(v / 1024).toFixed(1)}M`;
     return `${v.toFixed(0)}K`;
   }
@@ -256,12 +260,12 @@ export function StorageActivityGraph({ delay = 0 }: { delay?: number }) {
         className="absolute inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse 60% 50% at 20% 110%, rgba(245,158,11,0.05), transparent)" }}
       />
-      <GraphHeader Icon={HardDrive} title="Storage Activity" subtitle="Read / Write" />
+      <GraphHeader Icon={HardDrive} title={t("Storage Activity")} subtitle={t("Read / Write")} />
 
       <div className="flex items-center gap-4 mb-2.5">
-        <StatBadge label="Read" value={diskAvailable ? fmtKB(readKBps) : "Unavailable"} color={diskAvailable ? "text-amber-400" : "text-[#6B7380]"} />
-        <StatBadge label="Write" value={diskAvailable ? fmtKB(writeKBps) : "Unavailable"} color={diskAvailable ? "text-orange-400" : "text-[#6B7380]"} />
-        <StatBadge label="Active" value={activeTime != null ? `${activeTime.toFixed(0)}%` : "Unavailable"} color={diskAvailable ? "text-[#6B7380]" : "text-[#6B7380]"} />
+        <StatBadge label={t("Read")} value={diskAvailable ? fmtKB(readKBps) : t("Unavailable")} color={diskAvailable ? "text-amber-400" : "text-[#6B7380]"} />
+        <StatBadge label={t("Write")} value={diskAvailable ? fmtKB(writeKBps) : t("Unavailable")} color={diskAvailable ? "text-orange-400" : "text-[#6B7380]"} />
+        <StatBadge label={t("Active")} value={activeTime != null ? `${activeTime.toFixed(0)}%` : t("Unavailable")} color="text-[#6B7380]" />
         <div className="flex items-center gap-2.5 ml-auto text-[9px] text-[#6B7380] uppercase tracking-widest">
           <span className="flex items-center gap-1"><span className="inline-block w-5 h-px bg-amber-400/70" />R</span>
           <span className="flex items-center gap-1"><span className="inline-block w-5 h-px bg-orange-400/50" />W</span>
@@ -326,6 +330,7 @@ export function StorageActivityGraph({ delay = 0 }: { delay?: number }) {
 // ══ System Rhythm Graph ══════════════════════════════════════════════════════
 
 export function SystemRhythmGraph({ delay = 0 }: { delay?: number }) {
+  const { t } = useTranslation();
   const { telemetry } = useLiveTelemetryValues();
   const H = 80;
   const W = 300;
@@ -358,7 +363,7 @@ export function SystemRhythmGraph({ delay = 0 }: { delay?: number }) {
         className="absolute inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse 70% 60% at 50% 120%, rgba(124,58,237,0.07), transparent)" }}
       />
-      <GraphHeader Icon={Activity} title="System Rhythm" subtitle="CPU · RAM · GPU" />
+      <GraphHeader Icon={Activity} title={t("System Rhythm")} subtitle="CPU · RAM · GPU" />
 
       <div className="flex items-center gap-4 mb-2.5">
         <StatBadge label="CPU" value={`${cpu.toFixed(0)}%`} color="text-primary" />

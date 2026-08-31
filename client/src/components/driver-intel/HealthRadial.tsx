@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useMotion } from "@/lib/motion";
 import type { HealthScore } from "@/lib/driver-intel-data";
+import { useTranslation } from "@/lib/i18n";
 
 function scoreColor(v: number): string {
   if (v >= 85) return "#34d399";
@@ -51,6 +52,7 @@ function clamp(v: number | null | undefined): number {
 
 export function HealthRadial({ score }: HealthRadialProps) {
   const { prefersReducedMotion } = useMotion();
+  const { t } = useTranslation();
   const overall = clamp(score.overall);
   const display = useCountUp(overall, !prefersReducedMotion);
   const color = scoreColor(overall);
@@ -84,7 +86,7 @@ export function HealthRadial({ score }: HealthRadialProps) {
             {display}
           </span>
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground mt-0.5">
-            Health
+            {t("Health")}
           </span>
         </div>
       </div>
@@ -97,7 +99,7 @@ export function HealthRadial({ score }: HealthRadialProps) {
           return (
             <div key={s.kind} className="flex items-center gap-2" data-testid={`subscore-${s.kind}`}>
               <span className="text-[11px] text-muted-foreground w-20 shrink-0 truncate">
-                {s.label}
+                {t(s.label)}
               </span>
               <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
                 <motion.div

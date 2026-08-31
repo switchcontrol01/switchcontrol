@@ -561,7 +561,7 @@ export default function DriverIntelligence() {
                   <div className="rounded-xl border border-[#00D4FF]/20 bg-black/40 backdrop-blur-sm p-3">
                     <div className="flex items-center justify-between text-xs mb-2">
                       <span className="text-[#33E0FF] font-medium" data-testid="text-scan-step">
-                         {SCAN_STEPS[stepIndex]?.label ?? t("Scanning…")}
+                         {t(SCAN_STEPS[stepIndex]?.label ?? "Scanning…")}
                       </span>
                       <span className="text-muted-foreground tabular-nums">
                         {stepIndex + 1}/{SCAN_STEPS.length}
@@ -641,11 +641,11 @@ export default function DriverIntelligence() {
                       >
                         {n.vendor}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">{n.category}</span>
+                      <span className="text-[10px] text-muted-foreground">{t(n.category)}</span>
                       <span className="text-[10px] text-muted-foreground ml-auto">{n.date}</span>
                     </div>
-                    <h3 className="text-sm font-medium text-[#E6EAF0]">{n.title}</h3>
-                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{n.summary}</p>
+                    <h3 className="text-sm font-medium text-[#E6EAF0]">{t(n.title)}</h3>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{t(n.summary)}</p>
                   </GlassCard>
                   </motion.div>
                 );
@@ -782,13 +782,13 @@ function ComponentCard({
       data-testid={`card-component-${c.kind}`}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs uppercase tracking-wider text-muted-foreground">{c.title}</span>
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">{t(c.title)}</span>
         <span
           className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border"
           style={{ background: `${meta.color}22`, color: meta.color, borderColor: `${meta.color}44` }}
         >
           <span className="size-1.5 rounded-full" style={{ background: meta.color }} />
-          {meta.label}
+          {t(meta.label)}
         </span>
       </div>
       <div className="text-sm font-medium text-[#E6EAF0] truncate mb-1" title={c.device}>

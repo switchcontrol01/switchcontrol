@@ -335,7 +335,7 @@ function ReorderList({ items, hidden, labels, onToggle, onReorder, testPrefix }:
             data-testid={`${testPrefix}-toggle-${id.replace(/[^a-z0-9]/gi, "-")}`} className="rounded-md p-1.5 text-muted-foreground hover:text-foreground">
             <Eye className="size-3.5" />
           </button>
-          <span className="flex-1 text-sm">{labels[id] || id}</span>
+          <span className="flex-1 text-sm">{t(labels[id] || id)}</span>
         </div>
       ))}
       <p className="text-[10px] text-muted-foreground/70">{t("Click and hold the grip, then drag over another row to reorder.")}</p>
@@ -445,37 +445,37 @@ function CustomizationSettings() {
         <PreferenceSwitch label={t("Hide unsupported tweaks")} description={t("Remove tweaks that cannot run on this device.")} checked={preferences.hideUnsupported} onChange={(v) => set("hideUnsupported", v)} testId="toggle-hide-unsupported" />
         <PreferenceSwitch label={t("Hide advanced tweaks")} description={t("Keep advanced controls out of the default list.")} checked={preferences.hideAdvanced} onChange={(v) => set("hideAdvanced", v)} testId="toggle-hide-advanced" />
         <PreferenceSwitch label={t("Show experimental tweaks")} description={t("Include clearly marked experimental options.")} checked={preferences.showExperimental} onChange={(v) => set("showExperimental", v)} testId="toggle-show-experimental" />
-        <PreferenceSwitch label="Expand Performance Intelligence" description="Open the intelligence panel when it becomes available." checked={preferences.expandIntelligence} onChange={(v) => set("expandIntelligence", v)} testId="toggle-expand-intelligence" />
-        <PreferenceSwitch label="Refresh intelligence automatically" description="Retry intelligence data after startup and on return." checked={preferences.autoRefreshIntelligence} onChange={(v) => set("autoRefreshIntelligence", v)} testId="toggle-auto-refresh-intelligence" />
-        <PreferenceSwitch label="Create restore point" description="Request a Windows restore point before system changes." checked={preferences.createRestorePoint} onChange={(v) => set("createRestorePoint", v)} testId="toggle-create-restore-point" />
-        <PreferenceSwitch label="Save registry backup" description="Keep a local backup before registry changes." checked={preferences.saveRegistryBackup} onChange={(v) => set("saveRegistryBackup", v)} testId="toggle-save-registry-backup" />
-        <PreferenceSwitch label="Show verification results" description="Display post-change verification details." checked={preferences.showVerification} onChange={(v) => set("showVerification", v)} testId="toggle-show-verification" />
-        <PreferenceSwitch label="Retry failed reverts automatically" description="Retry a failed revert during the next eligible check." checked={preferences.autoRevertFailed} onChange={(v) => set("autoRevertFailed", v)} testId="toggle-auto-revert" />
+        <PreferenceSwitch label={t("Expand Performance Intelligence")} description={t("Open the intelligence panel when it becomes available.")} checked={preferences.expandIntelligence} onChange={(v) => set("expandIntelligence", v)} testId="toggle-expand-intelligence" />
+        <PreferenceSwitch label={t("Refresh intelligence automatically")} description={t("Retry intelligence data after startup and on return.")} checked={preferences.autoRefreshIntelligence} onChange={(v) => set("autoRefreshIntelligence", v)} testId="toggle-auto-refresh-intelligence" />
+        <PreferenceSwitch label={t("Create restore point")} description={t("Request a Windows restore point before system changes.")} checked={preferences.createRestorePoint} onChange={(v) => set("createRestorePoint", v)} testId="toggle-create-restore-point" />
+        <PreferenceSwitch label={t("Save registry backup")} description={t("Keep a local backup before registry changes.")} checked={preferences.saveRegistryBackup} onChange={(v) => set("saveRegistryBackup", v)} testId="toggle-save-registry-backup" />
+        <PreferenceSwitch label={t("Show verification results")} description={t("Display post-change verification details.")} checked={preferences.showVerification} onChange={(v) => set("showVerification", v)} testId="toggle-show-verification" />
+        <PreferenceSwitch label={t("Retry failed reverts automatically")} description={t("Retry a failed revert during the next eligible check.")} checked={preferences.autoRevertFailed} onChange={(v) => set("autoRevertFailed", v)} testId="toggle-auto-revert" />
       </PreferenceCard>
 
        <PreferenceCard icon={Bell} title={t("Notifications & startup")} description={t("Choose what deserves your attention and how the desktop app opens.")}>
-        <PreferenceSelect label="Metrics refresh" description="Set the live metrics cadence, or pause it completely." value={String(preferences.metricsRefreshSeconds)}
-          options={[["0", "Paused"], ["2", "Every 2 seconds"], ["5", "Every 5 seconds"], ["10", "Every 10 seconds"]].map(([value, label]) => ({ value, label }))}
+        <PreferenceSelect label={t("Metrics refresh")} description={t("Set the live metrics cadence, or pause it completely.")} value={String(preferences.metricsRefreshSeconds)}
+          options={[["0", "Paused"], ["2", "Every 2 seconds"], ["5", "Every 5 seconds"], ["10", "Every 10 seconds"]].map(([value, label]) => ({ value, label: t(label) }))}
           onChange={(value) => set("metricsRefreshSeconds", Number(value) as 0 | 2 | 5 | 10)} testId="select-metrics-refresh" />
-        <PreferenceSwitch label="Tweak notifications" description="Show a confirmation when a tweak is applied or reverted." checked={preferences.showTweakNotifications} onChange={(v) => set("showTweakNotifications", v)} testId="toggle-tweak-notifications" />
-        <PreferenceSwitch label="Verification warnings" description="Notify when a system change cannot be verified." checked={preferences.showVerificationWarnings} onChange={(v) => set("showVerificationWarnings", v)} testId="toggle-verification-warnings" />
-        <PreferenceSwitch label="Health alerts" description="Show actionable warnings for elevated system pressure." checked={preferences.showHealthAlerts} onChange={(v) => set("showHealthAlerts", v)} testId="toggle-health-alerts" />
-        <PreferenceSwitch label="Premium reminders" description="Allow reminders about premium-only optimization tools." checked={preferences.showPremiumReminders} onChange={(v) => set("showPremiumReminders", v)} testId="toggle-premium-reminders" />
-        <PreferenceSwitch label="Start with Windows" description="Register the desktop app to launch when Windows starts." checked={preferences.startWithWindows} onChange={(v) => set("startWithWindows", v)} testId="toggle-start-with-windows" />
-        <PreferenceSwitch label="Launch minimized" description="Start quietly in the background instead of opening the dashboard." checked={preferences.launchMinimized} onChange={(v) => set("launchMinimized", v)} testId="toggle-launch-minimized" />
-        <PreferenceSwitch label="Open Dashboard on startup" description="Return to the dashboard after authentication." checked={preferences.openDashboardOnStartup} onChange={(v) => set("openDashboardOnStartup", v)} testId="toggle-dashboard-startup" />
-        <PreferenceSwitch label="Check for updates automatically" description="Allow the desktop app to look for new releases." checked={preferences.autoUpdateChecks} onChange={(v) => set("autoUpdateChecks", v)} testId="toggle-auto-update-checks" />
+        <PreferenceSwitch label={t("Tweak notifications")} description={t("Show a confirmation when a tweak is applied or reverted.")} checked={preferences.showTweakNotifications} onChange={(v) => set("showTweakNotifications", v)} testId="toggle-tweak-notifications" />
+        <PreferenceSwitch label={t("Verification warnings")} description={t("Notify when a system change cannot be verified.")} checked={preferences.showVerificationWarnings} onChange={(v) => set("showVerificationWarnings", v)} testId="toggle-verification-warnings" />
+        <PreferenceSwitch label={t("Health alerts")} description={t("Show actionable warnings for elevated system pressure.")} checked={preferences.showHealthAlerts} onChange={(v) => set("showHealthAlerts", v)} testId="toggle-health-alerts" />
+        <PreferenceSwitch label={t("Premium reminders")} description={t("Allow reminders about premium-only optimization tools.")} checked={preferences.showPremiumReminders} onChange={(v) => set("showPremiumReminders", v)} testId="toggle-premium-reminders" />
+        <PreferenceSwitch label={t("Start with Windows")} description={t("Register the desktop app to launch when Windows starts.")} checked={preferences.startWithWindows} onChange={(v) => set("startWithWindows", v)} testId="toggle-start-with-windows" />
+        <PreferenceSwitch label={t("Launch minimized")} description={t("Start quietly in the background instead of opening the dashboard.")} checked={preferences.launchMinimized} onChange={(v) => set("launchMinimized", v)} testId="toggle-launch-minimized" />
+        <PreferenceSwitch label={t("Open Dashboard on startup")} description={t("Return to the dashboard after authentication.")} checked={preferences.openDashboardOnStartup} onChange={(v) => set("openDashboardOnStartup", v)} testId="toggle-dashboard-startup" />
+        <PreferenceSwitch label={t("Check for updates automatically")} description={t("Allow the desktop app to look for new releases.")} checked={preferences.autoUpdateChecks} onChange={(v) => set("autoUpdateChecks", v)} testId="toggle-auto-update-checks" />
       </PreferenceCard>
 
        <PreferenceCard icon={ShieldCheck} title={t("Privacy & diagnostics")} description={t("Keep control of local diagnostics and optional product context.")}>
-        <PreferenceSwitch label="Anonymous crash reports" description="Share anonymous crash details to help improve stability." checked={preferences.anonymousCrashReports} onChange={(v) => set("anonymousCrashReports", v)} testId="toggle-crash-reports" />
-        <PreferenceSwitch label="Share performance diagnostics" description="Allow non-identifying performance diagnostics when support needs them." checked={preferences.sharePerformanceDiagnostics} onChange={(v) => set("sharePerformanceDiagnostics", v)} testId="toggle-performance-sharing" />
-        <PreferenceSwitch label="Share hardware context with AI Advisor" description="Include your local CPU, GPU, and memory details in AI requests." checked={preferences.shareAiHardwareContext} onChange={(v) => set("shareAiHardwareContext", v)} testId="toggle-ai-hardware-context" />
+        <PreferenceSwitch label={t("Anonymous crash reports")} description={t("Share anonymous crash details to help improve stability.")} checked={preferences.anonymousCrashReports} onChange={(v) => set("anonymousCrashReports", v)} testId="toggle-crash-reports" />
+        <PreferenceSwitch label={t("Share performance diagnostics")} description={t("Allow non-identifying performance diagnostics when support needs them.")} checked={preferences.sharePerformanceDiagnostics} onChange={(v) => set("sharePerformanceDiagnostics", v)} testId="toggle-performance-sharing" />
+        <PreferenceSwitch label={t("Share hardware context with AI Advisor")} description={t("Include your local CPU, GPU, and memory details in AI requests.")} checked={preferences.shareAiHardwareContext} onChange={(v) => set("shareAiHardwareContext", v)} testId="toggle-ai-hardware-context" />
         <Separator className="my-4 bg-border/40" />
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={exportSettings} data-testid="button-export-settings"><FileDown className="size-3.5 mr-2" />Export settings</Button>
-          <Button variant="outline" size="sm" onClick={() => { if (!window.confirm("Clear all local history? This cannot be undone.")) return; clearHistory(); toast({ title: "History cleared", description: "Local activity history was removed." }); }} data-testid="button-clear-local-history" className="text-destructive hover:text-destructive"><Trash2 className="size-3.5 mr-2" />Clear local history</Button>
-          <Button variant="outline" size="sm" onClick={() => { if (!window.confirm("Reset all local settings to their defaults?")) return; preferences.resetPreferences(); toast({ title: "Local settings reset", description: "Customization preferences were restored." }); }} data-testid="button-reset-local-settings"><RotateCcw className="size-3.5 mr-2" />Reset local settings</Button>
+          <Button variant="outline" size="sm" onClick={exportSettings} data-testid="button-export-settings"><FileDown className="size-3.5 mr-2" />{t("Export settings")}</Button>
+          <Button variant="outline" size="sm" onClick={() => { if (!window.confirm(t("Clear all local history? This cannot be undone."))) return; clearHistory(); toast({ title: t("History cleared"), description: t("Local activity history was removed.") }); }} data-testid="button-clear-local-history" className="text-destructive hover:text-destructive"><Trash2 className="size-3.5 mr-2" />{t("Clear local history")}</Button>
+          <Button variant="outline" size="sm" onClick={() => { if (!window.confirm(t("Reset all local settings to their defaults?"))) return; preferences.resetPreferences(); toast({ title: t("Local settings reset"), description: t("Customization preferences were restored.") }); }} data-testid="button-reset-local-settings"><RotateCcw className="size-3.5 mr-2" />{t("Reset local settings")}</Button>
         </div>
       </PreferenceCard>
     </div>
@@ -519,6 +519,7 @@ interface CriticalEvent {
 
 function DiagnosticsCard() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [notes, setNotes] = useState('');
   const [exporting, setExporting] = useState(false);
   const [exportResult, setExportResult] = useState<{ ok: boolean; path?: string } | null>(null);
@@ -536,7 +537,7 @@ function DiagnosticsCard() {
 
   const handleExport = useCallback(async () => {
     if (!logsApi?.exportDiagnostics) {
-      toast({ title: 'Not available', description: 'Diagnostic export is only available in the desktop app.' });
+      toast({ title: t("Not available"), description: t("Diagnostic export is only available in the desktop app.") });
       return;
     }
     setExporting(true);
@@ -546,19 +547,19 @@ function DiagnosticsCard() {
       setExportResult(result);
       if (result?.ok) {
         toast({
-          title: 'Diagnostics exported',
-          description: `Saved to your Desktop. Folder opened automatically.`,
+          title: t("Diagnostics exported"),
+          description: t("Saved to your Desktop. Folder opened automatically."),
         });
         setNotes('');
       } else {
-        toast({ title: 'Export failed', description: result?.error ?? 'Unknown error', variant: 'destructive' });
+        toast({ title: t("Export failed"), description: result?.error ?? t("Unknown error"), variant: 'destructive' });
       }
     } catch (e: any) {
-      toast({ title: 'Export error', description: e?.message ?? 'Unknown error', variant: 'destructive' });
+      toast({ title: t("Export error"), description: e?.message ?? t("Unknown error"), variant: 'destructive' });
     } finally {
       setExporting(false);
     }
-  }, [logsApi, notes, toast]);
+  }, [logsApi, notes, t, toast]);
 
   const categoryColor: Record<string, string> = {
     startup_failure:     'text-red-400',
@@ -575,10 +576,10 @@ function DiagnosticsCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileDown className="size-4 text-muted-foreground" />
-          Export Diagnostics
+          {t("Export Diagnostics")}
         </CardTitle>
         <CardDescription>
-          Package log files and system info into a folder for issue reporting.
+          {t("Package log files and system info into a folder for issue reporting.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -589,14 +590,14 @@ function DiagnosticsCard() {
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <AlertCircle className="size-3 text-yellow-500" />
-                {events.length} critical event{events.length !== 1 ? 's' : ''} this session
+                {t("{count} critical event(s) this session", undefined, { count: events.length })}
               </p>
               <button
                 onClick={() => setExpanded(v => !v)}
                 className="text-xs text-muted-foreground hover:text-foreground transition"
                 data-testid="button-toggle-critical-events"
               >
-                {expanded ? 'Hide' : 'Show'}
+                {expanded ? t("Hide") : t("Show")}
               </button>
             </div>
             {expanded && (
@@ -622,17 +623,17 @@ function DiagnosticsCard() {
         {events.length === 0 && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <CheckCircle2 className="size-3 text-green-500/70 shrink-0" />
-            No critical events recorded this session.
+            {t("No critical events recorded this session.")}
           </div>
         )}
 
         {/* Optional user notes */}
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">
-            Notes for support team <span className="font-normal">(optional)</span>
+            {t("Notes for support team")} <span className="font-normal">{t("(optional)")}</span>
           </label>
           <Textarea
-            placeholder="Describe what you were doing when the issue occurred..."
+            placeholder={t("Describe what you were doing when the issue occurred...")}
             value={notes}
             onChange={e => setNotes(e.target.value)}
             className="text-sm h-20 resize-none bg-background/50"
@@ -651,16 +652,16 @@ function DiagnosticsCard() {
             data-testid="button-export-diagnostics"
           >
             <FileDown className="size-4 mr-2" />
-            {exporting ? 'Exporting…' : 'Export Diagnostics'}
+            {exporting ? t("Exporting…") : t("Export Diagnostics")}
           </Button>
           {exportResult?.ok && (
             <p className="text-xs text-green-400 flex items-center gap-1">
               <CheckCircle2 className="size-3" />
-              Exported to Desktop. Folder opened automatically.
+              {t("Exported to Desktop. Folder opened automatically.")}
             </p>
           )}
           <p className="text-xs text-muted-foreground">
-            Exports startup, latest, critical, and backend logs plus a summary to a folder on your Desktop.
+            {t("Exports startup, latest, critical, and backend logs plus a summary to a folder on your Desktop.")}
           </p>
         </div>
 
@@ -675,6 +676,7 @@ const SUPPORT_EMAIL = 'switchcontrol67@gmail.com';
 
 function ApplicationModeSection() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const mode = useAppModeStore((s) => s.mode);
   const transitioning = useAppModeStore((s) => s.transitioning);
   const dontAskAgain = useAppModeStore((s) => s.dontAskAgain);
@@ -688,16 +690,16 @@ function ApplicationModeSection() {
     switchModeWithTransition(target);
     logHistory(`Settings: Application Mode → ${target === "light" ? "Light" : "Normal"}`, "Settings", "Saved");
     toast({
-      title: target === "light" ? "Light Mode enabled" : "Normal Mode restored",
+      title: target === "light" ? t("Light Mode enabled") : t("Normal Mode restored"),
       description: target === "light"
-        ? "Visual effects reduced and background activity slowed."
-        : "Full visual experience and live monitoring restored.",
+        ? t("Visual effects reduced and background activity slowed.")
+        : t("Full visual experience and live monitoring restored."),
     });
   };
 
   const options: { value: ApplicationMode; label: string; desc: string; Icon: typeof Zap }[] = [
-    { value: "normal", label: "Normal Mode", desc: "Full visuals, animations and live monitoring.", Icon: Gauge },
-    { value: "light", label: "Light Mode", desc: "Minimal effects, slower polling, lowest resource usage.", Icon: Zap },
+    { value: "normal", label: t("Normal Mode"), desc: t("Full visuals, animations and live monitoring."), Icon: Gauge },
+    { value: "light", label: t("Light Mode"), desc: t("Minimal effects, slower polling, lowest resource usage."), Icon: Zap },
   ];
 
   return (
@@ -725,7 +727,7 @@ function ApplicationModeSection() {
                 {selected && (
                   <span className="ml-auto text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-full"
                     style={{ background: "rgba(139,92,246,0.22)", color: "rgba(192,155,255,0.95)" }}>
-                    Active
+                    {t("Active")}
                   </span>
                 )}
               </div>
@@ -737,18 +739,18 @@ function ApplicationModeSection() {
 
       {lastRecommendation && (
         <p className="text-xs text-muted-foreground" data-testid="text-last-recommendation">
-          Last system analysis recommended{" "}
+          {t("Last system analysis recommended")}{" "}
           <span className="text-[#C09BFF]">
-            {lastRecommendation.recommendedMode === "light" ? "Light Mode" : "Normal Mode"}
+            {lastRecommendation.recommendedMode === "light" ? t("Light Mode") : t("Normal Mode")}
           </span>{" "}
-          ({lastRecommendation.confidence}% confidence).
+          {t("({confidence}% confidence).", undefined, { confidence: lastRecommendation.confidence })}
         </p>
       )}
 
       {(recommendationShown || dontAskAgain) && (
         <div className="flex items-center justify-between pt-1">
           <p className="text-xs text-muted-foreground">
-            Run the system analysis again on next launch.
+            {t("Run the system analysis again on next launch.")}
           </p>
           <Button
             variant="outline"
@@ -758,13 +760,13 @@ function ApplicationModeSection() {
             onClick={() => {
               resetRecommendations();
               toast({
-                title: "Recommendations reset",
-                description: "SwitchControl will analyse your system again on the next launch.",
+                title: t("Recommendations reset"),
+                description: t("SwitchControl will analyse your system again on the next launch."),
               });
             }}
           >
             <RotateCcw className="size-3.5 mr-1.5" />
-            Reset Recommendations
+            {t("Reset Recommendations")}
           </Button>
         </div>
       )}
@@ -773,6 +775,7 @@ function ApplicationModeSection() {
 }
 
 function AdaptivePerformanceSection() {
+  const { t } = useTranslation();
   const {
     profile,
     detectedProfile,
@@ -784,14 +787,14 @@ function AdaptivePerformanceSection() {
   const reducedMotion = useUserPreferencesStore((state) => state.reducedMotion);
   const setPreference = useUserPreferencesStore((state) => state.setPreference);
   const options: Array<{ value: AdaptivePerformanceOverride; label: string; description: string }> = [
-    { value: "automatic", label: "Automatic", description: "Adapts when power, display, session, or GPU capability changes." },
-    { value: "efficiency", label: "Efficiency", description: "Static ambience and slower nonessential polling." },
-    { value: "balanced", label: "Balanced", description: "Moderate effects with a measured background cadence." },
-    { value: "enhanced", label: "Enhanced", description: "Full visuals and the normal live-monitoring cadence." },
+    { value: "automatic", label: t("Automatic"), description: t("Adapts when power, display, session, or GPU capability changes.") },
+    { value: "efficiency", label: t("Efficiency"), description: t("Static ambience and slower nonessential polling.") },
+    { value: "balanced", label: t("Balanced"), description: t("Moderate effects with a measured background cadence.") },
+    { value: "enhanced", label: t("Enhanced"), description: t("Full visuals and the normal live-monitoring cadence.") },
   ];
   const label = profile === "unknown"
-    ? "Detecting"
-    : profile.charAt(0).toUpperCase() + profile.slice(1);
+    ? t("Detecting")
+    : t(profile.charAt(0).toUpperCase() + profile.slice(1));
 
   return (
     <div className="space-y-4" data-testid="adaptive-performance-section">
@@ -799,19 +802,19 @@ function AdaptivePerformanceSection() {
         <div>
           <div className="flex items-center gap-2">
             <Gauge className="size-4 text-cyan-300" />
-            <span className="text-sm font-medium text-[#E6EAF0]">{label} profile active</span>
+            <span className="text-sm font-medium text-[#E6EAF0]">{t("{profile} profile active", undefined, { profile: label })}</span>
             {override !== "automatic" && (
               <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-cyan-300">
-                Manual
+                {t("Manual")}
               </span>
             )}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             {override === "automatic"
               ? detectedProfile === "unknown"
-                ? "Waiting for enough reliable capability signals."
-                : `Automatically detected with ${confidence}% confidence.`
-              : `Automatic detection currently recommends ${detectedProfile === "unknown" ? "waiting for more data" : detectedProfile}.`}
+                ? t("Waiting for enough reliable capability signals.")
+                : t("Automatically detected with {confidence}% confidence.", undefined, { confidence })
+              : t("Automatic detection currently recommends {profile}.", undefined, { profile: detectedProfile === "unknown" ? t("waiting for more data") : t(detectedProfile) })}
           </p>
         </div>
         <Button
@@ -823,7 +826,7 @@ function AdaptivePerformanceSection() {
           data-testid="button-refresh-performance-profile"
         >
           <RotateCcw className={`mr-1.5 size-3.5 ${refreshing ? "animate-spin" : ""}`} />
-          Refresh
+          {t("Refresh")}
         </Button>
       </div>
 
@@ -850,10 +853,10 @@ function AdaptivePerformanceSection() {
       </div>
 
       <div className="rounded-lg bg-white/[0.025] px-3 py-2.5">
-        <p className="text-xs font-medium text-[#AEB6C2]">Why this profile</p>
+        <p className="text-xs font-medium text-[#AEB6C2]">{t("Why this profile")}</p>
         <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground">
           {reasons.slice(0, 4).map((reason) => <li key={reason}>• {reason}</li>)}
-          {reducedMotion && <li>• Reduced motion is enabled and takes precedence over this profile.</li>}
+          {reducedMotion && <li>• {t("Reduced motion is enabled and takes precedence over this profile.")}</li>}
         </ul>
       </div>
     </div>
@@ -937,7 +940,7 @@ export default function Settings() {
                     data-testid="toggle-realtime-metrics"
                     onCheckedChange={(checked) => {
                       setRealtimeMetricsEnabled(checked);
-                      toast({ title: checked ? "Live Metrics Enabled" : "Live Metrics Paused", description: checked ? "Dashboard stats updating in real time." : "Stats display is frozen, no polling overhead." });
+                      toast({ title: checked ? t("Live Metrics Enabled") : t("Live Metrics Paused"), description: checked ? t("Dashboard stats updating in real time.") : t("Stats display is frozen, no polling overhead.") });
                       logHistory(`Settings: Real-time Metrics ${checked ? "Enabled" : "Disabled"}`, "Settings", "Saved");
                     }}
                   />
@@ -957,21 +960,21 @@ export default function Settings() {
           <Reveal delay={0.06}>
           <Card className="bg-card/50 border-border/50">
             <CardHeader>
-              <CardTitle>Account</CardTitle>
-              <CardDescription>Your license details.</CardDescription>
+              <CardTitle>{t("Account")}</CardTitle>
+              <CardDescription>{t("Your license details.")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {user?.email && (
                 <div className="grid gap-2">
-                  <Label>Account Email</Label>
+                  <Label>{t("Account Email")}</Label>
                   <Input value={user.email} readOnly disabled className="bg-muted/50 text-muted-foreground" data-testid="input-account-email" />
                 </div>
               )}
               {isPremium ? (
                 <div className="flex items-center justify-between bg-emerald-500/5 border border-emerald-500/20 p-3 rounded-md">
                   <div className="space-y-0.5">
-                    <span className="text-sm font-medium text-emerald-400">Premium (Lifetime)</span>
-                    <p className="text-xs text-emerald-500/70">One-time purchase - Lifetime access</p>
+                    <span className="text-sm font-medium text-emerald-400">{t("Premium (Lifetime)")}</span>
+                    <p className="text-xs text-emerald-500/70">{t("One-time purchase - Lifetime access")}</p>
                   </div>
                   <Button
                     variant="outline"
@@ -980,14 +983,14 @@ export default function Settings() {
                     onClick={() => setLicenseModalOpen(true)}
                     data-testid="button-manage-license"
                   >
-                    Manage
+                    {t("Manage")}
                   </Button>
                 </div>
               ) : (
                 <div className="flex items-center justify-between bg-[#1A1F26] border border-[#2A313A] p-3 rounded-md">
                   <div className="space-y-0.5">
-                    <span className="text-sm font-medium text-[#A0A8B3]">Free Plan</span>
-                    <p className="text-xs text-[#6B7380]">Upgrade to unlock all premium features</p>
+                    <span className="text-sm font-medium text-[#A0A8B3]">{t("Free Plan")}</span>
+                    <p className="text-xs text-[#6B7380]">{t("Upgrade to unlock all premium features")}</p>
                   </div>
                   <Button
                     variant="outline"
@@ -996,7 +999,7 @@ export default function Settings() {
                     onClick={() => setLicenseModalOpen(true)}
                     data-testid="button-manage-license"
                   >
-                    Manage
+                    {t("Manage")}
                   </Button>
                 </div>
               )}
@@ -1017,9 +1020,9 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Crown className="size-5 text-amber-400" />
-                  Priority Support
+                  {t("Priority Support")}
                 </CardTitle>
-                <CardDescription>As a Premium member, you get direct priority email support.</CardDescription>
+                <CardDescription>{t("As a Premium member, you get direct priority email support.")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-3 bg-emerald-500/5 border border-emerald-500/15 rounded-lg p-4">
@@ -1027,7 +1030,7 @@ export default function Settings() {
                     <Mail className="size-5 text-emerald-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-emerald-400/70 font-medium uppercase tracking-wider mb-1">Priority Email</p>
+                    <p className="text-xs text-emerald-400/70 font-medium uppercase tracking-wider mb-1">{t("Priority Email")}</p>
                     <p className="text-sm text-[#E6EAF0] font-mono select-all" data-testid="text-support-email">{SUPPORT_EMAIL}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -1037,7 +1040,7 @@ export default function Settings() {
                       className="h-8 px-2 text-[#6B7380] hover:text-[#E6EAF0]"
                       onClick={() => {
                         navigator.clipboard.writeText(SUPPORT_EMAIL);
-                        toast({ title: "Copied", description: "Email address copied to clipboard." });
+                        toast({ title: t("Copied"), description: t("Email address copied to clipboard.") });
                       }}
                       data-testid="button-copy-email"
                     >
@@ -1055,7 +1058,7 @@ export default function Settings() {
                     </Button>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">We typically reply within 24 hours.</p>
+                <p className="text-xs text-muted-foreground mt-2">{t("We typically reply within 24 hours.")}</p>
               </CardContent>
             </Card>
             </Reveal>
@@ -1065,7 +1068,7 @@ export default function Settings() {
           <Reveal delay={0.18}>
           <Card className="bg-red-500/5 border-red-500/10">
             <CardHeader>
-              <CardTitle className="text-red-400">Data Management</CardTitle>
+              <CardTitle className="text-red-400">{t("Data Management")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-4">
@@ -1079,19 +1082,19 @@ export default function Settings() {
                     <Button
                       variant="outline"
                       onClick={() => {
-                        if (!window.confirm("Reset local settings and activity data to their defaults? Your login and premium status will be kept.")) return;
+                        if (!window.confirm(t("Reset local settings and activity data to their defaults? Your login and premium status will be kept."))) return;
                         resetData();
                         resetPreferences();
-                        toast({ title: "Settings Reset", description: "Your preferences have been restored to defaults. You are still logged in." });
+                        toast({ title: t("Settings Reset"), description: t("Your preferences have been restored to defaults. You are still logged in.") });
                       }}
                       className="border-border/50 hover:bg-muted/50 text-[#E6EAF0]"
                       data-testid="button-reset-settings"
                     >
                       <RotateCcw className="size-4 mr-2" />
-                      Reset Settings
+                      {t("Reset Settings")}
                     </Button>
                   </motion.div>
-                  <p className="text-xs text-muted-foreground">Resets UI preferences to defaults. Keeps your login and premium status.</p>
+                  <p className="text-xs text-muted-foreground">{t("Resets UI preferences to defaults. Keeps your login and premium status.")}</p>
                 </motion.div>
                 <Separator className="bg-border/30" />
                 <motion.div
@@ -1108,10 +1111,10 @@ export default function Settings() {
                       data-testid="button-factory-reset"
                     >
                       <Trash2 className="size-4 mr-2" />
-                      Factory Reset
+                      {t("Factory Reset")}
                     </Button>
                   </motion.div>
-                  <p className="text-xs text-muted-foreground">Logs you out and wipes all local data. You will need to sign in again.</p>
+                  <p className="text-xs text-muted-foreground">{t("Logs you out and wipes all local data. You will need to sign in again.")}</p>
                 </motion.div>
                 <Separator className="bg-border/30" />
                 <Button
@@ -1122,12 +1125,12 @@ export default function Settings() {
                     if (isElectron && (window as any).electronAPI?.openLogs) {
                       await (window as any).electronAPI.openLogs();
                     } else {
-                      toast({ title: "Not Available", description: "Log directory is only accessible in the desktop app." });
+                      toast({ title: t("Not Available"), description: t("Log directory is only accessible in the desktop app.") });
                     }
                   }}
                 >
                   <FolderOpen className="size-4 mr-2" />
-                  Open Log Directory
+                  {t("Open Log Directory")}
                 </Button>
               </div>
             </CardContent>
@@ -1150,15 +1153,15 @@ export default function Settings() {
                   <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.955 11.955 0 003 10c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
                   </svg>
-                  Admin Panel
+                  {t("Admin Panel")}
                 </CardTitle>
-                <CardDescription>Internal admin tools. Visible to admins only.</CardDescription>
+                <CardDescription>{t("Internal admin tools. Visible to admins only.")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between bg-orange-500/5 border border-orange-500/15 p-3 rounded-md">
                   <div className="space-y-0.5">
-                    <span className="text-sm font-medium text-orange-300">User Management</span>
-                    <p className="text-xs text-orange-500/60">Manage users, plans, trials, and account flags</p>
+                    <span className="text-sm font-medium text-orange-300">{t("User Management")}</span>
+                    <p className="text-xs text-orange-500/60">{t("Manage users, plans, trials, and account flags")}</p>
                   </div>
                   <Button
                     variant="outline"
@@ -1173,7 +1176,7 @@ export default function Settings() {
                       }
                     }}
                   >
-                    Open Admin
+                    {t("Open Admin")}
                   </Button>
                 </div>
               </CardContent>
@@ -1185,8 +1188,8 @@ export default function Settings() {
           <Reveal delay={0.24}>
           <Card className="bg-card/50 border-border/50">
             <CardHeader>
-              <CardTitle>Join the Community</CardTitle>
-              <CardDescription>Connect with other gamers and get the latest updates.</CardDescription>
+              <CardTitle>{t("Join the Community")}</CardTitle>
+              <CardDescription>{t("Connect with other gamers and get the latest updates.")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -1216,7 +1219,7 @@ export default function Settings() {
                           <span className="font-medium text-[#E6EAF0] group-hover:text-[#5865F2] transition-colors">Discord</span>
                           <ExternalLink className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                        <p className="text-xs text-muted-foreground">Get support and share configs</p>
+                        <p className="text-xs text-muted-foreground">{t("Get support and share configs")}</p>
                       </div>
                     </div>
                   </GlassCard>
@@ -1248,7 +1251,7 @@ export default function Settings() {
                           <span className="font-medium text-[#E6EAF0] group-hover:text-red-500 transition-colors">YouTube</span>
                           <ExternalLink className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                        <p className="text-xs text-muted-foreground">Videos, guides, and updates</p>
+                        <p className="text-xs text-muted-foreground">{t("Videos, guides, and updates")}</p>
                       </div>
                     </div>
                   </GlassCard>
@@ -1280,7 +1283,7 @@ export default function Settings() {
                           <span className="font-medium text-[#E6EAF0] group-hover:text-pink-500 transition-colors">SwitchTech</span>
                           <ExternalLink className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                        <p className="text-xs text-muted-foreground">TikTok · Tips, tricks, and tutorials</p>
+                        <p className="text-xs text-muted-foreground">{t("TikTok · Tips, tricks, and tutorials")}</p>
                       </div>
                     </div>
                   </GlassCard>
@@ -1312,7 +1315,7 @@ export default function Settings() {
                           <span className="font-medium text-[#E6EAF0] group-hover:text-pink-500 transition-colors">SwitchControl</span>
                           <ExternalLink className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                        <p className="text-xs text-muted-foreground">TikTok · Join the community</p>
+                        <p className="text-xs text-muted-foreground">{t("TikTok · Join the community")}</p>
                       </div>
                     </div>
                   </GlassCard>

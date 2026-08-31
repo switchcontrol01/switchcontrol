@@ -255,6 +255,7 @@ function ThinkingDots() {
 }
 
 function ThinkingStatus({ slow }: { slow?: boolean }) {
+  const { t } = useTranslation();
   const [phase, setPhase] = useState(0);
   useEffect(() => {
     // Phase rotation cadence obeys the global ApplicationMode (cosmetic, // slower in Light Mode, still readable).
@@ -278,7 +279,7 @@ function ThinkingStatus({ slow }: { slow?: boolean }) {
             transition={{ duration: 0.25, ease: "easeOut" }}
             className="text-[#6B7380] text-[11px]"
           >
-            {THINKING_PHASES[phase]}
+            {t(THINKING_PHASES[phase])}
           </motion.span>
         </AnimatePresence>
       </span>
@@ -291,7 +292,7 @@ function ThinkingStatus({ slow }: { slow?: boolean }) {
             transition={{ duration: 0.3 }}
             className="text-[#6B7380] text-[10px] leading-tight pl-[26px] overflow-hidden"
           >
-            This can take a few seconds…
+            {t("This can take a few seconds…")}
           </motion.span>
         )}
       </AnimatePresence>
@@ -302,6 +303,7 @@ function ThinkingStatus({ slow }: { slow?: boolean }) {
 // ── Diagnostic Card (staged reveal) ──────────────────────────────────────────
 
 function DiagnosticCard({ findings, onApply }: { findings: DiagnosticFinding[]; onApply?: (recs: AiTweakRecommendation[]) => void }) {
+  const { t } = useTranslation();
   const [findingIdx, setFindingIdx] = useState(0);
   const [stage, setStage] = useState(0);
 
@@ -337,7 +339,7 @@ function DiagnosticCard({ findings, onApply }: { findings: DiagnosticFinding[]; 
 
       <div>
         <div className="flex items-center gap-2 mb-1.5">
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-[#6B7380]">DIAGNOSIS</span>
+          <span className="text-[9px] font-semibold uppercase tracking-wider text-[#6B7380]">{t("DIAGNOSIS")}</span>
           <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full border", confColors[finding.confidence])}>
             {finding.confidence} confidence
           </span>
@@ -358,11 +360,11 @@ function DiagnosticCard({ findings, onApply }: { findings: DiagnosticFinding[]; 
             className="space-y-2"
           >
             <div className="pl-3 border-l border-[#2A313A]">
-              <p className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-0.5">ROOT CAUSE</p>
+              <p className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-0.5">{t("ROOT CAUSE")}</p>
               <p className="text-[12px] text-[#E6EAF0]/65 leading-snug">{finding.cause}</p>
             </div>
             <div className="pl-3 border-l border-[#2A313A]">
-              <p className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-0.5">GAMING IMPACT</p>
+              <p className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-0.5">{t("GAMING IMPACT")}</p>
               <p className="text-[12px] text-[#E6EAF0]/65 leading-snug">{finding.impact}</p>
             </div>
           </motion.div>
@@ -379,7 +381,7 @@ function DiagnosticCard({ findings, onApply }: { findings: DiagnosticFinding[]; 
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="p-2.5 rounded-xl bg-primary/[0.07] border border-primary/15">
-              <p className="text-[9px] text-primary/50 uppercase tracking-wider mb-1">RECOMMENDED ACTION</p>
+              <p className="text-[9px] text-primary/50 uppercase tracking-wider mb-1">{t("RECOMMENDED ACTION")}</p>
               <p className="text-[12px] text-[#E6EAF0] leading-snug">{finding.fix}</p>
               {finding.tweakId && onApply && (
                 <button
@@ -388,7 +390,7 @@ function DiagnosticCard({ findings, onApply }: { findings: DiagnosticFinding[]; 
                   data-testid={`button-apply-tweak-${finding.tweakId}`}
                 >
                   <Zap className="w-3 h-3" />
-                  Apply in SwitchControl
+                   {t("Apply in SwitchControl")}
                 </button>
               )}
             </div>
@@ -403,7 +405,7 @@ function DiagnosticCard({ findings, onApply }: { findings: DiagnosticFinding[]; 
             data-testid="button-reveal-next-stage"
             className="flex items-center gap-1 text-[11px] text-primary/60 hover:text-primary transition-colors"
           >
-            {stage === 0 ? "Why is this happening?" : "How do I fix this?"}
+            {t(stage === 0 ? "Why is this happening?" : "How do I fix this?")}
             <ChevronRight className="w-3 h-3" />
           </button>
         )}
@@ -413,11 +415,11 @@ function DiagnosticCard({ findings, onApply }: { findings: DiagnosticFinding[]; 
             data-testid="button-next-finding"
             className="flex items-center gap-1 text-[11px] text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
           >
-            Next issue <ChevronRight className="w-3 h-3" />
+            {t("Next issue")} <ChevronRight className="w-3 h-3" />
           </button>
         )}
         {stage === 2 && findingIdx === total - 1 && (
-          <span className="text-[10px] text-[#6B7380]/50">Diagnosis complete</span>
+          <span className="text-[10px] text-[#6B7380]/50">{t("Diagnosis complete")}</span>
         )}
       </div>
     </div>
@@ -528,6 +530,7 @@ function CoveragePanel({
   context: SystemContext | null;
   isElectron: boolean;
 }) {
+  const { t } = useTranslation();
   const allUnavailable = !coverage || (
     coverage.networkTweaks === "unavailable" &&
     coverage.telemetry === "unavailable" &&
@@ -545,14 +548,14 @@ function CoveragePanel({
         <div className="w-5 h-5 rounded-md bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0">
           <Eye className="size-2.5 text-blue-400" />
         </div>
-        <p className="text-[10px] font-semibold text-[#A0A8B3] uppercase tracking-wider">Advisor Coverage</p>
+        <p className="text-[10px] font-semibold text-[#A0A8B3] uppercase tracking-wider">{t("Advisor Coverage")}</p>
       </div>
       {allUnavailable ? (
-        <p className="text-[10px] text-[#6B7380]/50 text-center py-1">Initializing data sources…</p>
+        <p className="text-[10px] text-[#6B7380]/50 text-center py-1">{t("Initializing data sources…")}</p>
       ) : (
         <div>
           <CoverageRow
-            label="System Hardware"
+            label={t("System Hardware")}
             status={
               // Server-side coverage is from the Replit cloud VM and is always
               // "unavailable" for Electron users.  Fall back to the locally-loaded
@@ -565,16 +568,16 @@ function CoveragePanel({
             }
           />
           <CoverageRow
-            label="Tweaks"
+            label={t("Tweaks")}
             status={tweakCount > 0 ? "available" : "partial"}
             detail={tweakCount > 0 ? `${tweakCount} active` : undefined}
           />
           <CoverageRow
-            label="Live Telemetry"
+            label={t("Live Telemetry")}
             status={coverage?.telemetry ?? "unavailable"}
           />
           <CoverageRow
-            label="Network Tweaks"
+            label={t("Network Tweaks")}
             status={
               coverage?.networkTweaks !== "unavailable"
                 ? (coverage?.networkTweaks ?? "unavailable")
@@ -592,7 +595,7 @@ function CoveragePanel({
             }
           />
           <CoverageRow
-            label="NIC Tuning"
+            label={t("NIC Tuning")}
             status={
               isElectron
                 ? "available"
@@ -600,13 +603,13 @@ function CoveragePanel({
             }
           />
           <CoverageRow
-            label="Power Plan"
+            label={t("Power Plan")}
             status={powerPlan ? "available" : "partial"}
             detail={powerPlan ? powerPlan.slice(0, 14) : undefined}
           />
-          <CoverageRow label="Process Manager" status={isElectron ? "available" : "partial"} />
-          <CoverageRow label="Cleaner" status={isElectron ? "available" : "partial"} />
-          <CoverageRow label="Debloater" status={isElectron ? "available" : "partial"} />
+          <CoverageRow label={t("Process Manager")} status={isElectron ? "available" : "partial"} />
+          <CoverageRow label={t("Cleaner")} status={isElectron ? "available" : "partial"} />
+          <CoverageRow label={t("Debloater")} status={isElectron ? "available" : "partial"} />
           <CoverageRow
             label="History"
             status={historyCount > 0 ? "available" : "partial"}
@@ -619,6 +622,7 @@ function CoveragePanel({
 }
 
 function SystemProfileCard({ context }: { context: SystemContext | null }) {
+  const { t } = useTranslation();
   const s = context?.system;
   const hasAny = s?.cpu || s?.gpu || s?.ram || s?.storage;
   const hasExtended = s?.motherboard || s?.display || s?.network;
@@ -634,11 +638,11 @@ function SystemProfileCard({ context }: { context: SystemContext | null }) {
         <div className="w-5 h-5 rounded-md bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0">
           <Cpu className="size-2.5 text-primary" />
         </div>
-        <p className="text-[10px] font-semibold text-[#A0A8B3] uppercase tracking-wider">System Profile</p>
+        <p className="text-[10px] font-semibold text-[#A0A8B3] uppercase tracking-wider">{t("System Profile")}</p>
         {hasAny && (
           <span className="ml-auto flex items-center gap-1 text-[9px] text-emerald-400/80">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70 animate-pulse" />
-            Detected
+             {t("Detected")}
           </span>
         )}
       </div>
@@ -674,7 +678,7 @@ function SystemProfileCard({ context }: { context: SystemContext | null }) {
                 className="flex items-center gap-1.5 pt-2.5 pb-0.5"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse shrink-0" />
-                <p className="text-[10px] text-[#6B7380]/70">Loading advanced hardware info…</p>
+                <p className="text-[10px] text-[#6B7380]/70">{t("Loading advanced hardware info…")}</p>
               </motion.div>
             )}
           </AnimatePresence>

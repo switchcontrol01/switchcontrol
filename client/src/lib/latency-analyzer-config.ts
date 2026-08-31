@@ -89,6 +89,7 @@ export function scoreToStatus(score: number, samples: number, elapsedSec: number
   return "Critical";
 }
 
+// Display descriptions are source keys; LatencyAnalyzer resolves them with t().
 export const STATUS_META: Record<LatencyStatus, {
   color: string;
   bg: string;

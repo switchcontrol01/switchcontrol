@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLiveTelemetryValues, useTelemetryHistory } from "@/hooks/useLiveTelemetry";
 import { computeGraphStability } from "@/lib/systemStateEngine";
+import { useTranslation } from "@/lib/i18n";
 
 // ── Persistent cross-mount cache (survives React unmount/remount) ─────────────
 
@@ -171,6 +172,7 @@ function LiveStatsBand({ latest, hasDiskData, hasDiskRW, hasNetRx, hasNetTx, spi
   hasNetRx: boolean; hasNetTx: boolean;
   spikes: { cpu: boolean; ram: boolean; gpu: boolean };
 }) {
+  const { t } = useTranslation();
   if (!latest) return null;
   return (
     <div
@@ -188,7 +190,7 @@ function LiveStatsBand({ latest, hasDiskData, hasDiskRW, hasNetRx, hasNetTx, spi
         />
       )}
       {(hasDiskData || latest.diskActiveTime != null) && latest.diskActiveTime != null && (
-        <StatPill color={C.disk} label="Disk" value={`${safeFixed(latest.diskActiveTime, 0)}%`} />
+        <StatPill color={C.disk} label={t("Disk")} value={`${safeFixed(latest.diskActiveTime, 0)}%`} />
       )}
       {hasDiskRW && latest.diskReadKBps != null && (
         <StatPill color="#f59e0b" label="R" value={`${safeFixed(latest.diskReadKBps, 0)} KB/s`} />
@@ -209,6 +211,7 @@ function LiveStatsBand({ latest, hasDiskData, hasDiskRW, hasNetRx, hasNetTx, spi
 // ── Loading placeholder ───────────────────────────────────────────────────────
 
 function GraphLoadingPlaceholder({ height }: { height: number }) {
+  const { t } = useTranslation();
   const uid = useId().replace(/:/g, "");
   const sweepId = `${uid}-sweep`;
   return (
@@ -246,7 +249,7 @@ function GraphLoadingPlaceholder({ height }: { height: number }) {
             className="block w-1.5 h-1.5 rounded-full bg-primary/50"
             style={{ animation: "sc-pulse 1.2s ease-in-out infinite" }}
           />
-          Collecting telemetry…
+          {t("Collecting telemetry…")}
         </span>
       </div>
       <style>{`@keyframes sc-pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
@@ -317,6 +320,7 @@ interface LiveGraphProps {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphProps) {
+  const { t } = useTranslation();
   // Unique ID suffix prevents SVG gradient/filter ID collisions if this
   // component is ever rendered more than once on the same page.
   const _uid = useId().replace(/:/g, "");
@@ -601,11 +605,11 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-medium text-[#E6EAF0] flex items-center gap-2">
             <Activity className="size-4 text-primary" />
-            Live System Monitor
+            {t("Live System Monitor")}
           </h3>
         </div>
         <div className="h-48 flex items-center justify-center">
-          <p className="text-sm text-muted-foreground">{error ?? "Telemetry unavailable"}</p>
+          <p className="text-sm text-muted-foreground">{error ?? t("Telemetry unavailable")}</p>
         </div>
       </GlassCard>
     );
@@ -665,7 +669,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-[#E6EAF0] flex items-center gap-2">
           <Activity className="size-4 text-primary" />
-          Live System Monitor
+          {t("Live System Monitor")}
           {/* Live heartbeat pulse */}
           <span className="flex items-center gap-1">
             <span
@@ -676,7 +680,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
           {(spikes.cpu || spikes.gpu || spikes.ram) && (
             <span className="flex items-center gap-1 text-[9px] text-yellow-400/80 ml-1">
               <Zap className="size-2.5" />
-              Spike
+              {t("Spike")}
             </span>
           )}
         </h3>
@@ -701,7 +705,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {(hasDiskData || hasDiskRW) && (
                 <MetricBadge
                   color={C.disk}
-                  label="Disk"
+                  label={t("Disk")}
                   value={
                     latest.diskActiveTime != null
                       ? safeFixed(latest.diskActiveTime, 0)
@@ -716,7 +720,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {expanded && (
                 <MetricBadge
                   color={C.netRx}
-                  label="Net"
+                  label={t("Net")}
                   value={`↓${safeFixed(latest.netRxSec ?? 0, 0)} ↑${safeFixed(latest.netTxSec ?? 0, 0)}`}
                   unit=" KB/s"
                   dimmed
@@ -735,7 +739,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
             size="sm"
             className="h-6 w-6 p-0 ml-1 hover:bg-[#2A313A] shrink-0"
             onClick={() => setExpanded(!expanded)}
-            title={expanded ? "Collapse graph" : "Expand graph"}
+            title={expanded ? t("Collapse graph") : t("Expand graph")}
             data-testid="button-expand-graph"
           >
             {expanded ? <Minimize2 className="size-3" /> : <Maximize2 className="size-3" />}
@@ -750,8 +754,8 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
             [
               { key: "cpu" as const, label: "CPU", color: C.cpuLoad, show: true },
               { key: "ram" as const, label: "RAM", color: C.ram, show: hasRamData },
-              { key: "disk" as const, label: "Disk", color: C.disk, show: hasDiskData || hasDiskRW },
-              { key: "net" as const, label: "Net", color: C.netRx, show: hasNetRx || hasNetTx },
+              { key: "disk" as const, label: t("Disk"), color: C.disk, show: hasDiskData || hasDiskRW },
+              { key: "net" as const, label: t("Net"), color: C.netRx, show: hasNetRx || hasNetTx },
             ] as const
           ).filter(m => m.show).map(m => {
             const isSoloed = soloMetric === m.key;
@@ -761,7 +765,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                 key={m.key}
                 data-testid={`toggle-metric-${m.key}`}
                 onClick={() => toggle(m.key)}
-                title={isSoloed ? "Click to reset view" : "Click to focus this metric"}
+                title={isSoloed ? t("Click to reset view") : t("Click to focus this metric")}
                 className={cn(
                   "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border transition-colors duration-200",
                   isSoloed
@@ -785,7 +789,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               data-testid="button-reset-view"
               className="px-2 py-0.5 rounded text-[10px] font-medium border border-[#2A313A] bg-[#21262D] text-[#A0A8B3] hover:text-[#E6EAF0] hover:bg-[#2A313A] transition-all ml-1"
             >
-              Reset view
+              {t("Click to reset view")}
             </button>
           )}
         </div>
@@ -920,7 +924,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               )}
               {hasDiskData && toggles.disk && (
                 <Line yAxisId="pct" type="monotone" dataKey="diskActiveTime"
-                  name="Disk %" stroke={C.disk} strokeWidth={expanded ? 2.5 : 2}
+                  name={`${t("Disk")} %`} stroke={C.disk} strokeWidth={expanded ? 2.5 : 2}
                   style={{ strokeOpacity: lineOpacity("disk"), transition: "stroke-opacity 250ms ease", filter: showGlowLines ? `drop-shadow(0 0 2px ${C.disk}88)` : undefined, animation: "sc-line-breathe 3.2s ease-in-out infinite 0.3s" }}
                   dot={(props: any) => {
                     if (props.index !== data.length - 1) return <g key={props.key} />;
@@ -1006,7 +1010,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {/* ── EXPANDED ONLY: CPU Temperature line ── */}
               {expanded && hasCpuTemp && toggles.cpu && (
                 <Line yAxisId="pct" type="monotone" dataKey="cpuTemp"
-                  name="CPU Temp (°C)" stroke={C.cpuTemp} strokeWidth={2}
+                  name={`CPU ${t("Temperature")} (°C)`} stroke={C.cpuTemp} strokeWidth={2}
                   style={{ strokeOpacity: lineOpacity("cpu"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={{ r: 4, strokeWidth: 0, fill: C.cpuTemp }} strokeDasharray="4 2" connectNulls isAnimationActive={false}
                 />
@@ -1014,14 +1018,14 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {/* Disk read/write separate lines in expanded mode */}
               {expanded && hasDiskRW && toggles.disk && (
                 <Line yAxisId="net" type="monotone" dataKey="diskReadKBps"
-                  name="Disk R KB/s" stroke="#f59e0b" strokeWidth={1.5}
+                  name={`${t("Disk")} R KB/s`} stroke="#f59e0b" strokeWidth={1.5}
                   style={{ strokeOpacity: lineOpacity("disk"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={{ r: 3, strokeWidth: 0, fill: "#f59e0b" }} strokeDasharray="3 2" connectNulls isAnimationActive={false}
                 />
               )}
               {expanded && hasDiskRW && toggles.disk && (
                 <Line yAxisId="net" type="monotone" dataKey="diskWriteKBps"
-                  name="Disk W KB/s" stroke="#d97706" strokeWidth={1.5}
+                  name={`${t("Disk")} W KB/s`} stroke="#d97706" strokeWidth={1.5}
                   style={{ strokeOpacity: lineOpacity("disk"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={{ r: 3, strokeWidth: 0, fill: "#d97706" }} strokeDasharray="3 2" connectNulls isAnimationActive={false}
                 />
@@ -1029,14 +1033,14 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {/* Network */}
               {(expanded || toggles.net) && hasNetRx && toggles.net && (
                 <Line yAxisId="net" type="monotone" dataKey="netRx"
-                  name="Net ↓ KB/s" stroke={C.netRx} strokeWidth={2}
+                  name={`${t("Net")} ↓ KB/s`} stroke={C.netRx} strokeWidth={2}
                   style={{ strokeOpacity: lineOpacity("net"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={{ r: 3, strokeWidth: 0, fill: C.netRx }} strokeDasharray="4 2" connectNulls isAnimationActive={false}
                 />
               )}
               {(expanded || toggles.net) && hasNetTx && toggles.net && (
                 <Line yAxisId="net" type="monotone" dataKey="netTx"
-                  name="Net ↑ KB/s" stroke={C.netTx} strokeWidth={2}
+                  name={`${t("Net")} ↑ KB/s`} stroke={C.netTx} strokeWidth={2}
                   style={{ strokeOpacity: lineOpacity("net"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={{ r: 3, strokeWidth: 0, fill: C.netTx }} strokeDasharray="4 2" connectNulls isAnimationActive={false}
                 />
@@ -1083,12 +1087,12 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         <Info className="size-3 shrink-0" />
         <span>
           {isLoading
-            ? "Waiting for telemetry data…"
+            ? t("Waiting for telemetry data…")
             : expanded
               ? `${expandedCount} metrics · right axis: KB/s${hasDiskRW ? " · disk R/W" : ""}${!hasDiskData && !hasDiskRW ? " · disk unavailable" : ""}`
               : [
                   "CPU", "RAM",
-                  hasDiskData ? "Disk %" : (hasDiskRW ? "Disk (expand for R/W)" : null),
+                  hasDiskData ? `${t("Disk")} %` : (hasDiskRW ? `${t("Disk")} (R/W)` : null),
                 ].filter(Boolean).join(", ")
           }
           {selectedDiskMount ? ` · ${selectedDiskMount}` : ""}

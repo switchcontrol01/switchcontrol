@@ -8,6 +8,7 @@ import {
   ResponsiveContainer, Cell,
 } from "recharts";
 import type { EnrichedItem } from "@/pages/History";
+import { useTranslation } from "@/lib/i18n";
 
 // ── Module color palette ───────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ export const MODULE_COLORS: Record<string, string> = {
 type Range = "1d" | "7d" | "30d" | "all";
 
 function RangeBtn({ range, active, onClick }: { range: string; active: boolean; onClick: () => void }) {
+  const { t } = useTranslation();
   return (
     <button
       onClick={onClick}
@@ -39,7 +41,7 @@ function RangeBtn({ range, active, onClick }: { range: string; active: boolean; 
         active ? "bg-white/12 text-foreground" : "text-muted-foreground hover:text-foreground/80"
       )}
     >
-      {range}
+      {t(range)}
     </button>
   );
 }
@@ -52,6 +54,7 @@ const CUSTOM_TOOLTIP_STYLE = {
 // ── Actions Over Time ──────────────────────────────────────────────────────
 
 function ActionsOverTime({ items }: { items: EnrichedItem[] }) {
+  const { t } = useTranslation();
   const [range, setRange] = useState<Range>("7d");
 
   const data = useMemo(() => {
@@ -87,7 +90,7 @@ function ActionsOverTime({ items }: { items: EnrichedItem[] }) {
   return (
     <GlassCard className="p-4 sm:p-5" data-testid="card-chart-actions-time">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <p className="text-sm font-semibold">Actions Over Time</p>
+        <p className="text-sm font-semibold">{t("Actions Over Time")}</p>
         <div className="flex gap-0.5 bg-[#21262D] rounded-lg p-0.5">
           {(["1d","7d","30d","all"] as Range[]).map(r => (
             <RangeBtn key={r} range={r.toUpperCase()} active={range === r} onClick={() => setRange(r)} />
@@ -95,7 +98,7 @@ function ActionsOverTime({ items }: { items: EnrichedItem[] }) {
         </div>
       </div>
       {data.every(d => d.total === 0) ? (
-        <div className="h-20 flex items-center justify-center text-xs text-muted-foreground/50">No data for this range</div>
+        <div className="h-20 flex items-center justify-center text-xs text-muted-foreground/50">{t("No data for this range")}</div>
       ) : (
         <ResponsiveContainer width="100%" height={90}>
           <AreaChart data={data} margin={{ top: 4, right: 0, bottom: 0, left: -28 }}>
@@ -107,7 +110,7 @@ function ActionsOverTime({ items }: { items: EnrichedItem[] }) {
             </defs>
             <XAxis dataKey="date" tick={{ fontSize: 9, fill: "rgba(255,255,255,0.35)" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
             <YAxis tick={{ fontSize: 9, fill: "rgba(255,255,255,0.35)" }} tickLine={false} axisLine={false} allowDecimals={false} width={28} />
-            <Tooltip {...CUSTOM_TOOLTIP_STYLE} itemStyle={{ color: "#00D4FF" }} formatter={(v: any) => [v, "Actions"]} />
+            <Tooltip {...CUSTOM_TOOLTIP_STYLE} itemStyle={{ color: "#00D4FF" }} formatter={(v: any) => [v, t("Actions")]} />
             <Area type="monotone" dataKey="total" stroke="#00D4FF" strokeWidth={1.5} fill="url(#aot-grad)" dot={false} />
           </AreaChart>
         </ResponsiveContainer>
@@ -119,6 +122,7 @@ function ActionsOverTime({ items }: { items: EnrichedItem[] }) {
 // ── Success vs Failure ────────────────────────────────────────────────────
 
 function SuccessFailureChart({ items }: { items: EnrichedItem[] }) {
+  const { t } = useTranslation();
   const [range, setRange] = useState<Range>("7d");
 
   const data = useMemo(() => {
@@ -155,7 +159,7 @@ function SuccessFailureChart({ items }: { items: EnrichedItem[] }) {
   return (
     <GlassCard className="p-4 sm:p-5" data-testid="card-chart-success-fail">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <p className="text-sm font-semibold">Success vs Failure</p>
+        <p className="text-sm font-semibold">{t("Success vs Failure")}</p>
         <div className="flex gap-0.5 bg-[#21262D] rounded-lg p-0.5">
           {(["7d","30d","all"] as Range[]).map(r => (
             <RangeBtn key={r} range={r.toUpperCase()} active={range === r} onClick={() => setRange(r)} />
@@ -166,12 +170,12 @@ function SuccessFailureChart({ items }: { items: EnrichedItem[] }) {
         {[{ color: "#10b981", label: "Success" }, { color: "#f87171", label: "Failed" }, { color: "#6b7280", label: "Other" }].map(l => (
           <div key={l.label} className="flex items-center gap-1">
             <div className="size-2 rounded-full" style={{ background: l.color }} />
-            <span className="text-[10px] text-muted-foreground">{l.label}</span>
+            <span className="text-[10px] text-muted-foreground">{t(l.label)}</span>
           </div>
         ))}
       </div>
       {data.every(d => d.success === 0 && d.failed === 0 && d.other === 0) ? (
-        <div className="h-20 flex items-center justify-center text-xs text-muted-foreground/50">No data for this range</div>
+        <div className="h-20 flex items-center justify-center text-xs text-muted-foreground/50">{t("No data for this range")}</div>
       ) : (
         <ResponsiveContainer width="100%" height={90}>
           <BarChart data={data} margin={{ top: 4, right: 0, bottom: 0, left: -28 }} barCategoryGap="25%">
@@ -191,6 +195,7 @@ function SuccessFailureChart({ items }: { items: EnrichedItem[] }) {
 // ── Module Usage ──────────────────────────────────────────────────────────
 
 function ModuleUsageChart({ items }: { items: EnrichedItem[] }) {
+  const { t } = useTranslation();
   const data = useMemo(() => {
     const counts: Record<string, number> = {};
     items.forEach(i => { counts[i.module] = (counts[i.module] || 0) + 1; });
@@ -203,8 +208,8 @@ function ModuleUsageChart({ items }: { items: EnrichedItem[] }) {
   if (data.length === 0) {
     return (
       <GlassCard className="p-4 sm:p-5" data-testid="card-chart-module-usage">
-        <p className="text-sm font-semibold mb-3">Module Usage</p>
-        <div className="h-20 flex items-center justify-center text-xs text-muted-foreground/50">No data yet</div>
+        <p className="text-sm font-semibold mb-3">{t("Module Usage")}</p>
+        <div className="h-20 flex items-center justify-center text-xs text-muted-foreground/50">{t("No data yet")}</div>
       </GlassCard>
     );
   }
@@ -213,12 +218,12 @@ function ModuleUsageChart({ items }: { items: EnrichedItem[] }) {
 
   return (
     <GlassCard className="p-4 sm:p-5" data-testid="card-chart-module-usage">
-      <p className="text-sm font-semibold mb-4">Module Usage</p>
+      <p className="text-sm font-semibold mb-4">{t("Module Usage")}</p>
       <div className="space-y-2.5">
         {data.map((d, i) => (
           <div key={d.module}>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">{d.module}</span>
+              <span className="text-xs text-muted-foreground">{t(d.module)}</span>
               <span className="text-xs font-mono tabular-nums" style={{ color: d.color }}>{d.count}</span>
             </div>
             <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">

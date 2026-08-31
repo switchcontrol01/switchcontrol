@@ -260,6 +260,7 @@ function BiosSettingCard({
   index: number;
   platformInfo?: PlatformInfo;
 }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<ExpandedTab>("overview");
   const { prefersReducedMotion } = useMotion();
@@ -278,9 +279,9 @@ function BiosSettingCard({
   const statusColor = STATUS_COLORS[status];
 
   const tabItems: { key: ExpandedTab; label: string }[] = [
-    { key: "overview", label: "Overview" },
-    { key: "details", label: "Pros & Cons" },
-    { key: "location", label: "BIOS Path" },
+     { key: "overview", label: t("Overview") },
+     { key: "details", label: t("Pros & Cons") },
+     { key: "location", label: t("BIOS Path") },
   ];
 
   return (
@@ -309,7 +310,7 @@ function BiosSettingCard({
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <h3 className="font-semibold text-[#E6EAF0] text-sm truncate">{setting.name}</h3>
                 <Badge variant="outline" className={cn("text-[10px] shrink-0", impactColors[setting.impact])}>
-                  {setting.impact} Impact
+                   {setting.impact} {t("Impact")}
                 </Badge>
                 {isUnsupported && (
                   <Badge
@@ -318,7 +319,7 @@ function BiosSettingCard({
                     title={avail.platformNote}
                   >
                     <AlertTriangle className="w-2.5 h-2.5" />
-                    Hardware dependent
+                     {t("Hardware dependent")}
                   </Badge>
                 )}
               </div>
@@ -381,14 +382,14 @@ function BiosSettingCard({
                     {detection && (
                       <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20 mb-3">
                         <h4 className="text-xs font-medium text-cyan-400 mb-1 flex items-center gap-1">
-                          <Eye className="w-3 h-3" /> Detection Detail
+                           <Eye className="w-3 h-3" /> {t("Detection Detail")}
                         </h4>
                         <p className="text-xs text-[#E6EAF0]">{detection.reason}</p>
                         {detection.detectedValue && (
-                          <p className="text-[10px] text-cyan-300/70 mt-1">Value: {detection.detectedValue}</p>
+                          <p className="text-[10px] text-cyan-300/70 mt-1">{t("Value:")} {detection.detectedValue}</p>
                         )}
                         <div className="flex items-center gap-2 mt-2">
-                          <span className="text-[10px] text-[#A0A8B3]">Confidence:</span>
+                           <span className="text-[10px] text-[#A0A8B3]">{t("Confidence:")}</span>
                           <ConfidenceBadge confidence={detection.confidence} />
                         </div>
                       </div>
@@ -396,7 +397,7 @@ function BiosSettingCard({
 
                     <div className="space-y-3">
                       <div className="space-y-2">
-                        <h4 className="text-xs font-medium text-[#A0A8B3] uppercase tracking-wider">What it is</h4>
+                         <h4 className="text-xs font-medium text-[#A0A8B3] uppercase tracking-wider">{t("What it is")}</h4>
                         <p className="text-sm text-[#E6EAF0]">{setting.whatItIs}</p>
                         <div className="flex flex-wrap gap-1.5">
                           {setting.affects.map((affect) => (
@@ -409,7 +410,7 @@ function BiosSettingCard({
                         <div className="flex items-start gap-2">
                           <TrendingUp className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                           <div>
-                            <h4 className="text-xs font-medium text-primary mb-1">Recommendation</h4>
+                             <h4 className="text-xs font-medium text-primary mb-1">{t("Recommendation")}</h4>
                             <p className="text-sm text-[#E6EAF0]">{setting.recommendation}</p>
                           </div>
                         </div>
@@ -429,7 +430,7 @@ function BiosSettingCard({
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                       <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                         <h4 className="text-xs font-medium text-emerald-400 mb-2 flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" /> Pros
+                           <CheckCircle className="w-3 h-3" /> {t("Pros")}
                         </h4>
                         <ul className="space-y-1.5">
                           {setting.pros.map((pro, i) => (
@@ -442,7 +443,7 @@ function BiosSettingCard({
                       </div>
                       <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                         <h4 className="text-xs font-medium text-amber-400 mb-2 flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" /> Cons
+                           <AlertTriangle className="w-3 h-3" /> {t("Cons")}
                         </h4>
                         <ul className="space-y-1.5">
                           {setting.cons.map((con, i) => (
@@ -457,7 +458,7 @@ function BiosSettingCard({
 
                     <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
                       <h4 className="text-xs font-medium text-red-400 mb-1 flex items-center gap-1">
-                        <Shield className="w-3 h-3" /> When NOT to change
+                         <Shield className="w-3 h-3" /> {t("When NOT to change")}
                       </h4>
                       <p className="text-xs text-[#E6EAF0]">{setting.whenNotToChange}</p>
                     </div>
@@ -473,7 +474,7 @@ function BiosSettingCard({
                   >
                     <div className="p-3 rounded-lg bg-[#21262D] border border-[#2A313A]">
                       <h4 className="text-xs font-medium text-[#E6EAF0] mb-3 flex items-center gap-1">
-                        <ExternalLink className="w-3 h-3" /> Where to find in BIOS
+                         <ExternalLink className="w-3 h-3" /> {t("Where to find in BIOS")}
                       </h4>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
                         {setting.motherboardPaths.map((path) => (
@@ -496,6 +497,7 @@ function BiosSettingCard({
 }
 
 function OpportunityCard({ opportunity, index }: { opportunity: ReturnType<typeof getRankedOpportunities>[0]; index: number }) {
+  const { t } = useTranslation();
   const [showSteps, setShowSteps] = useState(false);
   const { prefersReducedMotion } = useMotion();
   const { setting, scoreGain, difficulty } = opportunity;
@@ -514,7 +516,7 @@ function OpportunityCard({ opportunity, index }: { opportunity: ReturnType<typeo
           </div>
           <div className="text-right shrink-0">
             <div className="text-lg font-bold text-emerald-400" data-testid={`score-gain-${setting.id}`}>+{scoreGain}</div>
-            <div className="text-[10px] text-muted-foreground">points</div>
+             <div className="text-[10px] text-muted-foreground">{t("points")}</div>
           </div>
         </div>
         
@@ -523,7 +525,7 @@ function OpportunityCard({ opportunity, index }: { opportunity: ReturnType<typeo
             {difficulty}
           </Badge>
           <Badge variant="outline" className={cn("text-[10px]", DIFFICULTY_COLORS[setting.risk === "Low" ? "Easy" : setting.risk === "Medium" ? "Moderate" : "Advanced"])}>
-            Risk: {setting.risk}
+             {t("Risk:")} {setting.risk}
           </Badge>
           <div className="flex gap-1 ml-auto">
             {setting.affects.map(a => (
@@ -541,7 +543,7 @@ function OpportunityCard({ opportunity, index }: { opportunity: ReturnType<typeo
             data-testid={`button-steps-${setting.id}`}
           >
             <BookOpen className="w-3 h-3 mr-1" />
-            {showSteps ? "Hide Steps" : "Show BIOS Steps"}
+             {t(showSteps ? "Hide Steps" : "Show BIOS Steps")}
           </Button>
         </div>
 
@@ -572,6 +574,7 @@ function OpportunityCard({ opportunity, index }: { opportunity: ReturnType<typeo
 }
 
 function ScanProgress({ state }: { state: ScanState }) {
+  const { t } = useTranslation();
   const progressMap: Record<ScanState, number> = {
     idle: 0, collecting: 30, analyzing: 65, explaining: 85, complete: 100
   };
@@ -589,7 +592,7 @@ function ScanProgress({ state }: { state: ScanState }) {
     >
       <div className="flex items-center gap-2">
         <Loader2 className="w-4 h-4 text-primary animate-spin" />
-        <span className="text-sm text-muted-foreground animate-pulse">{labelMap[state]}</span>
+         <span className="text-sm text-muted-foreground animate-pulse">{t(labelMap[state])}</span>
       </div>
       <Progress value={progressMap[state]} className="h-1.5" />
     </motion.div>
@@ -1112,8 +1115,8 @@ export default function BiosAdvisor() {
                   <div className="w-5 h-5 rounded-md bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
                     <Cpu className="size-2.5 text-primary" />
                   </div>
-                  <span className="text-xs font-semibold text-primary uppercase tracking-wider">Hardware Profile</span>
-                  <span className="ml-auto text-[10px] text-[#6B7380] font-mono">Collected {new Date(si.collectedAt).toLocaleTimeString()}</span>
+                  <span className="text-xs font-semibold text-primary uppercase tracking-wider">{t("Hardware Profile")}</span>
+                  <span className="ml-auto text-[10px] text-[#6B7380] font-mono">{t("Collected")} {new Date(si.collectedAt).toLocaleTimeString()}</span>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {sysIntel.cpu && sysIntel.cpu !== "Unknown" && (
@@ -1130,7 +1133,7 @@ export default function BiosAdvisor() {
                   )}
                   {mbStr && (
                     <div className="space-y-0.5">
-                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Motherboard</p>
+                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">{t("Motherboard")}</p>
                       <p className="text-xs font-medium text-[#E6EAF0] leading-tight">{mbStr}</p>
                     </div>
                   )}
@@ -1144,23 +1147,23 @@ export default function BiosAdvisor() {
                   <AnimatePresence>
                     {ramStr !== "Unknown" && si.memory.sticks.length > 0 && (
                       <motion.div key="ram-layout" className="space-y-0.5" {...fadeIn} transition={{ ...fadeIn.transition, delay: 0 }}>
-                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">RAM Layout</p>
+                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">{t("RAM Layout")}</p>
                         <p className="text-xs font-medium text-[#E6EAF0] leading-tight">{ramStr}</p>
                       </motion.div>
                     )}
                     {si.platform.secureBootEnabled !== null && (
                       <motion.div key="secure-boot" className="space-y-0.5" {...fadeIn} transition={{ ...fadeIn.transition, delay: 0.04 }}>
-                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Secure Boot</p>
+                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">{t("Secure Boot")}</p>
                         <p className={`text-xs font-medium leading-tight ${si.platform.secureBootEnabled ? "text-emerald-400" : "text-amber-400"}`}>
-                          {si.platform.secureBootEnabled ? "Enabled" : "Disabled"}
+                          {t(si.platform.secureBootEnabled ? "Enabled" : "Disabled")}
                         </p>
                       </motion.div>
                     )}
                     {si.platform.vbsEnabled !== null && (
                       <motion.div key="vbs" className="space-y-0.5" {...fadeIn} transition={{ ...fadeIn.transition, delay: 0.08 }}>
-                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">VBS / Memory Integrity</p>
+                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">{t("VBS / Memory Integrity")}</p>
                         <p className={`text-xs font-medium leading-tight ${si.platform.vbsEnabled ? "text-amber-400" : "text-emerald-400"}`}>
-                          {si.platform.vbsEnabled ? "Enabled (may reduce GPU perf)" : "Disabled"}
+                          {t(si.platform.vbsEnabled ? "Enabled (may reduce GPU perf)" : "Disabled")}
                         </p>
                       </motion.div>
                     )}
@@ -1168,32 +1171,32 @@ export default function BiosAdvisor() {
                       <motion.div key="tpm" className="space-y-0.5" {...fadeIn} transition={{ ...fadeIn.transition, delay: 0.1 }}>
                         <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">TPM</p>
                         <p className={`text-xs font-medium leading-tight ${si.platform.tpmPresent ? "text-emerald-400" : "text-[#6B7380]"}`}>
-                          {si.platform.tpmPresent ? "Present" : "Not Detected"}
+                          {t(si.platform.tpmPresent ? "Present" : "Not Detected")}
                         </p>
                       </motion.div>
                     )}
                     {si.platform.uefiBoot !== null && (
                       <motion.div key="boot-mode" className="space-y-0.5" {...fadeIn} transition={{ ...fadeIn.transition, delay: 0.12 }}>
-                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Boot Mode</p>
+                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">{t("Boot Mode")}</p>
                         <p className={`text-xs font-medium leading-tight ${si.platform.uefiBoot ? "text-emerald-400" : "text-amber-400"}`}>
-                          {si.platform.uefiBoot ? "UEFI" : "Legacy BIOS"}
+                          {si.platform.uefiBoot ? "UEFI" : t("Legacy BIOS")}
                         </p>
                       </motion.div>
                     )}
                     {si.platform.virtualizationEnabled !== null && (
                       <motion.div key="virt" className="space-y-0.5" {...fadeIn} transition={{ ...fadeIn.transition, delay: 0.14 }}>
-                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Virtualization</p>
+                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">{t("Virtualization")}</p>
                         <p className={`text-xs font-medium leading-tight ${si.platform.virtualizationEnabled ? "text-emerald-400" : "text-[#6B7380]"}`}>
-                          {si.platform.virtualizationEnabled ? "Enabled" : "Disabled"}
+                          {t(si.platform.virtualizationEnabled ? "Enabled" : "Disabled")}
                           {si.platform.hypervisorPresent ? " (Hypervisor Active)" : ""}
                         </p>
                       </motion.div>
                     )}
                     {si.platform.resizeBarEnabled !== null && (
                       <motion.div key="rebar" className="space-y-0.5" {...fadeIn} transition={{ ...fadeIn.transition, delay: 0.16 }}>
-                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Resize BAR / SAM</p>
+                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">{t("Resize BAR / SAM")}</p>
                         <p className={`text-xs font-medium leading-tight ${si.platform.resizeBarEnabled ? "text-emerald-400" : "text-amber-400"}`}>
-                          {si.platform.resizeBarEnabled ? "Active" : "Inactive"}
+                          {t(si.platform.resizeBarEnabled ? "Active" : "Inactive")}
                         </p>
                       </motion.div>
                     )}
@@ -1212,8 +1215,8 @@ export default function BiosAdvisor() {
                       className="flex items-center gap-2 mt-3 pt-3 border-t border-[#2A313A]"
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse shrink-0" />
-                      <span className="text-[10px] text-[#6B7380]/80">Loading advanced system data…</span>
-                      <span className="text-[9px] text-[#6B7380]/40 italic">RAM layout · Secure Boot · VBS · TPM</span>
+                      <span className="text-[10px] text-[#6B7380]/80">{t("Loading advanced system data…")}</span>
+                      <span className="text-[9px] text-[#6B7380]/40 italic">{t("RAM layout · Secure Boot · VBS · TPM")}</span>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -1331,9 +1334,9 @@ export default function BiosAdvisor() {
               <div className="w-5 h-5 rounded-md bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
                 <Target className="size-2.5 text-primary" />
               </div>
-              <span className="text-xs font-semibold text-primary uppercase tracking-wider">Firmware Analytics</span>
+              <span className="text-xs font-semibold text-primary uppercase tracking-wider">{t("Firmware Analytics")}</span>
               {!hasScanned && (
-                <span className="text-[9px] text-[#6B7380]/50 italic ml-1">· Run analysis to populate</span>
+                <span className="text-[9px] text-[#6B7380]/50 italic ml-1">{t("· Run analysis to populate")}</span>
               )}
             </div>
             <BiosAnalyticsRings
@@ -1357,7 +1360,7 @@ export default function BiosAdvisor() {
             <div className="flex items-center gap-2 p-3 rounded bg-red-500/10 border border-red-500/20 text-sm text-red-300">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               {photoError}
-              <Button variant="ghost" size="sm" className="ml-auto text-[10px] text-red-300 hover:text-[#E6EAF0] h-6" onClick={() => setPhotoError(null)}>Dismiss</Button>
+              <Button variant="ghost" size="sm" className="ml-auto text-[10px] text-red-300 hover:text-[#E6EAF0] h-6" onClick={() => setPhotoError(null)}>{t("Dismiss")}</Button>
             </div>
           </Item>
         )}
@@ -1369,7 +1372,7 @@ export default function BiosAdvisor() {
                 <div className="flex items-center gap-2 text-xs text-cyan-400">
                   <ImagePlus className="w-3.5 h-3.5" />
                   <span className="font-medium">{pendingImages.length}/{MAX_IMAGES} screenshots queued</span>
-                  <span className="text-muted-foreground">— drag more or click &ldquo;Add BIOS Photos&rdquo;</span>
+                  <span className="text-muted-foreground">{t("— drag more or click “Add BIOS Photos”")}</span>
                 </div>
                 <Button
                   variant="ghost"
@@ -1412,7 +1415,7 @@ export default function BiosAdvisor() {
               <div className="flex items-center gap-2 text-xs">
                 <Camera className="w-3.5 h-3.5 text-primary" />
                 <span className="text-primary font-medium">{photoDetections.length} settings derived from BIOS photo analysis</span>
-                <span className="text-[9px] text-muted-foreground ml-auto italic">AI-interpreted — verify against your actual BIOS</span>
+                <span className="text-[9px] text-muted-foreground ml-auto italic">{t("AI-interpreted — verify against your actual BIOS")}</span>
               </div>
             </GlassCard>
           </Item>
@@ -1443,9 +1446,9 @@ export default function BiosAdvisor() {
                   <div className="text-lg text-muted-foreground font-medium">/ 100</div>
                   <div className="ml-2">
                     <Badge className={cn("text-xs font-semibold", LEVEL_COLORS[hasScanned ? optimizationLevel : "Basic"])} data-testid="badge-optimization-level">
-                      {hasScanned ? optimizationLevel : "Not Scanned"}
+                      {hasScanned ? t(optimizationLevel) : t("Not Scanned")}
                     </Badge>
-                    <p className="text-xs text-muted-foreground mt-1">{hasScanned ? scores.profileBias : "Run a scan to see your score"}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{hasScanned ? scores.profileBias : t("Run a scan to see your score")}</p>
                   </div>
                 </div>
 
@@ -1513,7 +1516,7 @@ export default function BiosAdvisor() {
                     Avg confidence: {detectionSummary.avgConfidence}%
                   </Badge>
                   <Badge variant="outline" className="text-[10px]" data-testid="badge-scan-source">
-                    Source: {telemetrySource === "electron" ? "Hardware" : "Inferred"}
+                    {t("Source:")} {telemetrySource === "electron" ? t("Hardware") : t("Inferred")}
                   </Badge>
                 </div>
               </div>
@@ -1539,7 +1542,7 @@ export default function BiosAdvisor() {
                       </span>
                     )}
                     {previousScore !== null && previousScore === scores.competitiveReadiness && (
-                      <span className="ml-2 text-muted-foreground">Score unchanged</span>
+                      <span className="ml-2 text-muted-foreground">{t("Score unchanged")}</span>
                     )}
                   </span>
                 )}
@@ -1550,7 +1553,7 @@ export default function BiosAdvisor() {
                 data-testid="button-toggle-firmware-inputs"
               >
                 {showFirmwareInputs ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                {showFirmwareInputs ? "Hide Firmware Inputs" : "Show All Firmware Inputs"} ({firmwareInputs.length})
+                {t(showFirmwareInputs ? "Hide Firmware Inputs" : "Show All Firmware Inputs")} ({firmwareInputs.length})
               </button>
               <AnimatePresence>
                 {showFirmwareInputs && (
@@ -1613,7 +1616,7 @@ export default function BiosAdvisor() {
                       </div>
                       {bd.topOpportunity && (
                         <div className="mt-2 p-1.5 rounded bg-primary/5 border border-primary/10 text-[10px]">
-                          <span className="text-primary">Top gain:</span>{" "}
+                          <span className="text-primary">{t("Top gain:")}</span>{" "}
                           <span className="text-[#E6EAF0]">{bd.topOpportunity.name}</span>{" "}
                           <span className="text-emerald-400 font-semibold">+{bd.topOpportunity.gain} pts</span>
                         </div>
@@ -1656,15 +1659,15 @@ export default function BiosAdvisor() {
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-[#E6EAF0] text-sm flex items-center gap-2">
-                    AI Firmware Analysis
+                    {t("AI Firmware Analysis")}
                     <Badge className="text-[9px] bg-primary/20 text-primary border-primary/30">
-                      {aiExplanation ? "AI-Powered" : "Local"}
+                      {t(aiExplanation ? "AI-Powered" : "Local")}
                     </Badge>
                   </h3>
                   <div className="flex items-center gap-2">
                     {!isOnline && aiExplanation && (
                       <span className="text-[9px] text-amber-400/60 font-medium uppercase tracking-wider border border-amber-500/20 px-1.5 py-0.5 rounded">
-                        Cached
+                        {t("Cached")}
                       </span>
                     )}
                     {hasScanned && allDetections.length > 0 && (
@@ -1675,10 +1678,10 @@ export default function BiosAdvisor() {
                         onClick={handleAiExplain}
                         disabled={aiExplainLoading || !isOnline}
                         data-testid="button-ai-explain"
-                        title={!isOnline ? "AI explanation unavailable offline" : undefined}
+                        title={!isOnline ? t("AI explanation unavailable offline") : undefined}
                       >
                         {aiExplainLoading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
-                        {aiExplainLoading ? "Analyzing..." : !isOnline ? "Offline" : aiExplanation ? "Refresh AI Analysis" : "Get AI Explanation"}
+                        {t(aiExplainLoading ? "Analyzing..." : !isOnline ? "Offline" : aiExplanation ? "Refresh AI Analysis" : "Get AI Explanation")}
                       </Button>
                     )}
                   </div>
@@ -1698,8 +1701,8 @@ export default function BiosAdvisor() {
                       <Sparkles className="w-5 h-5 text-primary/50" />
                     </div>
                     <div>
-                      <p className="text-sm text-[#A0A8B3] font-medium">No analysis yet</p>
-                      <p className="text-xs text-muted-foreground mt-1">Run a scan to get your firmware analysis and AI-powered recommendations.</p>
+                      <p className="text-sm text-[#A0A8B3] font-medium">{t("No analysis yet")}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{t("Run a scan to get your firmware analysis and AI-powered recommendations.")}</p>
                     </div>
                   </div>
                 ) : aiExplanation ? (
@@ -1725,7 +1728,7 @@ export default function BiosAdvisor() {
 
                     {aiExplanation.recommendations.length > 0 && (
                       <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-                        <h4 className="text-[10px] font-medium text-primary mb-2">Recommendations</h4>
+                        <h4 className="text-[10px] font-medium text-primary mb-2">{t("Recommendations")}</h4>
                         <ul className="space-y-1">
                           {aiExplanation.recommendations.map((rec, i) => (
                             <li key={i} className="text-[11px] text-[#E6EAF0] flex items-start gap-1.5">
@@ -1855,7 +1858,7 @@ export default function BiosAdvisor() {
             <div className="flex items-start gap-3">
               <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-medium text-[#E6EAF0] text-sm mb-2">How to Access Your BIOS</h3>
+                <h3 className="font-medium text-[#E6EAF0] text-sm mb-2">{t("How to Access Your BIOS")}</h3>
                 <p className="text-xs text-muted-foreground mb-3">{BIOS_ACCESS_INSTRUCTIONS.general}</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
                   {Object.entries(BIOS_ACCESS_INSTRUCTIONS.brands).map(([brand, info]) => (

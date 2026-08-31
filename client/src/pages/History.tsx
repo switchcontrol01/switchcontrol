@@ -300,6 +300,7 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
   const [open, setOpen] = useState(false);
   const [reverting, setReverting] = useState(false);
   const { toast } = useToast();
+  const { t } = useTranslation();
   const sCfg = STATUS_CONFIG[item.status];
   const mCfg = MODULE_CONFIG[item.module] ?? MODULE_CONFIG.History;
   const iCfg = IMPACT_CONFIG[item.impact];
@@ -720,16 +721,16 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
             </span>
             <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 shrink-0 border", mCfg.cls)}
               data-testid={`badge-module-${index}`}>
-              {mCfg.label}
+              {t(mCfg.label)}
             </Badge>
             {item.status !== "success" && (
               <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 shrink-0 border", sCfg.bg, sCfg.color)}>
-                {sCfg.label}
+                {t(sCfg.label)}
               </Badge>
             )}
             {item.impact === "high" && (
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 border text-red-400 border-red-500/25 bg-red-500/10">
-                High impact
+                {t("High impact")}
               </Badge>
             )}
           </div>
@@ -760,33 +761,33 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
           >
             <div className=" px-3.5 sm:px-5 py-3.5 bg-[#1A1F26] grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-2.5">
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Timestamp</p>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">{t("Timestamp")}</p>
                 <p className="text-xs font-mono">{format(new Date(item.timestamp), "MMM d yyyy, HH:mm:ss")}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Module</p>
-                <p className="text-xs">{item.module}</p>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">{t("Module")}</p>
+                <p className="text-xs">{t(item.module)}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Status</p>
-                <p className={cn("text-xs font-medium", sCfg.color)}>{sCfg.label}</p>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">{t("Status")}</p>
+                <p className={cn("text-xs font-medium", sCfg.color)}>{t(sCfg.label)}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Impact</p>
-                <p className={cn("text-xs font-medium", iCfg.color)}>{iCfg.label}</p>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">{t("Impact")}</p>
+                <p className={cn("text-xs font-medium", iCfg.color)}>{t(iCfg.label)}</p>
               </div>
               <div className="col-span-2 sm:col-span-3 md:col-span-4">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Result</p>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">{t("Result")}</p>
                 <p className="text-xs">{item.result}</p>
               </div>
               {item.notes && (
                 <div className="col-span-2 sm:col-span-3 md:col-span-4">
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Notes</p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">{t("Notes")}</p>
                   <p className="text-xs text-muted-foreground">{displayHistoryNotes(item.notes)}</p>
                 </div>
               )}
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Event ID</p>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">{t("Event ID")}</p>
                 <p className="text-[10px] font-mono text-muted-foreground/50">{item.id}</p>
               </div>
               <div className="col-span-2 sm:col-span-3 md:col-span-4 pt-1 flex justify-end">
@@ -802,7 +803,7 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
                   )}
                 >
                   <RotateCcw className={cn("size-3", reverting && "animate-spin")} />
-                  {item.status === "reverted" ? "Already reverted" : historyMeta?.reversible === false ? "Not reversible" : "Revert"}
+                  {item.status === "reverted" ? t("Already reverted") : historyMeta?.reversible === false ? t("Not reversible") : t("Revert")}
                 </Button>
               </div>
             </div>
@@ -888,6 +889,7 @@ function VirtualizedTimeline({ groups }: { groups: DateGroup[] }) {
 // ── RecentMajorEvents ─────────────────────────────────────────────────────
 
 function RecentMajorEvents({ items }: { items: EnrichedItem[] }) {
+  const { t } = useTranslation();
   const major = items.filter(i => i.isMajor).slice(0, 5);
   if (major.length === 0) return null;
 
@@ -896,7 +898,7 @@ function RecentMajorEvents({ items }: { items: EnrichedItem[] }) {
       <GlassCard className="p-4 sm:p-5" data-testid="card-major-events">
         <div className="flex items-center gap-2 mb-3">
           <Star className="size-4 text-amber-400" />
-          <h3 className="font-semibold text-sm">Recent Major Events</h3>
+          <h3 className="font-semibold text-sm">{t("Recent Major Events")}</h3>
           <Badge variant="outline" className="ml-auto text-xs text-amber-400 border-amber-500/25 bg-amber-500/10">{major.length}</Badge>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
@@ -910,7 +912,7 @@ function RecentMajorEvents({ items }: { items: EnrichedItem[] }) {
               )}>
                 <div className="flex items-center gap-1.5">
                   <sCfg.Icon className={cn("size-3.5", sCfg.color)} />
-                  <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 border", mCfg.cls)}>{mCfg.label}</Badge>
+                  <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 border", mCfg.cls)}>{t(mCfg.label)}</Badge>
                 </div>
                 <p className="text-xs font-medium leading-snug line-clamp-2">{item.action}</p>
                 <p className="text-[10px] text-muted-foreground/60">{format(new Date(item.timestamp), "MMM d, HH:mm")}</p>
@@ -926,23 +928,24 @@ function RecentMajorEvents({ items }: { items: EnrichedItem[] }) {
 // ── EmptyState ────────────────────────────────────────────────────────────
 
 function EmptyState() {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center gap-4 py-16 sm:py-24 text-center px-4">
       <div className="size-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
         <Inbox className="size-7 text-primary opacity-50" />
       </div>
       <div>
-        <p className="font-semibold text-base">No actions recorded yet</p>
+        <p className="font-semibold text-base">{t("No actions recorded yet")}</p>
         <p className="text-sm text-muted-foreground mt-1.5 max-w-xs mx-auto">
-          Activity appears here as you use SwitchControl.
+          {t("Activity appears here as you use SwitchControl.")}
         </p>
       </div>
       <div className="grid grid-cols-2 gap-2 mt-2 text-left max-w-xs w-full">
         {[
-          { icon: Zap,          text: "Apply tweaks" },
-          { icon: Activity,     text: "Run Security Scan" },
-          { icon: TrendingUp,   text: "Change Power Plan" },
-          { icon: Info,         text: "Analyze BIOS" },
+          { icon: Zap,          text: t("Apply tweaks") },
+          { icon: Activity,     text: t("Run Security Scan") },
+          { icon: TrendingUp,   text: t("Change Power Plan") },
+          { icon: Info,         text: t("Analyze BIOS") },
         ].map(({ icon: Icon, text }) => (
           <div key={text} className="flex items-center gap-2 bg-[#1A1F26] border border-[#2A313A] rounded-lg px-3 py-2">
             <Icon className="size-3.5 text-primary/60 shrink-0" />
@@ -957,12 +960,13 @@ function EmptyState() {
 // ── FilteredEmpty ─────────────────────────────────────────────────────────
 
 function FilteredEmpty({ onClear }: { onClear: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center gap-3 py-12 text-center px-4">
       <Search className="size-8 text-muted-foreground/30" />
-      <p className="text-sm text-muted-foreground">No events match your filters</p>
+      <p className="text-sm text-muted-foreground">{t("No events match your filters")}</p>
       <Button variant="ghost" size="sm" onClick={onClear} className="text-xs gap-1.5">
-        <X className="size-3" />Clear filters
+        <X className="size-3" />{t("Clear filters")}
       </Button>
     </div>
   );
@@ -1177,7 +1181,7 @@ export default function History() {
               <Filter className="size-3.5" />
             </Button>
             <Button variant="outline" size="icon" className="h-9 w-9 border-[#2A313A] shrink-0"
-              onClick={() => setSortDesc(v => !v)} title={sortDesc ? "Newest first" : "Oldest first"}
+              onClick={() => setSortDesc(v => !v)} title={sortDesc ? t("Newest first") : t("Oldest first")}
               data-testid="button-sort-toggle">
               <ArrowUpDown className="size-3.5" />
             </Button>
@@ -1239,7 +1243,7 @@ export default function History() {
                 {/* Active filters summary + clear */}
                 {hasFilters && (
                   <div className="flex items-center gap-2 mt-2.5 pt-2.5 ">
-                    <span className="text-[11px] text-muted-foreground">{filtered.length} of {enriched.length} events shown</span>
+                    <span className="text-[11px] text-muted-foreground">{t("{shown} of {total} events shown", undefined, { shown: filtered.length, total: enriched.length })}</span>
                     <button onClick={clearFilters} className="text-[11px] text-primary hover:underline ml-auto">{t("Clear all")}</button>
                   </div>
                 )}
@@ -1262,9 +1266,9 @@ export default function History() {
             <div className="space-y-3">
               <VirtualizedTimeline groups={dateGroups} />
               <div className="text-center text-[11px] text-muted-foreground/40 pt-2">
-                {sortDesc ? "Newest first" : "Oldest first"} ·{" "}
-                {filtered.length} event{filtered.length !== 1 ? "s" : ""}
-                {hasFilters && ` (filtered from ${enriched.length})`}
+                {sortDesc ? t("Newest first") : t("Oldest first")} ·{" "}
+                {t("{count} event(s)", undefined, { count: filtered.length })}
+                {hasFilters && t(" (filtered from {count})", undefined, { count: enriched.length })}
               </div>
             </div>
           ) : (
@@ -1280,7 +1284,7 @@ export default function History() {
                     {/* Date group header */}
                     <div className="flex items-center gap-3 mb-3">
                       <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/50 shrink-0">
-                        {group.label}
+                        {t(group.label)}
                       </p>
                       <div className="h-px flex-1 bg-[#21262D]" />
                       <span className="text-[10px] text-muted-foreground/40 shrink-0">{group.items.length}</span>
@@ -1309,9 +1313,9 @@ export default function History() {
 
               {/* Footer */}
               <div className="text-center text-[11px] text-muted-foreground/40 pt-2">
-                {sortDesc ? "Newest first" : "Oldest first"} ·{" "}
-                {filtered.length} event{filtered.length !== 1 ? "s" : ""}
-                {hasFilters && ` (filtered from ${enriched.length})`}
+                {sortDesc ? t("Newest first") : t("Oldest first")} ·{" "}
+                {t("{count} event(s)", undefined, { count: filtered.length })}
+                {hasFilters && t(" (filtered from {count})", undefined, { count: enriched.length })}
               </div>
             </div>
           )}

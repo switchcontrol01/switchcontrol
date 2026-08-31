@@ -664,6 +664,7 @@
     weight: number;
   }
   
+  // UI labels remain source strings and are translated by their consumers.
   export const SCAN_STEPS: ScanStep[] = [
     { id: "hardware", label: "Checking hardware…", weight: 1 },
     { id: "firmware", label: "Reading firmware…", weight: 1 },

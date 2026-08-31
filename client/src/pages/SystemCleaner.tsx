@@ -90,12 +90,12 @@ function fmtBytesShort(b: number): { value: string; unit: string } {
   return { value: (b / 1024 ** 3).toFixed(2), unit: "GB" };
 }
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, t: (key: string, fallback?: string, values?: Record<string, string | number>) => string): string {
   const diff = Date.now() - new Date(iso).getTime();
-  if (diff < 60_000) return "just now";
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-  return `${Math.floor(diff / 86_400_000)}d ago`;
+  if (diff < 60_000) return t("just now");
+  if (diff < 3_600_000) return t("{count}m ago", undefined, { count: Math.floor(diff / 60_000) });
+  if (diff < 86_400_000) return t("{count}h ago", undefined, { count: Math.floor(diff / 3_600_000) });
+  return t("{count}d ago", undefined, { count: Math.floor(diff / 86_400_000) });
 }
 
 // ── CountUp ───────────────────────────────────────────────────────────────────
@@ -286,7 +286,7 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[12px] font-semibold text-[#E6EAF0] truncate">{item.name}</span>
+            <span className="text-[12px] font-semibold text-[#E6EAF0] truncate">{t(item.name)}</span>
             {item.risk === "moderate" && (
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20 shrink-0">{t("MOD")}</span>
             )}
@@ -302,7 +302,7 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
             {found ? (
               <>
                 <span className="text-[11px] font-bold" style={{ color: meta.color }}>
-                  {bytes > 0 ? fmtBytes(bytes) : `${files} entries`}
+                  {bytes > 0 ? fmtBytes(bytes) : `${files} ${t("entries")}`}
                 </span>
                 {files > 0 && bytes > 0 && <span className="text-[10px] text-[#4a5460]">·</span>}
                   {files > 0 && bytes > 0 && <span className="text-[10px] text-[#6B7380]">{files.toLocaleString()} {t("files")}</span>}
@@ -344,7 +344,7 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
               <div className="flex flex-wrap gap-3 mt-2">
                 {item.requiresAdmin && <span className="text-[10px] text-amber-400/80">{t("Requires admin")}</span>}
                 {item.requiresRestart && <span className="text-[10px] text-amber-400/80">{t("Requires restart")}</span>}
-                {item.impactBootSec > 0 && <span className="text-[10px] text-primary/80">~{item.impactBootSec}s boot impact</span>}
+                {item.impactBootSec > 0 && <span className="text-[10px] text-primary/80">~{item.impactBootSec}s {t("boot impact")}</span>}
                 {item.impactRam > 0 && <span className="text-[10px] text-purple-400/80">~{item.impactRam} MB RAM</span>}
               </div>
             </div>
@@ -472,15 +472,15 @@ function HistoryPanel({ history, scanHistory, onBack }: {
         ) : history.map(h => (
           <div key={h.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 flex items-center justify-between">
             <div>
-              <p className="text-[12px] font-semibold text-[#E6EAF0]">{fmtBytes(h.bytes_removed)} freed</p>
-              <p className="text-[10px] text-[#6B7380] mt-0.5">{h.files_removed} files · {h.scan_mode} mode</p>
+              <p className="text-[12px] font-semibold text-[#E6EAF0]">{fmtBytes(h.bytes_removed)} {t("freed")}</p>
+              <p className="text-[10px] text-[#6B7380] mt-0.5">{h.files_removed} {t("files")} · {t(h.scan_mode)} {t("mode")}</p>
             </div>
             <div className="text-right">
               <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full",
                 h.status === "cleaned" ? "bg-green-500/15 text-green-400" : "bg-amber-500/15 text-amber-400")}>
-                {h.status}
+                {t(h.status)}
               </span>
-              <p className="text-[10px] text-[#4a5460] mt-1">{timeAgo(h.ran_at)}</p>
+              <p className="text-[10px] text-[#4a5460] mt-1">{timeAgo(h.ran_at, t)}</p>
             </div>
           </div>
         ))}
@@ -668,8 +668,8 @@ export default function SystemCleaner() {
         );
         setSelected(defaults);
       }
-    } catch { toast({ title: "Failed to load categories", variant: "destructive" }); }
-  }, [toast]);
+    } catch { toast({ title: t("Failed to load categories"), variant: "destructive" }); }
+  }, [toast, t]);
 
   const loadHistory = useCallback(async () => {
     try {
@@ -725,21 +725,21 @@ export default function SystemCleaner() {
         logHistory(`Cleaner: Scan complete — ${fmtBytes(total)} found`, "Cleaner", "Scanned", `Mode: ${mode} — ${data.summary?.foundCount ?? 0} items found`);
       } else {
         setPhase("idle");
-        toast({ title: "Scan failed", description: data.error, variant: "destructive" });
+        toast({ title: t("Scan failed"), description: data.error, variant: "destructive" });
       }
     } catch (e: any) {
       setPhase("idle");
-      toast({ title: "Scan error", description: e.message, variant: "destructive" });
+      toast({ title: t("Scan error"), description: e.message, variant: "destructive" });
     } finally {
       scanRef.current = false;
     }
-  }, [allItems, mode, toast, loadHistory]);
+  }, [allItems, mode, toast, loadHistory, t]);
 
   // ── Clean ─────────────────────────────────────────────────────────────────
 
   const runClean = useCallback(async () => {
     const ids = Array.from(selected);
-    if (ids.length === 0) { toast({ title: "Nothing selected" }); return; }
+    if (ids.length === 0) { toast({ title: t("Nothing selected") }); return; }
     setIsCleaning(true);
     setPhase("cleaning");
     setCleanResults({});
@@ -759,7 +759,7 @@ export default function SystemCleaner() {
         const r = await getEC()!.clean(ids);
         electronResults = r.results ?? {};
         if (!r.ok && r.reason === 'busy') {
-          toast({ title: "Another operation is running", description: "Please wait and try again.", variant: "destructive" });
+          toast({ title: t("Another operation is running"), description: t("Please wait and try again."), variant: "destructive" });
           setIsCleaning(false);
           setPhase("ready");
           return;
@@ -802,7 +802,7 @@ export default function SystemCleaner() {
             electronResults[id] = {
               ...current,
               failed: (current.failed ?? 0) + Math.max(1, remaining.fileCount ?? 0),
-              error: "Data remains after cleanup verification",
+          error: t("Data remains after cleanup verification"),
             };
           }
         }
@@ -823,16 +823,16 @@ export default function SystemCleaner() {
         });
       } else {
         setPhase("ready");
-        toast({ title: "Clean failed", description: data.error ?? "The cleaner could not save its results.", variant: "destructive" });
+        toast({ title: t("Clean failed"), description: data.error ?? t("The cleaner could not save its results."), variant: "destructive" });
       }
     } catch {
       setPhase("ready");
-      toast({ title: "Clean failed", description: "The cleanup finished, but its results could not be saved.", variant: "destructive" });
+      toast({ title: t("Clean failed"), description: t("The cleanup finished, but its results could not be saved."), variant: "destructive" });
     } finally {
       setIsCleaning(false);
       setCancelPending(false);
     }
-  }, [selected, allItems, findings, mode, toast, loadHistory]);
+  }, [selected, allItems, findings, mode, toast, loadHistory, t]);
 
   const cancelClean = useCallback(() => {
     cancelRequestedRef.current = true;
@@ -1018,7 +1018,7 @@ export default function SystemCleaner() {
                         <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-3">
                         <p className="text-[10px] text-[#6B7380] uppercase tracking-wide mb-1">{t("Last scan found")}</p>
                           <p className="text-[20px] font-black text-white">{fmtBytes(lastScan.total_bytes)}</p>
-                          <p className="text-[10px] text-[#6B7380] mt-0.5">{timeAgo(lastScan.ran_at)}</p>
+                          <p className="text-[10px] text-[#6B7380] mt-0.5">{timeAgo(lastScan.ran_at, t)}</p>
                         </div>
                         {scanHistory.length >= 2 && (
                           <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-3">
@@ -1072,7 +1072,7 @@ export default function SystemCleaner() {
                       style={{ background: CAT_META[item.category].color }}
                       animate={{ scale: [1, 1.4, 1], opacity: [0.6, 1, 0.6] }}
                       transition={{ duration: 1.4, delay: (i % 8) * 0.18, repeat: Infinity }} />
-                    <span className="truncate">{item.name}</span>
+                    <span className="truncate">{t(item.name)}</span>
                   </motion.div>
                 ))}
               </div>
@@ -1216,7 +1216,7 @@ export default function SystemCleaner() {
                         <span className={cn(
                           "flex-1 text-[11px] font-semibold truncate",
                           isSkipped ? "text-[#4a5460]" : "text-[#E6EAF0]",
-                        )}>{item.name}</span>
+                        )}>{t(item.name)}</span>
                         {isSkipped ? (
                           /* Item was deliberately unticked — show Skipped immediately, no spinner */
                            <span className="text-[10px] text-[#3a4050] font-medium shrink-0 italic">{t("Skipped")}</span>
@@ -1295,7 +1295,7 @@ export default function SystemCleaner() {
                   <p className="text-[11px] text-[#6B7380] uppercase tracking-wide mb-3 font-semibold">{t("Scan trend")}</p>
                   <Sparkline data={scanHistory.slice(-12).map(s => s.total_bytes)} height={52} color="#8b5cf6" id="result-trend" />
                   <div className="flex justify-between mt-2">
-                    <span className="text-[10px] text-[#4a5460]">{scanHistory.length >= 2 ? timeAgo(scanHistory[Math.max(0, scanHistory.length - 12)].ran_at) : ""}</span>
+                    <span className="text-[10px] text-[#4a5460]">{scanHistory.length >= 2 ? timeAgo(scanHistory[Math.max(0, scanHistory.length - 12)].ran_at, t) : ""}</span>
                     <span className="text-[10px] text-[#4a5460]">{t("now")}</span>
                   </div>
                 </div>

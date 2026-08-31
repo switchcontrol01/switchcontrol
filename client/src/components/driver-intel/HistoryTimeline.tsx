@@ -20,6 +20,7 @@ import {
 import { GlassCard } from "@/components/ui/glass-card";
 import { useMotion } from "@/lib/motion";
 import type { DriverHistoryItem } from "@/lib/driver-intel-data";
+import { useTranslation } from "@/lib/i18n";
 
 interface HistoryTimelineProps {
   /** Bumped by the parent to force a refresh after a new entry is recorded. */
@@ -46,6 +47,7 @@ export function HistoryTimeline({
   onRestore,
 }: HistoryTimelineProps) {
   const { prefersReducedMotion } = useMotion();
+  const { t } = useTranslation();
   const [items, setItems] = useState<DriverHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,11 +64,11 @@ export function HistoryTimeline({
       setItems(res.items ?? []);
     } catch (err: any) {
       if (err?.name === "AbortError") return;
-      setError("Couldn't load your history.");
+      setError(t("Couldn't load your history."));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -90,15 +92,15 @@ export function HistoryTimeline({
     <div className="mt-7" data-testid="history-timeline">
       <div className="flex items-center gap-2 mb-3">
         <History className="size-4 text-[#33E0FF]" />
-        <h2 className="text-sm font-semibold text-[#E6EAF0]">Update History</h2>
+        <h2 className="text-sm font-semibold text-[#E6EAF0]">{t("Update History")}</h2>
         <span className="text-[10px] text-muted-foreground">
-          Restore points are saved as version metadata — never driver files.
+          {t("Restore points are saved as version metadata — never driver files.")}
         </span>
       </div>
 
       {loading ? (
         <GlassCard className="p-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" /> Loading history…
+          <Loader2 className="size-4 animate-spin" /> {t("Loading history…")}
         </GlassCard>
       ) : error ? (
         <GlassCard className="p-6 text-center" data-testid="history-error">
@@ -108,15 +110,14 @@ export function HistoryTimeline({
             className="mt-2 text-xs text-[#33E0FF] hover:underline"
             data-testid="button-history-retry"
           >
-            Try again
+            {t("Try again")}
           </button>
         </GlassCard>
       ) : items.length === 0 ? (
         <GlassCard className="p-6 text-center" data-testid="history-empty">
-          <p className="text-sm text-[#E6EAF0]">No updates logged yet</p>
+          <p className="text-sm text-[#E6EAF0]">{t("No updates logged yet")}</p>
           <p className="text-xs text-muted-foreground mt-1">
-            When you update a driver, log it here to build a timeline and keep a
-            restore point for rolling back.
+            {t("When you update a driver, log it here to build a timeline and keep a restore point for rolling back.")}
           </p>
         </GlassCard>
       ) : (
@@ -156,7 +157,7 @@ export function HistoryTimeline({
                         )}
                         {item.action === "restore" && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-400/15 text-amber-300">
-                            restore
+                            {t("restore")}
                           </span>
                         )}
                       </div>
@@ -183,20 +184,20 @@ export function HistoryTimeline({
                           disabled={readOnly}
                           title={
                             readOnly
-                              ? "Upgrade to use restore points"
-                              : "Open the vendor page to roll back"
+                              ? t("Upgrade to use restore points")
+                              : t("Open the vendor page to roll back")
                           }
                           data-testid={`button-restore-${item.id}`}
                           className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] border border-white/12 bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-40"
                         >
                           <RotateCcw className="size-3" />
-                          Restore
+                          {t("Restore")}
                           <ExternalLink className="size-2.5 opacity-60" />
                         </button>
                       )}
                       <button
                         onClick={() => remove(item.id)}
-                        title="Remove this entry"
+                        title={t("Remove this entry")}
                         data-testid={`button-delete-history-${item.id}`}
                         className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:text-red-300 hover:bg-red-500/10 transition-colors"
                       >

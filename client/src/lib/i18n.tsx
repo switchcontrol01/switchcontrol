@@ -8,6 +8,11 @@ import { PUBLIC_WEBSITE_TRANSLATIONS as OTHER_PUBLIC_TRANSLATIONS } from "./publ
 import { FIRST_RUN_UI_TRANSLATIONS } from "./firstRunTranslations";
 import { APP_UI_TRANSLATIONS } from "./appTranslations";
 import { APP_FEATURE_TRANSLATIONS } from "./featureTranslations";
+import { DASHBOARD_AUTH_TRANSLATIONS } from "./authenticatedTranslations/dashboard";
+import { CLEANUP_AUTH_TRANSLATIONS } from "./authenticatedTranslations/cleanup";
+import { DRIVER_LATENCY_AUTH_TRANSLATIONS } from "./authenticatedTranslations/driverLatency";
+import { ADVISOR_AUTH_TRANSLATIONS } from "./authenticatedTranslations/advisors";
+import { SETTINGS_HISTORY_AUTH_TRANSLATIONS } from "./authenticatedTranslations/settingsHistory";
 
 export type { Locale };
 
@@ -1581,6 +1586,18 @@ const I18nContext = createContext<{
   t: (key, fallback) => fallback ?? EN[key] ?? key,
   locales: LOCALES,
 });
+
+for (const catalog of [
+  DASHBOARD_AUTH_TRANSLATIONS,
+  CLEANUP_AUTH_TRANSLATIONS,
+  DRIVER_LATENCY_AUTH_TRANSLATIONS,
+  ADVISOR_AUTH_TRANSLATIONS,
+  SETTINGS_HISTORY_AUTH_TRANSLATIONS,
+]) {
+  for (const [locale, labels] of Object.entries(catalog) as Array<[Locale, MessageCatalog]>) {
+    Object.assign(CATALOGS[locale], labels);
+  }
+}
 
 function interpolate(value: string, values?: Record<string, string | number>) {
   if (!values) return value;

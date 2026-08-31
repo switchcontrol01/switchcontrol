@@ -388,7 +388,7 @@
           <span className="text-2xl font-bold text-[#E6EAF0] leading-none">
             <AnimatedCounter value={success} />
           </span>
-          <span className="text-[9px] uppercase tracking-wider text-muted-foreground mt-1">done</span>
+          <span className="text-[9px] uppercase tracking-wider text-muted-foreground mt-1">{t("done")}</span>
         </div>
       </div>
     );
@@ -527,6 +527,7 @@
     categories: DebloatCategory[];
   }) {
     const { prefersReducedMotion } = useMotion();
+    const { t } = useTranslation();
     const lc = LEVEL_COLORS[currentLevel.id] ?? LEVEL_COLORS.balanced;
     const totalRisk = stats.safeCnt + stats.medCnt + stats.highCnt;
     const pSafe   = totalRisk > 0 ? (stats.safeCnt / totalRisk) * 100 : 0;
@@ -793,7 +794,7 @@
               const active = i === step;
               return (
                 <div key={s} className="flex items-center gap-2.5 text-xs">
-                  <span className={cn(
+                              <span className={cn(
                     "size-4 rounded-full flex items-center justify-center shrink-0 transition-colors",
                     done ? "bg-emerald-500/20" : active ? "bg-cyan-500/20" : "bg-[#21262D]"
                   )}>
@@ -887,14 +888,14 @@
         setItems([]);
         setSelected(new Set());
         toast({
-          title: "Failed to load Debloat items",
-          description: e instanceof Error ? e.message : "The catalog request failed.",
+          title: t("Failed to load Debloat items"),
+          description: e instanceof Error ? e.message : t("The catalog request failed."),
           variant: "destructive",
         });
       } finally {
         setLoading(false);
       }
-    }, [toast]);
+    }, [toast, t]);
   
     useEffect(() => { fetchItems(role, level); }, [role, level, fetchItems]);
   
@@ -926,12 +927,12 @@
         setHistory(await request);
       } catch (e) {
         toast({
-          title: "Failed to load Debloat history",
-          description: e instanceof Error ? e.message : "The history request failed.",
+          title: t("Failed to load Debloat history"),
+          description: e instanceof Error ? e.message : t("The history request failed."),
           variant: "destructive",
         });
       }
-    }, [toast, user?.id]);
+    }, [toast, user?.id, t]);
   
     useEffect(() => { fetchHistory(); }, [fetchHistory]);
   
@@ -965,19 +966,19 @@
         } else {
           setItemState({});
           toast({
-            title: "Debloater scan failed",
-            description: result.reason === "busy" ? "Another Windows check is still running. Try again shortly." : "Windows state could not be verified.",
+            title: t("Debloater scan failed"),
+            description: result.reason === "busy" ? t("Another Windows check is still running. Try again shortly.") : t("Windows state could not be verified."),
             variant: "destructive",
           });
         }
       } catch (e) {
         console.warn("[Debloater] scan failed", e);
         setItemState({});
-        toast({ title: "Debloater scan failed", description: e instanceof Error ? e.message : "Windows state could not be verified.", variant: "destructive" });
+        toast({ title: t("Debloater scan failed"), description: e instanceof Error ? e.message : t("Windows state could not be verified."), variant: "destructive" });
       } finally {
         setScanning(false);
       }
-    }, [items, toast]);
+    }, [items, toast, t]);
   
     // ── Compute visible items ──────────────────────────────────────────────────
   
@@ -1090,17 +1091,17 @@
     const applyDebloat = useCallback(async () => {
       if (!isElectron()) {
         toast({
-          title: "Open the desktop app to apply changes",
-          description: "Browser preview can inspect the catalog, but it cannot modify Windows.",
+          title: t("Open the desktop app to apply changes"),
+          description: t("Browser preview can inspect the catalog, but it cannot modify Windows."),
           variant: "destructive",
         });
         return;
       }
       if (activeSelectedItems.length === 0) {
-        toast({ title: "Nothing selected", description: "Select items to debloat.", variant: "destructive" });
+        toast({ title: t("Nothing selected"), description: t("Select items to debloat."), variant: "destructive" });
         return;
       }
-      if (level === "extreme" && !confirm("Extreme mode modifies Windows services. Create a restore point first if needed. Continue?")) {
+      if (level === "extreme" && !confirm(t("Extreme mode modifies Windows services. Create a restore point first if needed. Continue?"))) {
         return;
       }
   
@@ -1252,32 +1253,32 @@
           console.log(`[DebloatApply] complete removed=${data.successCount} skipped=${skipped} failed=${data.failCount}`);
   
            toast({
-             title: `${data.successCount} items processed`,
-             description: data.failCount > 0 ? `${data.failCount} failed \u2014 see results` : "All items handled.",
+             title: t("{count} items processed", undefined, { count: data.successCount }),
+             description: data.failCount > 0 ? t("{count} failed — see results", undefined, { count: data.failCount }) : t("All items handled."),
            });
         }
       } catch (e) {
-        setApplyProgress(p => p ? { ...p, phase: "complete", error: "Backend error occurred." } : p);
-        toast({ title: "Backend error", variant: "destructive" });
+        setApplyProgress(p => p ? { ...p, phase: "complete", error: t("Backend error occurred.") } : p);
+        toast({ title: t("Backend error"), variant: "destructive" });
       } finally {
         setApplying(false);
       }
-    }, [activeSelectedItems, role, level, toast, fetchHistory]);
+    }, [activeSelectedItems, role, level, toast, fetchHistory, t]);
   
     // ── Restore ───────────────────────────────────────────────────────────────
   
     const restoreItems = useCallback(async (itemIds: string[]) => {
       if (!isElectron()) {
         toast({
-          title: "Open the desktop app to restore changes",
-          description: "Browser preview cannot modify Windows.",
+          title: t("Open the desktop app to restore changes"),
+          description: t("Browser preview cannot modify Windows."),
           variant: "destructive",
         });
         return;
       }
       const restorableIds = itemIds.filter(id => items.find(i => i.id === id)?.canRestore);
       if (restorableIds.length === 0) {
-        toast({ title: "Nothing to restore", description: "No restorable items in selection.", variant: "destructive" });
+        toast({ title: t("Nothing to restore"), description: t("No restorable items in selection."), variant: "destructive" });
         return;
       }
   
@@ -1386,24 +1387,24 @@
           fetchHistory();
           const restored = data.results.filter((r: ApplyResult) => r.status === "restored").length;
           logHistory(`Debloat: ${restored} item${restored !== 1 ? "s" : ""} restored`, "Debloat", "Restored", `${restored} item${restored !== 1 ? "s" : ""} restored to defaults`);
-          toast({ title: "Restore processed" });
+          toast({ title: t("Restore processed") });
         }
       } catch (e) {
         setApplyProgress(p => p ? {
           ...p,
           phase: "complete",
-          error: e instanceof Error ? e.message : "Restore failed.",
+          error: e instanceof Error ? e.message : t("Restore failed."),
         } : p);
         toast({
-          title: "Restore failed",
-          description: e instanceof Error ? e.message : "The restore request failed.",
+          title: t("Restore failed"),
+          description: e instanceof Error ? e.message : t("The restore request failed."),
           variant: "destructive",
         });
       }
       finally {
         setApplying(false);
       }
-    }, [items, role, level, toast, fetchHistory]);
+    }, [items, role, level, toast, fetchHistory, t]);
   
     // ── IPC payload builders ──────────────────────────────────────────────────
   
@@ -2001,7 +2002,7 @@
                                   : "bg-[#1A1F26] border-[#2A313A] text-muted-foreground hover:border-[#3A424D] hover:text-[#E6EAF0]"
                               )}
                             >
-                              {allCatSelected ? "Deselect all" : "Select all"}
+                              {allCatSelected ? t("Deselect all") : t("Select all")}
                             </button>
   
                             {/* Chevron */}
@@ -2073,7 +2074,7 @@
                                             <span className={cn(
                                               "text-[13px] font-medium truncate",
                                               isSelected ? "text-[#E6EAF0]" : "text-[#A0ADB8] group-hover:text-[#C8D0D9]"
-                                            )}>{item.name}</span>
+                                            )}>{t(item.name)}</span>
   
                                             <span className={cn(
                                               "text-[9px] uppercase tracking-widest font-mono px-1.5 py-0 rounded border shrink-0",
@@ -2083,30 +2084,30 @@
                                             <span className={cn(
                                               "text-[9px] px-1.5 py-0 rounded border shrink-0",
                                               safety.bg, safety.color
-                                            )}>{safety.label}</span>
+                                            )}>{t(safety.label)}</span>
   
                                             {item.canRestore && (
                                               <span className="text-[9px] px-1.5 py-0 rounded border bg-blue-500/10 border-blue-500/20 text-blue-400 shrink-0 flex items-center gap-0.5">
-                                                <RotateCcw className="size-2" />Restorable
+                                                <RotateCcw className="size-2" />{t("Restorable")}
                                               </span>
                                             )}
   
                                             {scanStatus === "absent" && (
                                               <span className="text-[9px] px-1.5 py-0 rounded border bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shrink-0">
-                                                Removed
+                                                {t("Removed")}
                                               </span>
                                             )}
                                             {scanStatus === "present" && (
                                               <span className="text-[9px] px-1.5 py-0 rounded border bg-cyan-500/10 border-cyan-500/20 text-cyan-300 shrink-0">
-                                                Detected
+                                                {t("Detected")}
                                               </span>
                                             )}
                                             {scanStatus === "unknown" && (
                                               <span
                                                 className="text-[9px] px-1.5 py-0 rounded border bg-amber-500/10 border-amber-500/20 text-amber-400 shrink-0"
-                                                title="Windows could not verify this item. Scan again before applying changes."
+                                                title={t("Windows could not verify this item. Scan again before applying changes.")}
                                               >
-                                                Unable to verify
+                                                {t("Unable to verify")}
                                               </span>
                                             )}
   
@@ -2122,13 +2123,13 @@
                                             {item.estimatedRamMb > 0 && (
                                               <div className="text-right">
                                                 <p className="text-[11px] font-mono font-semibold text-cyan-400 leading-none">-{item.estimatedRamMb}MB</p>
-                                                <p className="text-[8px] text-muted-foreground/50 mt-0.5">RAM</p>
+                                                <p className="text-[8px] text-muted-foreground/50 mt-0.5">{t("RAM")}</p>
                                               </div>
                                             )}
                                             {item.estimatedDiskMb > 0 && (
                                               <div className="text-right">
                                                 <p className="text-[11px] font-mono font-semibold text-[#00D4FF] leading-none">-{item.estimatedDiskMb}MB</p>
-                                                <p className="text-[8px] text-muted-foreground/50 mt-0.5">Disk</p>
+                                                <p className="text-[8px] text-muted-foreground/50 mt-0.5">{t("Disk")}</p>
                                               </div>
                                             )}
                                             {isProcessing && (
@@ -2140,7 +2141,7 @@
                                           <button
                                             onClick={e => { e.stopPropagation(); toggleItemExpanded(item.id); }}
                                             className="shrink-0 size-5 flex items-center justify-center rounded text-muted-foreground/30 hover:text-muted-foreground hover:bg-[#1E252D] transition-all"
-                                            title="Show details"
+                                            title={t("Show details")}
                                           >
                                             <ChevronDown className={cn("size-3 transition-transform duration-150", isItemExpanded && "rotate-180")} />
                                           </button>
@@ -2157,20 +2158,20 @@
                                               className="overflow-hidden"
                                             >
                                               <div className="px-11 pb-3 pt-0.5 space-y-1.5 bg-[#080D14]">
-                                                <p className="text-[11px] text-muted-foreground leading-relaxed">{item.description}</p>
+                                                <p className="text-[11px] text-muted-foreground leading-relaxed">{t(item.description)}</p>
                                                 {item.requiresAdmin && (
                                                   <p className="text-[10px] text-amber-500/80 flex items-center gap-1">
-                                                    <ShieldCheck className="size-2.5" />Requires admin
+                                                    <ShieldCheck className="size-2.5" />{t("Requires admin")}
                                                   </p>
                                                 )}
                                                 {item.requiresSignOut && (
                                                   <p className="text-[10px] text-amber-500/80 flex items-center gap-1">
-                                                    <AlertTriangle className="size-2.5" />Sign-out required to take effect
+                                                    <AlertTriangle className="size-2.5" />{t("Sign-out required to take effect")}
                                                   </p>
                                                 )}
                                                 {item.requiresRestart && (
                                                   <p className="text-[10px] text-orange-500/80 flex items-center gap-1">
-                                                    <RefreshCw className="size-2.5" />Restart required
+                                                    <RefreshCw className="size-2.5" />{t("Restart required")}
                                                   </p>
                                                 )}
                                                 {!item.canRestore && item.restoreNotes && (
@@ -2180,7 +2181,7 @@
                                                 )}
                                                 {item.affectedFeatures.length > 0 && (
                                                   <p className="text-[10px] text-muted-foreground/40">
-                                                    Affects: {item.affectedFeatures.join(", ")}
+                                                    {t("Affects:")} {item.affectedFeatures.map(feature => t(feature)).join(", ")}
                                                   </p>
                                                 )}
                                               </div>
@@ -2221,9 +2222,9 @@
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base flex items-center gap-2">
                         {session.action === "apply" ? (
-                          <><Trash2 className="size-4 text-primary" />Debloat Results</>
+                          <><Trash2 className="size-4 text-primary" />{t("Debloat Results")}</>
                         ) : (
-                          <><RotateCcw className="size-4 text-blue-400" />Restore Results</>
+                          <><RotateCcw className="size-4 text-blue-400" />{t("Restore Results")}</>
                         )}
                       </CardTitle>
                       <div className="flex items-center gap-3">
@@ -2234,26 +2235,26 @@
                           onClick={() => setActiveView("items")}
                           className="text-xs text-muted-foreground hover:text-[#E6EAF0] px-2 py-1 rounded hover:bg-[#21262D]"
                         >
-                          ← Back
+                          ← {t("Back")}
                         </button>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-                      <span className="text-emerald-400 font-medium">{session.successCount} succeeded</span>
-                      {session.failCount > 0 && <span className="text-red-400 font-medium">{session.failCount} failed</span>}
+                      <span className="text-emerald-400 font-medium">{session.successCount} {t("succeeded")}</span>
+                      {session.failCount > 0 && <span className="text-red-400 font-medium">{session.failCount} {t("failed")}</span>}
                       {session.requiresRestart && (
                         <span className="text-orange-400 flex items-center gap-1">
-                          <RefreshCw className="size-3" />Restart required
+                          <RefreshCw className="size-3" />{t("Restart required")}
                         </span>
                       )}
                       {session.requiresSignOut && (
                         <span className="text-amber-400 flex items-center gap-1">
-                          <AlertTriangle className="size-3" />Sign-out required
+                          <AlertTriangle className="size-3" />{t("Sign-out required")}
                         </span>
                       )}
                       {!isElectron() && (
                         <span className="text-amber-500/70 flex items-center gap-1">
-                          <AlertCircle className="size-3" />Logged, execute in Electron for real changes
+                          <AlertCircle className="size-3" />{t("Logged, execute in Electron for real changes")}
                         </span>
                       )}
                     </div>
@@ -2288,24 +2289,24 @@
   
                             {/* gauges + metrics */}
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-center">
-                              <ScoreGauge value={successRate} label="Success rate" color="#34d399" />
+                              <ScoreGauge value={successRate} label={t("Success rate")} color="#34d399" />
                               <div className="text-center">
                                 <p className="text-xl font-bold text-cyan-300 tabular-nums leading-none">
                                   <AnimatedCounter value={ramFreed} /><span className="text-xs ml-0.5">MB</span>
                                 </p>
-                                <p className="text-[10px] text-muted-foreground mt-1">RAM freed</p>
+                                <p className="text-[10px] text-muted-foreground mt-1">{t("RAM freed")}</p>
                               </div>
                               <div className="text-center">
                                 <p className="text-xl font-bold text-[#00D4FF] tabular-nums leading-none">
                                   <AnimatedCounter value={diskFreed} /><span className="text-xs ml-0.5">MB</span>
                                 </p>
-                                <p className="text-[10px] text-muted-foreground mt-1">Disk freed</p>
+                                <p className="text-[10px] text-muted-foreground mt-1">{t("Disk freed")}</p>
                               </div>
                               <div className="text-center">
                                 <p className="text-xl font-bold text-emerald-300 tabular-nums leading-none">
                                   <AnimatedCounter value={removedResults.length} />
                                 </p>
-                                <p className="text-[10px] text-muted-foreground mt-1">Items handled</p>
+                                <p className="text-[10px] text-muted-foreground mt-1">{t("Items handled")}</p>
                               </div>
                             </div>
                           </div>
@@ -2333,9 +2334,9 @@
                         >
                           <div className="flex items-center gap-2">
                             <Icon className={cn("size-3.5 shrink-0", cfg.color)} />
-                            <span className="text-[#E6EAF0] text-xs font-medium">{result.name}</span>
+                            <span className="text-[#E6EAF0] text-xs font-medium">{t(result.name)}</span>
                             {result.storeRequired && (
-                              <span className="text-[10px] text-amber-400">install from Store</span>
+                              <span className="text-[10px] text-amber-400">{t("install from Store")}</span>
                             )}
                           </div>
                           <div className="flex items-center gap-3">
@@ -2346,12 +2347,12 @@
                                   result.nativeState === "unknown" ? "text-amber-400/80" : "text-muted-foreground/70"
                                 )}
                                 title={result.diagnostic?.target
-                                  ? `Native ${result.nativeState}: ${Array.isArray(result.diagnostic.target)
+                                  ? t("Native {state}: {target}", undefined, { state: result.nativeState, target: Array.isArray(result.diagnostic.target)
                                     ? result.diagnostic.target.join(", ")
-                                    : result.diagnostic.target}${result.diagnostic.reason ? ` (${result.diagnostic.reason})` : ""}`
-                                  : `Native state: ${result.nativeState}`}
+                                    : result.diagnostic.target }) + (result.diagnostic.reason ? ` (${result.diagnostic.reason})` : "")
+                                  : t("Native state: {state}", undefined, { state: result.nativeState })}
                               >
-                                Native: {result.nativeState}
+                                {t("Native: {state}", undefined, { state: result.nativeState })}
                               </span>
                             )}
                             {result.error && (
@@ -2439,12 +2440,12 @@
                                 : entry.status === "failed"
                                 ? "text-red-400"
                                 : "text-muted-foreground"
-                            )}>{entry.item_name}</span>
+                            )}>{t(entry.item_name)}</span>
                             <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-[#2A313A] text-muted-foreground uppercase">
-                              {entry.action}
+                              {t(entry.action)}
                             </Badge>
                             {entry.role && (
-                              <span className="text-muted-foreground/60">{entry.role}</span>
+                              <span className="text-muted-foreground/60">{t(entry.role)}</span>
                             )}
                           </div>
                           <div className="flex items-center gap-3">
@@ -2470,15 +2471,15 @@
             )}>
               <Info className={cn("size-4 shrink-0 mt-0.5", currentLevel.accent)} />
               <div>
-                <span className={cn("font-semibold", currentLevel.accent)}>{currentLevel.name} mode</span>
-                <span className="text-muted-foreground ml-2">{currentLevel.description}</span>
+                <span className={cn("font-semibold", currentLevel.accent)}>{t(currentLevel.name)} {t("mode")}</span>
+                <span className="text-muted-foreground ml-2">{t(currentLevel.description)}</span>
                 {level === "extreme" && (
-                  <span className="ml-2 text-red-400/80">, Services are reversible but may require restart. Create a manual restore point before proceeding.
+                  <span className="ml-2 text-red-400/80">, {t("Services are reversible but may require restart. Create a manual restore point before proceeding.")}
                   </span>
                 )}
                 {!isElectron() && (
                   <span className="ml-2 text-amber-500/70">
-                    You are in the web app. All actions are logged but only execute in the installed Windows application.
+                    {t("You are in the web app. All actions are logged but only execute in the installed Windows application.")}
                   </span>
                 )}
               </div>

@@ -28,6 +28,7 @@ import {
   type UpdateAction,
   HEALTH_META,
 } from "@/lib/driver-intel-data";
+import { useTranslation } from "@/lib/i18n";
 
 const SAFETY_META: Record<
   SafetyLevel,
@@ -74,6 +75,7 @@ export function ComponentPanel({
   onAskAi,
   onRecordUpdate,
 }: ComponentPanelProps) {
+  const { t } = useTranslation();
   // Handle Escape key to close the panel.
   // No scroll lock — the panel is a fixed right-side overlay and the main
   // content should remain freely scrollable while the panel is open.
@@ -110,6 +112,7 @@ export function ComponentPanel({
               detectedApps={detectedApps}
               onAskAi={onAskAi}
               onRecordUpdate={onRecordUpdate}
+               t={t}
             />
           </motion.aside>
         </>
@@ -126,6 +129,7 @@ function PanelBody({
   detectedApps,
   onAskAi,
   onRecordUpdate,
+  t,
 }: {
   component: DriverComponent;
   readOnly: boolean;
@@ -134,6 +138,7 @@ function PanelBody({
   detectedApps?: Record<string, boolean>;
   onAskAi: (component: DriverComponent) => void;
   onRecordUpdate?: (component: DriverComponent) => void;
+  t: (key: string) => string;
 }) {
   const health = HEALTH_META[c.health];
   const safety = SAFETY_META[c.safety];
@@ -162,8 +167,8 @@ function PanelBody({
           onClick={onClose}
           className="rounded-lg p-2 hover:bg-white/15 bg-white/[0.06] border border-white/10 transition-colors"
           data-testid="button-close-panel"
-          aria-label="Close panel (Esc)"
-          title="Close (Esc)"
+          aria-label={t("Close panel (Esc)")}
+          title={t("Close (Esc)")}
         >
           <X className="size-4.5 text-[#E6EAF0]" />
         </button>
@@ -180,25 +185,25 @@ function PanelBody({
         data-testid="status-panel-health"
       >
         <span className="size-2 rounded-full" style={{ background: health.color }} />
-        {health.label}
+        {t(health.label)}
       </div>
 
       {/* Versions */}
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl border border-white/8 bg-white/[0.02] p-3">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            Installed
+            {t("Installed")}
           </div>
           <div className="text-sm font-medium mt-1 break-words" data-testid="text-current-version">
             {c.current ??
               (c.kind === "ssd" && c.device !== "Unknown drive"
-                ? "Device detected — firmware unavailable"
-                : "Not detected")}
+                ? t("Device detected — firmware unavailable")
+                : t("Not detected"))}
           </div>
         </div>
         <div className="rounded-xl border border-white/8 bg-white/[0.02] p-3">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            Latest known
+            {t("Latest known")}
           </div>
           <div className="text-sm font-medium mt-1 break-words" data-testid="text-latest-version">
             {c.latest ?? "—"}
@@ -207,33 +212,33 @@ function PanelBody({
       </div>
       {c.releaseDate && (
         <div className="text-xs text-muted-foreground -mt-3">
-          Latest released {c.releaseDate}
+          {t("Latest released")} {c.releaseDate}
         </div>
       )}
 
       {/* Rationale */}
       <div className="flex gap-2 rounded-xl border border-white/8 bg-white/[0.02] p-3">
         <Info className="size-4 shrink-0 mt-0.5 text-[#33E0FF]" />
-        <p className="text-sm text-muted-foreground leading-relaxed">{c.rationale}</p>
+        <p className="text-sm text-muted-foreground leading-relaxed">{t(c.rationale)}</p>
       </div>
 
       {/* Release notes */}
       {c.releaseNotes && (
         <section>
-          <h3 className="text-sm font-semibold mb-2">What's new</h3>
-          <p className="text-sm text-muted-foreground leading-relaxed">{c.releaseNotes}</p>
+          <h3 className="text-sm font-semibold mb-2">{t("What's new")}</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">{t(c.releaseNotes)}</p>
         </section>
       )}
 
       {/* Known issues */}
       {c.knownIssues && c.knownIssues.length > 0 && (
         <section>
-          <h3 className="text-sm font-semibold mb-2">Known issues</h3>
+          <h3 className="text-sm font-semibold mb-2">{t("Known issues")}</h3>
           <ul className="space-y-1.5">
             {c.knownIssues.map((k, i) => (
               <li key={i} className="flex gap-2 text-sm text-muted-foreground">
                 <span className="text-amber-400">•</span>
-                {k}
+                {t(k)}
               </li>
             ))}
           </ul>
@@ -247,9 +252,9 @@ function PanelBody({
       >
         <div className="flex items-center gap-2 font-medium" style={{ color: safety.color }}>
           <SafetyIcon className="size-4" />
-          {safety.label}
+          {t(safety.label)}
         </div>
-        <p className="text-xs text-muted-foreground mt-1.5">{safety.note}</p>
+        <p className="text-xs text-muted-foreground mt-1.5">{t(safety.note)}</p>
       </div>
 
       {/* Actions */}
@@ -261,8 +266,8 @@ function PanelBody({
             onClick={() => onAction(c.action!)}
             testId="button-open-vendor"
             icon={readOnly ? Lock : appInstalled ? Rocket : ExternalLink}
-            label={readOnly ? "Updates are Premium" : actionLabel ?? "Open"}
-            note={readOnly ? "Upgrade to act on recommendations." : c.action.note}
+            label={readOnly ? t("Updates are Premium") : actionLabel ? t(actionLabel) : t("Open")}
+            note={readOnly ? t("Upgrade to act on recommendations.") : c.action.note ? t(c.action.note) : undefined}
           />
         )}
         <ActionButton
@@ -270,11 +275,11 @@ function PanelBody({
           onClick={() => onAskAi(c)}
           testId="button-ask-ai"
           icon={readOnly ? Lock : Sparkles}
-          label={readOnly ? "AI guidance is Premium" : "Ask the AI Advisor"}
+          label={readOnly ? t("AI guidance is Premium") : t("Ask the AI Advisor")}
           note={
             readOnly
               ? undefined
-              : "Get a plain-language explanation tailored to your system."
+              : t("Get a plain-language explanation tailored to your system.")
           }
         />
         {onRecordUpdate &&
@@ -286,20 +291,19 @@ function PanelBody({
             testId="button-log-update"
             icon={readOnly ? Lock : ClipboardCheck}
             label={
-              readOnly ? "History is Premium" : `Mark as updated to ${c.latest}`
+              readOnly ? t("History is Premium") : `${t("Mark as updated to")} ${c.latest}`
             }
             note={
               readOnly
                 ? undefined
-                : "Saves a restore point so you can roll back later."
+                : t("Saves a restore point so you can roll back later.")
             }
           />
         )}
       </div>
 
       <p className="text-[11px] text-muted-foreground/70 text-center pt-2">
-        SwitchControl never auto-installs or flashes firmware. We only detect and
-        open the official manufacturer page.
+        {t("SwitchControl never auto-installs or flashes firmware. We only detect and open the official manufacturer page.")}
       </p>
     </div>
   );
