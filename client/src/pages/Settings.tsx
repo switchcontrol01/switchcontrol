@@ -33,6 +33,9 @@ import {
 } from "@/lib/adaptivePerformanceStore";
 import type { AdaptivePerformanceOverride } from "@shared/adaptivePerformance";
 
+const isElectron =
+  typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
+
 interface PatchNotes {
   version: string;
   title: string;

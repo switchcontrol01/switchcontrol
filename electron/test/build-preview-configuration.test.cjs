@@ -47,3 +47,12 @@ test("database startup migrations share an explicit core-schema readiness gate",
     /Core schema is not initialized; skipping database startup tasks/,
   );
 });
+
+test("Settings defines its Electron-only capability flag before rendering platform actions", () => {
+  const settings = read("client/src/pages/Settings.tsx");
+
+  assert.match(
+    settings,
+    /const isElectron\s*=\s*[\s\S]*electronAPI\?\.isElectron/,
+  );
+});
