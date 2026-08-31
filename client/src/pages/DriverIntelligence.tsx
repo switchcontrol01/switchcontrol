@@ -49,6 +49,10 @@ import {
   SCAN_STEPS,
   countActionable,
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+  computeHealthScore,
+>>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
 =======
   computeHealthScore,
 >>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
