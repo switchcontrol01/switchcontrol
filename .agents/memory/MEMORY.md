@@ -92,3 +92,4 @@
 - [First-run motion policy](first-run-motion-policy.md) — onboarding handoffs use SwitchControl’s motion preference, not Windows Animation effects, while general app motion stays OS-aware.
  - [OAuth entitlement rehydration](oauth-entitlement-rehydration.md) — fresh Electron profiles must reopen entitlement hydration after OAuth and promote UI verification on every verified refresh.
 - [Welcome re-entry and handoff](welcome-reentry-and-handoff.md) — local Welcome completion must override stale install markers; dashboard scrims must wait for dashboard mount to avoid black AnimatePresence gaps.
+- [Authenticated catalog precedence](authenticated-catalog-precedence.md) — merge feature labels after public copy; short keys can have different dashboard meanings.

@@ -1986,7 +1986,7 @@
                               data-testid={`category-${category}`}
                             >
                               <Icon className={cn("size-3.5 shrink-0", meta.color)} />
-                               <span className="font-semibold text-[#E6EAF0] text-[13px] leading-none">{t(meta.label)}</span>
+                              <span className="font-semibold text-[#E6EAF0] text-[13px] leading-none">{t(meta.label)}</span>
                               <span className="text-[10px] text-muted-foreground/60 font-mono shrink-0">
                                 {selCount}/{catItems.length}
                               </span>

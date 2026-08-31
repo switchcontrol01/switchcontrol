@@ -2,7 +2,13 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 test("localization keeps all supported locales and public catalog coverage", async () => {
-  const { LOCALES, translationCatalogs, PUBLIC_CATALOG_KEYS, PUBLIC_TECHNICAL_KEYS, resolveTranslation } = await import("../../client/src/lib/i18n.tsx");
+  const {
+    LOCALES,
+    translationCatalogs,
+    PUBLIC_CATALOG_KEYS,
+    PUBLIC_TECHNICAL_KEYS,
+    resolveTranslation,
+  } = await import("../../client/src/lib/i18n.tsx");
   const expectedCodes = [
     "en", "zh-CN", "es", "hi", "ar", "pt-BR", "bn", "ru", "ja", "pa",
     "de", "id", "ko", "fr", "te", "tr", "mr", "ta", "vi", "ur",
@@ -106,5 +112,56 @@ test("localization keeps all supported locales and public catalog coverage", asy
     resolveTranslation("es", "landingPerformanceCharts.legend.stockWindows", "Stock Windows"),
     "Windows de serie",
     "chart legends should not depend on the DOM compatibility bridge",
+  );
+});
+
+test("authenticated feature catalogs are centrally merged", async () => {
+  const { translationCatalogs } = await import("../../client/src/lib/i18n.tsx");
+  const [
+    { DASHBOARD_AUTH_TRANSLATIONS },
+    { CLEANUP_AUTH_TRANSLATIONS },
+    { DRIVER_LATENCY_AUTH_TRANSLATIONS },
+    { ADVISOR_AUTH_TRANSLATIONS },
+    { SETTINGS_HISTORY_AUTH_TRANSLATIONS },
+    { AUTH_COMPLETION_REMAINING },
+  ] = await Promise.all([
+    import("../../client/src/lib/authenticatedTranslations/dashboard.ts"),
+    import("../../client/src/lib/authenticatedTranslations/cleanup.ts"),
+    import("../../client/src/lib/authenticatedTranslations/driverLatency.ts"),
+    import("../../client/src/lib/authenticatedTranslations/advisors.ts"),
+    import("../../client/src/lib/authenticatedTranslations/settingsHistory.ts"),
+    import("../../client/src/lib/authenticatedTranslations/completionRemaining.ts"),
+  ]);
+
+  const featureCatalogs = [
+    DASHBOARD_AUTH_TRANSLATIONS,
+    CLEANUP_AUTH_TRANSLATIONS,
+    DRIVER_LATENCY_AUTH_TRANSLATIONS,
+    ADVISOR_AUTH_TRANSLATIONS,
+    SETTINGS_HISTORY_AUTH_TRANSLATIONS,
+    AUTH_COMPLETION_REMAINING,
+  ];
+
+  for (const featureCatalog of featureCatalogs) {
+    for (const [locale, messages] of Object.entries(featureCatalog)) {
+      for (const [key, value] of Object.entries(messages)) {
+        assert.ok(
+          translationCatalogs[locale][key],
+          `${locale} authenticated key ${key} is missing from the live catalog`,
+        );
+        assert.ok(value.trim(), `${locale} authenticated key ${key} is empty`);
+      }
+    }
+  }
+
+  assert.notEqual(
+    translationCatalogs["zh-CN"]["Debloater scan failed"],
+    "Debloater scan failed",
+    "Debloater errors must not fall back to English after a language switch",
+  );
+  assert.notEqual(
+    translationCatalogs["ar"]["How to Access Your BIOS"],
+    "How to Access Your BIOS",
+    "Advisor copy must use the centrally merged Arabic catalog",
   );
 });

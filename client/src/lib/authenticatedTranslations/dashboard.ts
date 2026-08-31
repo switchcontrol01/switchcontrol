@@ -23,3 +23,14 @@ export const DASHBOARD_AUTH_TRANSLATIONS: Partial<Record<Locale, Record<string, 
   vi: {"Memory Pressure":"Áp lực bộ nhớ","Rolling window":"Cửa sổ cuộn","Storage Activity":"Hoạt động lưu trữ","Read / Write":"Đọc / ghi","System Rhythm":"Nhịp hệ thống","Used":"Đã dùng","Total":"Tổng","Free":"Trống","Read":"Đọc","Write":"Ghi","Active":"Hoạt động","Unavailable":"Không khả dụng","Collecting telemetry…":"Đang thu thập dữ liệu đo từ xa…","Live System Monitor":"Trình theo dõi hệ thống trực tiếp","Spike":"Đột biến","Collapse graph":"Thu gọn biểu đồ","Expand graph":"Mở rộng biểu đồ","Click to reset view":"Nhấp để đặt lại chế độ xem","Click to focus this metric":"Nhấp để tập trung vào chỉ số này","Waiting for telemetry data…":"Đang chờ dữ liệu đo từ xa…","Disk":"Đĩa","Net":"Mạng"},
   ur: {"Memory Pressure":"میموری دباؤ","Rolling window":"رولنگ ونڈو","Storage Activity":"اسٹوریج سرگرمی","Read / Write":"ریڈ / رائٹ","System Rhythm":"سسٹم ردھم","Used":"استعمال شدہ","Total":"کل","Free":"خالی","Read":"ریڈ","Write":"رائٹ","Active":"فعال","Unavailable":"دستیاب نہیں","Collecting telemetry…":"ٹیلی میٹری جمع کی جا رہی ہے…","Live System Monitor":"لائیو سسٹم مانیٹر","Spike":"اچانک اضافہ","Collapse graph":"گراف سمیٹیں","Expand graph":"گراف پھیلائیں","Click to reset view":"ویو ری سیٹ کرنے کے لیے کلک کریں","Click to focus this metric":"اس میٹرک پر توجہ کے لیے کلک کریں","Waiting for telemetry data…":"ٹیلی میٹری ڈیٹا کا انتظار ہے…","Disk":"ڈسک","Net":"نیٹ ورک"},
 };
+
+// Keep chart labels unambiguous in locales where a short technical label
+// would otherwise be identical to its English source.
+if (DASHBOARD_AUTH_TRANSLATIONS.es) DASHBOARD_AUTH_TRANSLATIONS.es.Total = "Total general";
+if (DASHBOARD_AUTH_TRANSLATIONS["pt-BR"]) DASHBOARD_AUTH_TRANSLATIONS["pt-BR"].Total = "Total geral";
+if (DASHBOARD_AUTH_TRANSLATIONS.fr) DASHBOARD_AUTH_TRANSLATIONS.fr.Total = "Total général";
+if (DASHBOARD_AUTH_TRANSLATIONS.id) {
+  DASHBOARD_AUTH_TRANSLATIONS.id.Total = "Total keseluruhan";
+  DASHBOARD_AUTH_TRANSLATIONS.id.Disk = "Cakram";
+}
+if (DASHBOARD_AUTH_TRANSLATIONS.tr) DASHBOARD_AUTH_TRANSLATIONS.tr.Disk = "Disk sürücüsü";

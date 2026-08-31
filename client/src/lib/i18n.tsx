@@ -17,6 +17,7 @@ import { AUTH_COMPLETION_CJK } from "./authenticatedTranslations/completionCjk";
 import { AUTH_COMPLETION_EUROPE } from "./authenticatedTranslations/completionEurope";
 import { AUTH_COMPLETION_INDIC_TWO } from "./authenticatedTranslations/completionIndicTwo";
 import { AUTH_COMPLETION_RTL } from "./authenticatedTranslations/completionRtl";
+import { AUTH_COMPLETION_REMAINING } from "./authenticatedTranslations/completionRemaining";
 
 export type { Locale };
 import { PUBLIC_PAGE_TRANSLATIONS } from "./publicWebsiteTranslations/pages";
@@ -1592,22 +1593,6 @@ const I18nContext = createContext<{
   locales: LOCALES,
 });
 
-for (const catalog of [
-  DASHBOARD_AUTH_TRANSLATIONS,
-  CLEANUP_AUTH_TRANSLATIONS,
-  DRIVER_LATENCY_AUTH_TRANSLATIONS,
-  ADVISOR_AUTH_TRANSLATIONS,
-  SETTINGS_HISTORY_AUTH_TRANSLATIONS,
-  AUTH_COMPLETION_CJK,
-  AUTH_COMPLETION_EUROPE,
-  AUTH_COMPLETION_INDIC_TWO,
-  AUTH_COMPLETION_RTL,
-]) {
-  for (const [locale, labels] of Object.entries(catalog) as Array<[Locale, MessageCatalog]>) {
-    Object.assign(CATALOGS[locale], labels);
-  }
-}
-
 function interpolate(value: string, values?: Record<string, string | number>) {
   if (!values) return value;
   return value.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? `{${key}}`));
@@ -2217,5 +2202,34 @@ for (const key of PUBLIC_CATALOG_KEYS) {
 }
 
 for (const [locale, labels] of Object.entries(ADDITIONAL_LONG_COPY) as Array<[Locale, MessageCatalog]>) {
+  Object.assign(CATALOGS[locale], labels);
+}
+
+// Authenticated feature copy is merged after the public catalog. Keep an
+// existing non-English value when a generic key collides with a more specific
+// public/chart label, then apply dashboard copy last because its metric labels
+// have a distinct meaning (dashboard "Free" means available memory).
+for (const catalog of [
+  AUTH_COMPLETION_CJK,
+  AUTH_COMPLETION_EUROPE,
+  AUTH_COMPLETION_INDIC_TWO,
+  AUTH_COMPLETION_RTL,
+  AUTH_COMPLETION_REMAINING,
+  CLEANUP_AUTH_TRANSLATIONS,
+  DRIVER_LATENCY_AUTH_TRANSLATIONS,
+  ADVISOR_AUTH_TRANSLATIONS,
+  SETTINGS_HISTORY_AUTH_TRANSLATIONS,
+]) {
+  for (const [locale, labels] of Object.entries(catalog) as Array<[Locale, MessageCatalog]>) {
+    for (const [key, value] of Object.entries(labels)) {
+      const existing = CATALOGS[locale][key];
+      const englishSource = CATALOGS.en[key] ?? key;
+      if (!existing || existing === englishSource || locale === "en") {
+        CATALOGS[locale][key] = value;
+      }
+    }
+  }
+}
+for (const [locale, labels] of Object.entries(DASHBOARD_AUTH_TRANSLATIONS) as Array<[Locale, MessageCatalog]>) {
   Object.assign(CATALOGS[locale], labels);
 }
