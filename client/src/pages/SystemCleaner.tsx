@@ -984,12 +984,14 @@ export default function SystemCleaner() {
                 <div className="absolute top-0 right-0 w-80 h-80 rounded-full pointer-events-none"
                   style={{ background: "radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)", transform: "translate(30%, -30%)" }} />
 
-                <div className="relative flex items-center gap-10">
-                  <ScanOrb active={false} />
+                <div className="relative flex items-center gap-8 flex-wrap">
+                  <div className="shrink-0">
+                    <ScanOrb active={false} />
+                  </div>
 
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-[1_1_300px] min-w-[240px]">
                     <p className="text-[11px] font-semibold text-purple-400/80 uppercase tracking-widest mb-2">{t("System Analysis")}</p>
-                    <h2 className="text-[28px] font-black text-white leading-tight">{t("Ready to scan your")}<br />{t("system for junk")}</h2>
+                    <h2 className="text-[28px] font-black text-white leading-tight break-words">{t("Ready to scan your")}{" "}{t("system for junk")}</h2>
                     <p className="text-[12px] text-[#6B7380] mt-2 mb-6 leading-relaxed max-w-sm">
                     {t("Scans temp files, caches, crash dumps, privacy residue, and performance waste.")}
                     {" "}
@@ -1012,7 +1014,7 @@ export default function SystemCleaner() {
                   </div>
 
                   {/* Right stats */}
-                  <div className="hidden lg:flex flex-col gap-3 min-w-[160px]">
+                  <div className="hidden xl:flex flex-col gap-3 min-w-[160px] shrink-0">
                     {lastScan ? (
                       <>
                         <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-3">
