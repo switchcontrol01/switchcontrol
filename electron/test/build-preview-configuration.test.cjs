@@ -56,3 +56,12 @@ test("Settings defines its Electron-only capability flag before rendering platfo
     /const isElectron\s*=\s*[\s\S]*electronAPI\?\.isElectron/,
   );
 });
+
+test("Tweaks filters keep the translation function separate from tweak records", () => {
+  const tweaks = read("client/src/components/tweaks/TweaksList.tsx");
+
+  assert.doesNotMatch(tweaks, /TWEAKS_DATA\.filter\(\(t\) =>/);
+  assert.match(tweaks, /TWEAKS_DATA\.filter\(\(tweak\) =>/);
+  assert.match(tweaks, /t\(tweak\.title\)\.toLocaleLowerCase\(\)/);
+  assert.match(tweaks, /t\(tweak\.description\)\.toLocaleLowerCase\(\)/);
+});

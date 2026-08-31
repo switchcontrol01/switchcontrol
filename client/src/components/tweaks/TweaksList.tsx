@@ -374,23 +374,23 @@ export function TweaksList() {
   const getTweakEnabled = (tweakId: string): boolean => tweaks[tweakId] ?? false;
 
   const filteredTweaks = useMemo(() => {
-    const items = TWEAKS_DATA.filter((t) => {
-      if (t.isAdvancedTuning) return false; // rendered in its own "Advanced Tuning" section below
-      if (!showExperimental && t.level === "Experimental") return false;
-      if (hideUnsupported && runtimeUnsupportedReasons[t.id]) return false;
+    const items = TWEAKS_DATA.filter((tweak) => {
+      if (tweak.isAdvancedTuning) return false; // rendered in its own "Advanced Tuning" section below
+      if (!showExperimental && tweak.level === "Experimental") return false;
+      if (hideUnsupported && runtimeUnsupportedReasons[tweak.id]) return false;
       const query = search.toLocaleLowerCase();
-      const matchesSearch = t(t.title).toLocaleLowerCase().includes(query) ||
-                            t(t.description).toLocaleLowerCase().includes(query);
+      const matchesSearch = t(tweak.title).toLocaleLowerCase().includes(query) ||
+                            t(tweak.description).toLocaleLowerCase().includes(query);
       let matchesChip: boolean;
       if (activeChip === "All") {
         matchesChip = true;
       } else if (activeChip === "Sliders") {
-        matchesChip = t.controlType === "slider";
+        matchesChip = tweak.controlType === "slider";
       } else {
-        matchesChip = CATEGORY_MAP[activeChip]?.includes(t.category) ?? false;
+        matchesChip = CATEGORY_MAP[activeChip]?.includes(tweak.category) ?? false;
       }
-      const matchesRisk   = showRisky ? true : t.risk !== "Risky";
-      const matchesLevel  = activeLevel === "All" || t.level === activeLevel;
+      const matchesRisk   = showRisky ? true : tweak.risk !== "Risky";
+      const matchesLevel  = activeLevel === "All" || tweak.level === activeLevel;
       return matchesSearch && matchesChip && matchesRisk && matchesLevel;
     });
     // Sort: toggle tweaks first, then slider tweaks at the bottom
@@ -416,15 +416,15 @@ export function TweaksList() {
   // but still respects search / level / risk filters so it doesn't clutter
   // an unrelated search or a "Recommended"-only view.
   const advancedTuningTweaks = useMemo(() => {
-    return TWEAKS_DATA.filter((t) => {
-      if (!t.isAdvancedTuning) return false;
-      if (hideAdvanced || (!showExperimental && t.level === "Experimental")) return false;
-      if (hideUnsupported && runtimeUnsupportedReasons[t.id]) return false;
+    return TWEAKS_DATA.filter((tweak) => {
+      if (!tweak.isAdvancedTuning) return false;
+      if (hideAdvanced || (!showExperimental && tweak.level === "Experimental")) return false;
+      if (hideUnsupported && runtimeUnsupportedReasons[tweak.id]) return false;
       const query = search.toLocaleLowerCase();
-      const matchesSearch = t(t.title).toLocaleLowerCase().includes(query) ||
-                            t(t.description).toLocaleLowerCase().includes(query);
-      const matchesRisk  = showRisky ? true : t.risk !== "Risky";
-      const matchesLevel = activeLevel === "All" || t.level === activeLevel;
+      const matchesSearch = t(tweak.title).toLocaleLowerCase().includes(query) ||
+                            t(tweak.description).toLocaleLowerCase().includes(query);
+      const matchesRisk  = showRisky ? true : tweak.risk !== "Risky";
+      const matchesLevel = activeLevel === "All" || tweak.level === activeLevel;
       return matchesSearch && matchesRisk && matchesLevel;
     });
   }, [search, showRisky, activeLevel, hideAdvanced, showExperimental, hideUnsupported, runtimeUnsupportedReasons, t]);
