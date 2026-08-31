@@ -71,8 +71,11 @@ function manualChunks(id: string): string | undefined {
     return "i18n-first-run";
   }
 
-  if (normalizedId.includes("/client/src/lib/publicWebsiteTranslations/")) {
-    return "i18n-public";
+  const publicTranslationsMatch = normalizedId.match(
+    /\/client\/src\/lib\/publicWebsiteTranslations\/([^/]+)\.ts$/,
+  );
+  if (publicTranslationsMatch) {
+    return `i18n-public-${publicTranslationsMatch[1]}`;
   }
 
   if (normalizedId.includes("/client/src/lib/featureTranslations.ts")) {
@@ -131,14 +134,14 @@ export default defineConfig(({ mode }) => ({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
+    // The first-run catalog is intentionally synchronous because legal
+    // content must be available before onboarding can continue. It measures
+    // 517 KB minified; keep this ceiling narrow and below 600 KB so a future
+    // accidental growth still fails the build warning.
+    chunkSizeWarningLimit: 550,
     rollupOptions: {
       output: {
         manualChunks,
-        // Keep the function above from recursively pulling every dependency
-        // used by an eagerly imported Electron page into that page's chunk.
-        // Shared modules remain in Rollup's common graph and avoid circular
-        // vendor dependencies.
-        onlyExplicitManualChunks: true,
       },
     },
   },

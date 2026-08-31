@@ -8,6 +8,8 @@ import { isKilled } from "./killSwitch";
 
 let wss: WebSocketServer | null = null;
 let broadcastInterval: NodeJS.Timeout | null = null;
+let upgradeHandler: ((req: any, socket: any, head: Buffer) => void) | null = null;
+let httpServerRef: HttpServer | null = null;
 
 // Per-user connection limit — prevents reconnect storms from Electron
 const MAX_CONNECTIONS_PER_USER = 3;
@@ -91,9 +93,12 @@ function peekIss(token: string): string {
 }
 
 export function setupWebSocketServer(httpServer: HttpServer) {
+  httpServerRef = httpServer;
   wss = new WebSocketServer({
-    server: httpServer,
-    path: "/ws/telemetry",
+    // Do not let ws install its catch-all upgrade listener. In dev, Vite's
+    // HMR socket shares this HTTP server and ws would otherwise answer every
+    // non-telemetry upgrade—including /vite-hmr—with HTTP 400.
+    noServer: true,
     // Compress telemetry frames — saves ~40–60% bandwidth on repetitive JSON.
     perMessageDeflate: {
       zlibDeflateOptions: { level: 1 }, // fastest compression, low CPU cost
@@ -106,6 +111,16 @@ export function setupWebSocketServer(httpServer: HttpServer) {
     handleProtocols: (protocols) =>
       protocols.has("switchcontrol") ? "switchcontrol" : false,
   });
+
+  upgradeHandler = (req, socket, head) => {
+    const pathname = parseUrl(req.url || "").pathname;
+    if (pathname !== "/ws/telemetry" || !wss) return;
+
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss?.emit("connection", ws, req);
+    });
+  };
+  httpServer.on("upgrade", upgradeHandler);
 
   wss.on("connection", (ws: WebSocket, req: any) => {
     ws.on("error", () => {});
@@ -275,4 +290,12 @@ export async function broadcastNow(): Promise<void> {
 export function teardownWebSocketServer() {
   if (broadcastInterval) clearInterval(broadcastInterval);
   if (wss) wss.close();
+  if (upgradeHandler) {
+    // The HTTP server is not owned by this module, so remove only the
+    // listener installed above and leave Vite/other upgrade handlers intact.
+    httpServerRef?.off("upgrade", upgradeHandler);
+    upgradeHandler = null;
+  }
+  httpServerRef = null;
+  wss = null;
 }
