@@ -124,6 +124,7 @@ test("authenticated feature catalogs are centrally merged", async () => {
     { ADVISOR_AUTH_TRANSLATIONS },
     { SETTINGS_HISTORY_AUTH_TRANSLATIONS },
     { AUTH_COMPLETION_REMAINING },
+    { TWEAK_CONTROL_TRANSLATIONS },
   ] = await Promise.all([
     import("../../client/src/lib/authenticatedTranslations/dashboard.ts"),
     import("../../client/src/lib/authenticatedTranslations/cleanup.ts"),
@@ -131,6 +132,7 @@ test("authenticated feature catalogs are centrally merged", async () => {
     import("../../client/src/lib/authenticatedTranslations/advisors.ts"),
     import("../../client/src/lib/authenticatedTranslations/settingsHistory.ts"),
     import("../../client/src/lib/authenticatedTranslations/completionRemaining.ts"),
+    import("../../client/src/lib/authenticatedTranslations/tweaks.ts"),
   ]);
 
   const featureCatalogs = [
@@ -140,6 +142,7 @@ test("authenticated feature catalogs are centrally merged", async () => {
     ADVISOR_AUTH_TRANSLATIONS,
     SETTINGS_HISTORY_AUTH_TRANSLATIONS,
     AUTH_COMPLETION_REMAINING,
+    TWEAK_CONTROL_TRANSLATIONS,
   ];
 
   for (const featureCatalog of featureCatalogs) {
@@ -163,5 +166,30 @@ test("authenticated feature catalogs are centrally merged", async () => {
     translationCatalogs["ar"]["How to Access Your BIOS"],
     "How to Access Your BIOS",
     "Advisor copy must use the centrally merged Arabic catalog",
+  );
+  const tweakControlKeys = [
+    "Show impact details", "Free", "Premium", "Unsupported", "Apply",
+    "Reset to Default", "Revert", "Recommended", "Safe", "Risky",
+    "Search tweaks", "Performance Intelligence",
+  ];
+  for (const code of Object.keys(translationCatalogs)) {
+    for (const key of tweakControlKeys) {
+      const value = translationCatalogs[code][key];
+      assert.equal(typeof value, "string", `${code} tweak control is missing ${key}`);
+      assert.ok(value.trim(), `${code} tweak control is empty: ${key}`);
+      if (code !== "en") {
+        assert.notEqual(value, key, `${code} tweak control falls back to English: ${key}`);
+      }
+    }
+  }
+  assert.equal(
+    translationCatalogs.de["Show impact details"],
+    "Auswirkungsdetails anzeigen",
+    "shared tweak cards must resolve translated controls after a locale switch",
+  );
+  assert.equal(
+    translationCatalogs.ur["Performance Intelligence"],
+    "کارکردگی کی ذہانت",
+    "RTL locales must receive translated intelligence headings",
   );
 });

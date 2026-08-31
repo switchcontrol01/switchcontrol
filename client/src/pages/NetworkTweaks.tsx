@@ -362,6 +362,7 @@ async function fetchVerifiedWindowsState(): Promise<StateMap> {
   }
 }
 const SafetyBadge = ({ level }: { level: SafetyLevel }) => {
+  const { t } = useTranslation();
   const colors = {
     Safe: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     Moderate: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
@@ -369,11 +370,12 @@ const SafetyBadge = ({ level }: { level: SafetyLevel }) => {
   };
   return (
     <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full border uppercase tracking-wider", colors[level])}>
-      {level}
+      {t(level)}
     </span>
   );
 };
 const LevelBadge = ({ level }: { level: TweakLevel }) => {
+  const { t } = useTranslation();
   const colors = {
     Recommended: "bg-primary/10 text-primary border-primary/20",
     Advanced: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -382,11 +384,12 @@ const LevelBadge = ({ level }: { level: TweakLevel }) => {
   return (
     <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full border uppercase tracking-wider", colors[level])}>
       {level === "Recommended" && <ShieldCheck className="inline-block size-3 mr-1 -mt-0.5" />}
-      {level}
+      {t(level)}
     </span>
   );
 };
 const ImpactPill = ({ label, value }: { label: string; value: ImpactLevel }) => {
+  const { t } = useTranslation();
   if (value === "None") return null;
   const colors = {
     Low: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
@@ -395,7 +398,7 @@ const ImpactPill = ({ label, value }: { label: string; value: ImpactLevel }) => 
   };
   return (
     <span className={cn("text-[9px] font-medium px-1.5 py-0.5 rounded border", colors[value])}>
-      {label}: {value}
+      {t(label)}: {t(value)}
     </span>
   );
 };
@@ -500,16 +503,16 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
                 ? "text-[#E6EAF0]"
                 : "text-foreground group-hover:text-[#E6EAF0]"
             )}>
-              {tweak.name}
+              {t(tweak.name)}
             </h3>
             <StatusBadge status={tweakState.status} message={tweakState.message} />
           </div>
           {isUnavailable ? (
             <p className="text-xs text-muted-foreground/60 line-clamp-2 italic">
-              {tweak.unavailableReason}
+              {t(tweak.unavailableReason ?? "Unavailable")}
             </p>
           ) : (
-            <p className="text-xs text-muted-foreground line-clamp-1">{tweak.summary}</p>
+            <p className="text-xs text-muted-foreground line-clamp-2">{t(tweak.summary)}</p>
           )}
           {!isUnavailable && (
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -522,7 +525,7 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
                     ? "bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 text-violet-300 border-violet-400/30"
                     : "bg-primary/10 text-primary border-primary/20"
                 )}>
-                  {hardwareRecAi ? "✦ AI Pick" : "✦ For your system"}
+                  {hardwareRecAi ? `✦ ${t("AI Pick")}` : `✦ ${t("For your system")}`}
                 </span>
               )}
             </div>
@@ -530,14 +533,14 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
           {tweak.warning && !isUnavailable && (
             <div className="flex items-center gap-1.5 text-[10px] text-red-400 font-medium mt-1">
               <AlertTriangle className="size-3" />
-              {tweak.warning}
+              {t(tweak.warning)}
             </div>
           )}
           {hasFailed && tweakState.message && (
             <p className="text-[10px] text-red-400 line-clamp-2 mt-1">{tweakState.message}</p>
           )}
         </div>
-        <div className="flex items-center gap-3 pl-4 shrink-0">
+        <div className="flex items-center gap-3 pl-2 sm:pl-4 shrink-0 self-end sm:self-center">
           {!isUnavailable && (
             <motion.div
               className="sc-discoverable-control rounded-lg"
@@ -549,7 +552,7 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
                 size="icon"
                 onClick={onInfoClick}
                 data-testid={`button-info-${tweak.id}`}
-                aria-label={t("View {name} details", undefined, { name: tweak.name })}
+                aria-label={t("View {name} details", undefined, { name: t(tweak.name) })}
                 className="size-5 border border-primary/25 bg-primary/[0.06] text-muted-foreground/80 hover:text-foreground hover:bg-primary/15 opacity-75 group-hover:opacity-100 transition-all duration-300 rounded-md"
               >
                 <Info className="size-3" />
@@ -631,24 +634,24 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
               </motion.button>
               <div className="space-y-1.5 pr-8">
                 <h2 className="text-lg font-semibold text-[#E6EAF0] flex items-center gap-2 flex-wrap">
-                  {tweak.name}
+                  {t(tweak.name)}
                   <SafetyBadge level={tweak.safety} />
                 </h2>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm text-muted-foreground">{tweak.category}</span>
+                  <span className="text-sm text-muted-foreground">{t(tweak.category)}</span>
                   <LevelBadge level={tweak.level} />
                 </div>
               </div>
               {tweak.unavailable && (
                 <div className="mt-4 flex items-start gap-2 p-3 rounded-lg bg-zinc-800/60 border border-zinc-700/40 text-zinc-400 text-xs">
                   <Ban className="size-4 shrink-0 mt-0.5" />
-                  <span>{tweak.unavailableReason}</span>
+                  <span>{t(tweak.unavailableReason ?? "Unavailable")}</span>
                 </div>
               )}
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-[#E6EAF0]">{t("Description")}</h4>
-                  <p className="text-sm text-muted-foreground">{tweak.description}</p>
+                  <p className="text-sm text-muted-foreground">{t(tweak.description)}</p>
                 </div>
                 {activeExpected.length > 0 && (
                   <div className="space-y-2">
@@ -668,7 +671,7 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
                         key={index}
                         className={item.toLowerCase().includes("risk") || item.toLowerCase().includes("break") ? "text-yellow-400" : undefined}
                       >
-                        {item}
+                        {t(item)}
                       </li>
                     ))}
                   </ul>
@@ -676,7 +679,7 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
                 {tweak.warning && (
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
                     <AlertTriangle className="size-4 shrink-0" />
-                    {tweak.warning}
+                    {t(tweak.warning)}
                   </div>
                 )}
               </div>
@@ -1266,7 +1269,7 @@ function NetworkTweaksContent() {
                   )}
                   data-testid={`filter-${category.toLowerCase().replace("/", "-")}`}
                 >
-                  {category}
+                  {t(category)}
                 </Button>
               ))}
             </div>
@@ -1300,8 +1303,8 @@ function NetworkTweaksContent() {
                       ) : (
                         <ChevronRight className="size-5 text-muted-foreground group-hover:text-[#E6EAF0] transition-colors" />
                       )}
-                      <h2 className="text-lg font-semibold text-[#E6EAF0] group-hover:text-primary transition-colors">
-                        {category}
+                      <h2 className="text-lg font-semibold text-[#E6EAF0] group-hover:text-primary transition-colors break-words">
+                        {t(category)}
                       </h2>
                       <span className="text-xs text-muted-foreground ml-2">
                         ({t("{count} active", undefined, { count: availableCount })}

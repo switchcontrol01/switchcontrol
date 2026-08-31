@@ -25,6 +25,7 @@ import { Lock } from "lucide-react";
 import { TrustLayer } from "@/components/intelligence/TrustLayer";
 import type { RecommendationOverride } from "@/hooks/useDynamicRecommendations";
 import { getEffectiveSliderRecommendation } from "@/lib/recommendation-helpers";
+import { useTranslation } from "@/lib/i18n";
 interface TweakSliderCardProps {
   tweak: Tweak;
   /** Hardware-derived recommended option override from the server. */
@@ -45,22 +46,32 @@ function getRangeZone(value: number | null, config: SliderConfig): "safe" | "cau
   return "safe";
 }
 // ── Badges ────────────────────────────────────────────────────────────────────
-const FreeBadge = () => (
-  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-    Free
-  </span>
-);
-const AdminBadge = () => (
-  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-orange-500/10 text-orange-400 border-orange-500/20">
-    Admin
-  </span>
-);
-const RestartBadge = () => (
-  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
-    <RefreshCw className="inline-block size-3 mr-0.5 -mt-0.5" /> Restart
-  </span>
-);
+const FreeBadge = () => {
+  const { t } = useTranslation();
+  return (
+    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+      {t("Free")}
+    </span>
+  );
+};
+const AdminBadge = () => {
+  const { t } = useTranslation();
+  return (
+    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-orange-500/10 text-orange-400 border-orange-500/20">
+      {t("Admin")}
+    </span>
+  );
+};
+const RestartBadge = () => {
+  const { t } = useTranslation();
+  return (
+    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
+      <RefreshCw className="inline-block size-3 mr-0.5 -mt-0.5" /> {t("Restart")}
+    </span>
+  );
+};
 const LevelBadge = ({ level }: { level: string }) => {
+  const { t } = useTranslation();
   const cls =
     level === "Recommended"
       ? "bg-primary/10 text-primary border-primary/20"
@@ -70,7 +81,7 @@ const LevelBadge = ({ level }: { level: string }) => {
   return (
     <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full border uppercase tracking-wider", cls)}>
       {level === "Recommended" && <ShieldCheck className="inline-block size-3 mr-1 -mt-0.5" />}
-      {level}
+      {t(level)}
     </span>
   );
 };
@@ -98,6 +109,7 @@ function SteppedSelector({
   /** True when the dynamic recommendation came from the premium AI layer. */
   dynamicIsAi?: boolean;
 }) {
+  const { t } = useTranslation();
   const presets = config.presets ?? [];
   const isCustomPreset = (idx: number) => customActive && idx === presets.length - 1;
   return (
@@ -129,7 +141,7 @@ function SteppedSelector({
             {isCurrent && (
               <span className="absolute -top-1 -right-1 size-2 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.7)]" />
             )}
-            <span className="leading-snug">{preset.label}</span>
+            <span className="leading-snug">{t(preset.label)}</span>
             {(preset.isDefault || isRec) && (
               <span className={cn(
                 "text-[9px] px-1.5 py-0.5 rounded-full",
@@ -139,7 +151,7 @@ function SteppedSelector({
                   ? "bg-primary/15 text-primary"
                   : "bg-[#2A313A] text-[#6B7380]"
               )}>
-                {isAiRec ? "AI Pick ✦" : isRec ? "Recommended" : "Default"}
+                {isAiRec ? `✦ ${t("AI Pick")}` : isRec ? t("Recommended") : t("Default")}
               </span>
             )}
           </button>
@@ -166,6 +178,7 @@ function ContinuousSlider({
   /** True when the dynamic recommendation came from the premium AI layer. */
   dynamicIsAi?: boolean;
 }) {
+  const { t } = useTranslation();
   const val = pendingValue ?? config.defaultValue;
   const zone = getRangeZone(val, config);
   const thumbColor =
@@ -197,8 +210,8 @@ function ContinuousSlider({
               style={{ left: `${((config.defaultValue - config.min) / (config.max - config.min)) * 100}%` }}
             >
               <div className="w-0.5 h-2.5 bg-[#1A1F26]5 rounded-full" />
-              <span className="absolute left-1/2 top-3 -translate-x-1/2 text-[9px] text-[#6B7380] whitespace-nowrap">
-                Default
+                <span className="absolute left-1/2 top-3 -translate-x-1/2 text-[9px] text-[#6B7380] whitespace-nowrap">
+                {t("Default")}
               </span>
             </div>
           )}
@@ -214,7 +227,7 @@ function ContinuousSlider({
                   "absolute left-1/2 top-3 -translate-x-1/2 text-[9px] whitespace-nowrap",
                   dynamicIsAi ? "text-violet-300/90" : "text-primary/60"
                 )}>
-                  {dynamicIsAi ? "AI ✦" : "Rec."}
+                  {dynamicIsAi ? `AI ✦` : t("Rec.")}
                 </span>
               </div>
             );
@@ -241,6 +254,7 @@ function CustomSlider({
   disabled: boolean;
   onChange: (v: number) => void;
 }) {
+  const { t } = useTranslation();
   // Use the slider's own min/max as the safe bounds and omit extremeMin/extremeMax.
   // The previous hardcoded extremeMin:0 / extremeMax:0 caused getRangeZone to
   // return "extreme" for every non-negative value (i.e. all values), rendering
@@ -269,7 +283,7 @@ function CustomSlider({
           {range.unit ? ` ${range.unit}` : ""}
         </span>
         <span className="text-[#6B7380] text-[10px]">
-          Drag to set any value from {range.min} to {range.max}
+          {t("Drag to set any value from {min} to {max}", undefined, { min: range.min, max: range.max })}
           {range.unit ? ` ${range.unit}` : ""}
         </span>
       </div>
@@ -299,6 +313,7 @@ function VerifyBanner({ ok, error, actualValue, unit, onDismiss }: {
   unit?: string;
   onDismiss: () => void;
 }) {
+  const { t } = useTranslation();
   if (ok) {
     return (
       <motion.div
@@ -309,7 +324,7 @@ function VerifyBanner({ ok, error, actualValue, unit, onDismiss }: {
         <div className="flex items-center gap-2 mx-4 mb-3 px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs">
           <CheckCircle2 className="size-3.5 shrink-0" />
           <span className="flex-1 font-medium">
-            Verified{actualValue !== null ? ` — read back: ${formatValue(actualValue, unit)}` : ""}
+            {t("Verified")}{actualValue !== null ? ` — ${t("read back")}: ${formatValue(actualValue, unit)}` : ""}
           </span>
           <button onClick={onDismiss} className="text-emerald-300/40 hover:text-emerald-300 transition-colors text-[10px]">✕</button>
         </div>
@@ -324,7 +339,7 @@ function VerifyBanner({ ok, error, actualValue, unit, onDismiss }: {
     >
       <div className="flex items-center gap-2 mx-4 mb-3 px-3 py-2 rounded-lg border border-red-500/25 bg-red-500/10 text-red-300 text-xs">
         <XCircle className="size-3.5 shrink-0" />
-        <span className="flex-1">{error ?? "Verification failed."}</span>
+        <span className="flex-1">{t(error ?? "Verification failed.")}</span>
         <button onClick={onDismiss} className="text-red-300/40 hover:text-red-300 transition-colors text-[10px]">✕</button>
       </div>
     </motion.div>
@@ -332,6 +347,7 @@ function VerifyBanner({ ok, error, actualValue, unit, onDismiss }: {
 }
 // ── Advanced details drawer ───────────────────────────────────────────────────
 function AdvancedDetails({ tweak, currentValue }: { tweak: Tweak; currentValue: number | null }) {
+  const { t } = useTranslation();
   const d = tweak.detailsConfig;
   if (!d && !tweak.whoShouldAvoid) return null;
   return (
@@ -340,7 +356,7 @@ function AdvancedDetails({ tweak, currentValue }: { tweak: Tweak; currentValue: 
         <div className="flex items-start gap-2">
           <Terminal className="size-3 text-[#6B7380] mt-0.5 shrink-0" />
           <div className="min-w-0">
-            <div className="text-[10px] text-[#6B7380] mb-0.5">Registry Path</div>
+            <div className="text-[10px] text-[#6B7380] mb-0.5">{t("Registry Path")}</div>
             <code className="text-[10px] text-cyan-300/70 break-all leading-relaxed">{d.registryPath}</code>
             {d.registryName && (
               <code className="text-[10px] text-cyan-300/50 block">→ {d.registryName} ({d.registryType ?? "DWORD"})</code>
@@ -352,7 +368,7 @@ function AdvancedDetails({ tweak, currentValue }: { tweak: Tweak; currentValue: 
         <div className="flex items-center gap-2">
           <Info className="size-3 text-[#6B7380] shrink-0" />
           <div>
-            <span className="text-[10px] text-[#6B7380]">Current raw value: </span>
+            <span className="text-[10px] text-[#6B7380]">{t("Current raw value:")} </span>
             <code className="text-[10px] text-[#A0A8B3]">{currentValue}</code>
             {currentValue === 4294967295 && (
               <code className="text-[10px] text-[#6B7380] ml-1">(0xFFFFFFFF)</code>
@@ -364,15 +380,15 @@ function AdvancedDetails({ tweak, currentValue }: { tweak: Tweak; currentValue: 
         <div className="flex items-start gap-2">
           <AlertTriangle className="size-3 text-yellow-400/60 mt-0.5 shrink-0" />
           <div>
-            <div className="text-[10px] text-yellow-400/70 font-medium mb-0.5">Who should avoid this</div>
-            <p className="text-[10px] text-[#6B7380] leading-relaxed">{tweak.whoShouldAvoid}</p>
+            <div className="text-[10px] text-yellow-400/70 font-medium mb-0.5">{t("Who should avoid this")}</div>
+            <p className="text-[10px] text-[#6B7380] leading-relaxed">{t(tweak.whoShouldAvoid)}</p>
           </div>
         </div>
       )}
       {d?.technicalNote && (
         <div className="flex items-start gap-2">
           <Info className="size-3 text-[#6B7380] mt-0.5 shrink-0" />
-          <p className="text-[10px] text-[#6B7380] leading-relaxed">{d.technicalNote}</p>
+          <p className="text-[10px] text-[#6B7380] leading-relaxed">{t(d.technicalNote)}</p>
         </div>
       )}
     </div>
@@ -380,6 +396,7 @@ function AdvancedDetails({ tweak, currentValue }: { tweak: Tweak; currentValue: 
 }
 // ── Main card ─────────────────────────────────────────────────────────────────
 export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps) {
+  const { t } = useTranslation();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [trustOpen, setTrustOpen] = useState(false);
   const isElectron = isElectronWithTweaks();
@@ -460,12 +477,12 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
         <div className="flex items-start gap-3 flex-wrap">
           <div className="flex-1 min-w-0">
             <h3 className="font-medium text-sm text-foreground group-hover:text-[#E6EAF0] transition-colors leading-tight">
-              {tweak.title}
+              {t(tweak.title)}
             </h3>
             <div className="flex items-center gap-1.5 flex-wrap mt-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
               {isLocked && (
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20 flex items-center gap-1">
-                  <Lock className="inline-block size-3" /> Premium
+                  <Lock className="inline-block size-3" /> {t("Premium")}
                 </span>
               )}
               {!isLocked && !isPremiumTweak && <FreeBadge />}
@@ -478,11 +495,11 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
                 : tweak.risk === "Moderate" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
                 : "bg-red-500/10 text-red-400 border-red-500/20"
               )}>
-                {tweak.risk}
+                {t(tweak.risk)}
               </span>
               {isElectron && (
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20">
-                  <Zap className="inline-block size-3 mr-0.5 -mt-0.5" /> Real
+                  <Zap className="inline-block size-3 mr-0.5 -mt-0.5" /> {t("Real")}
                 </span>
               )}
             </div>
@@ -494,13 +511,14 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
               "size-8 rounded-full flex items-center justify-center border border-primary/20 bg-primary/[0.04] transition-all duration-200 hover:scale-105 hover:border-primary/45 hover:bg-primary/12 hover:text-primary hover:shadow-[0_0_10px_rgba(0,212,255,0.2)] focus-visible:ring-1 focus-visible:ring-primary/60 active:scale-95",
               trustOpen ? "text-primary opacity-100" : "text-muted-foreground opacity-70 group-hover:opacity-100"
             )}
-            title="Show impact details"
+            title={t("Show impact details")}
+            aria-label={t("Show impact details")}
           >
             <Info className="size-3.5" />
           </button>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          {tweak.description}
+          {t(tweak.description)}
         </p>
       </div>
       {/* TrustLayer */}
@@ -518,7 +536,7 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
           {/* Value display row */}
           <div className="flex items-center gap-4 text-xs">
             <div className="flex-1">
-              <span className="text-[#6B7380] block mb-0.5 text-[10px]">Current (system)</span>
+              <span className="text-[#6B7380] block mb-0.5 text-[10px]">{t("Current (system)")}</span>
               <span className={cn("font-medium tabular-nums", isElectron ? "text-[#E6EAF0]" : "text-[#6B7380]")}>
                 {formatValue(state.currentValue, config.unit)}
               </span>
@@ -527,7 +545,7 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
               )}
             </div>
             <div className="flex-1">
-              <span className="text-[#6B7380] block mb-0.5 text-[10px]">Pending</span>
+              <span className="text-[#6B7380] block mb-0.5 text-[10px]">{t("Pending")}</span>
               <span className={cn(
                 "font-medium tabular-nums transition-colors",
                 isDirty ? "text-primary" : "text-[#6B7380]"
@@ -536,7 +554,7 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
               </span>
             </div>
             <div>
-              <span className="text-[#6B7380] block mb-0.5 text-[10px]">Default</span>
+              <span className="text-[#6B7380] block mb-0.5 text-[10px]">{t("Default")}</span>
               <span className="text-[#6B7380] tabular-nums">{formatValue(config.defaultValue, config.unit)}</span>
             </div>
             {(effectiveRec.recommendedValue !== undefined) && (
@@ -608,7 +626,7 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
                 transition={{ duration: 0.18 }}
                 className="text-[11px] text-[#6B7380] leading-relaxed"
               >
-                {pendingPreset.description}
+                {t(pendingPreset.description)}
               </motion.p>
             )}
           </AnimatePresence>
@@ -622,7 +640,7 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
               >
                 <div className="flex items-center gap-2 p-2.5 rounded-lg border border-red-500/25 bg-red-500/10 text-red-300 text-xs">
                   <AlertTriangle className="size-3.5 shrink-0" />
-                  <span>{config.extremeLabel}</span>
+                  <span>{t(config.extremeLabel)}</span>
                 </div>
               </motion.div>
             )}
@@ -676,7 +694,7 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
                   className="h-8 px-3 text-xs gap-2 text-[#6B7380] hover:text-[#E6EAF0] hover:bg-[#21262D] border border-[#2A313A]"
                 >
                   <RotateCcw className="size-3" />
-                  Reset to Default
+                  {t("Reset to Default")}
                 </Button>
                 {state.previousValue !== null && (
                   <Button
@@ -686,10 +704,10 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
                     disabled={disabled}
                     data-testid={`button-revert-slider-${tweak.id}`}
                     className="h-8 px-3 text-xs gap-2 text-[#6B7380] hover:text-amber-300 hover:bg-amber-500/10 border border-[#2A313A]"
-                    title={`Revert to ${formatValue(state.previousValue, config.unit)}`}
+                    title={t("Revert to {value}", undefined, { value: formatValue(state.previousValue, config.unit) })}
                   >
                     <CornerDownLeft className="size-3" />
-                    Revert
+                    {t("Revert")}
                   </Button>
                 )}
               </>
@@ -699,7 +717,7 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
           {tweak.requiresReboot && isDirty && (
             <p className="text-[11px] text-yellow-400/60 flex items-center gap-1.5">
               <RefreshCw className="size-3" />
-              Restart required for this change to take full effect.
+              {t("Restart required for this change to take full effect.")}
             </p>
           )}
           {/* Advanced details toggle */}
@@ -709,7 +727,7 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
             className="sc-discoverable-control inline-flex items-center gap-0.5 rounded-md border border-primary/25 bg-primary/[0.06] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-primary/80 hover:border-primary/50 hover:bg-primary/15 hover:text-primary transition-all [&>svg]:size-2.5"
           >
             {advancedOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-            {advancedOpen ? "Hide" : "Show"} advanced details
+            {advancedOpen ? t("Hide") : t("Show")} {t("advanced details")}
           </button>
         </div>
       )}

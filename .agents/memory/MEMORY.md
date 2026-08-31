@@ -93,3 +93,4 @@
  - [OAuth entitlement rehydration](oauth-entitlement-rehydration.md) — fresh Electron profiles must reopen entitlement hydration after OAuth and promote UI verification on every verified refresh.
 - [Welcome re-entry and handoff](welcome-reentry-and-handoff.md) — local Welcome completion must override stale install markers; dashboard scrims must wait for dashboard mount to avoid black AnimatePresence gaps.
 - [Authenticated catalog precedence](authenticated-catalog-precedence.md) — merge feature labels after public copy; short keys can have different dashboard meanings.
+- [Authenticated tweak catalog ordering](tweak-catalog-order.md) — tweak-card controls merge after dashboard/public catalogs so shared labels keep their card-specific meaning.

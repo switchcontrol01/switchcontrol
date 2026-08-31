@@ -17,6 +17,7 @@ import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { TrustLayer } from "@/components/intelligence/TrustLayer";
 import type { RecommendationOverride } from "@/hooks/useDynamicRecommendations";
 import { getEffectivePresetRecommendation } from "@/lib/recommendation-helpers";
+import { useTranslation } from "@/lib/i18n";
 
 interface TweakPresetCardProps {
   tweak: RegistryTweak;
@@ -26,25 +27,35 @@ interface TweakPresetCardProps {
   dynamicOverride?: RecommendationOverride;
 }
 
-const FreeBadge = () => (
-  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-    Free
-  </span>
-);
+const FreeBadge = () => {
+  const { t } = useTranslation();
+  return (
+    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+      {t("Free")}
+    </span>
+  );
+};
 
-const AdminBadge = () => (
-  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-orange-500/10 text-orange-400 border-orange-500/20">
-    Admin
-  </span>
-);
+const AdminBadge = () => {
+  const { t } = useTranslation();
+  return (
+    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-orange-500/10 text-orange-400 border-orange-500/20">
+      {t("Admin")}
+    </span>
+  );
+};
 
-const RestartBadge = () => (
-  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
-    <RefreshCw className="inline-block size-3 mr-0.5 -mt-0.5" /> Restart
-  </span>
-);
+const RestartBadge = () => {
+  const { t } = useTranslation();
+  return (
+    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
+      <RefreshCw className="inline-block size-3 mr-0.5 -mt-0.5" /> {t("Restart")}
+    </span>
+  );
+};
 
 const LevelBadge = ({ level }: { level: string }) => {
+  const { t } = useTranslation();
   const cls =
     level === "Recommended"
       ? "bg-primary/10 text-primary border-primary/20"
@@ -54,12 +65,13 @@ const LevelBadge = ({ level }: { level: string }) => {
   return (
     <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full border uppercase tracking-wider", cls)}>
       {level === "Recommended" && <ShieldCheck className="inline-block size-3 mr-1 -mt-0.5" />}
-      {level}
+      {t(level)}
     </span>
   );
 };
 
 function VerifyBanner({ ok, error, onDismiss }: { ok: boolean; error: string | null; onDismiss: () => void }) {
+  const { t } = useTranslation();
   if (ok) {
     return (
       <motion.div
@@ -69,7 +81,7 @@ function VerifyBanner({ ok, error, onDismiss }: { ok: boolean; error: string | n
       >
         <div className="flex items-center gap-2 mx-4 mb-3 px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs">
           <CheckCircle2 className="size-3.5 shrink-0" />
-          <span className="flex-1 font-medium">Verified — profile applied on your system.</span>
+          <span className="flex-1 font-medium">{t("Verified — profile applied on your system.")}</span>
           <button onClick={onDismiss} className="text-emerald-300/40 hover:text-emerald-300 transition-colors text-[10px]">✕</button>
         </div>
       </motion.div>
@@ -83,7 +95,7 @@ function VerifyBanner({ ok, error, onDismiss }: { ok: boolean; error: string | n
     >
       <div className="flex items-center gap-2 mx-4 mb-3 px-3 py-2 rounded-lg border border-red-500/25 bg-red-500/10 text-red-300 text-xs">
         <XCircle className="size-3.5 shrink-0" />
-        <span className="flex-1">{error ?? "Verification failed."}</span>
+        <span className="flex-1">{t(error ?? "Verification failed.")}</span>
         <button onClick={onDismiss} className="text-red-300/40 hover:text-red-300 transition-colors text-[10px]">✕</button>
       </div>
     </motion.div>
@@ -91,6 +103,7 @@ function VerifyBanner({ ok, error, onDismiss }: { ok: boolean; error: string | n
 }
 
 function AdvancedDetails({ tweak }: { tweak: RegistryTweak }) {
+  const { t } = useTranslation();
   const d = tweak.detailsConfig;
   if (!d && !tweak.whoShouldAvoid) return null;
 
@@ -100,7 +113,7 @@ function AdvancedDetails({ tweak }: { tweak: RegistryTweak }) {
         <div className="flex items-start gap-2">
           <Terminal className="size-3 text-[#6B7380] mt-0.5 shrink-0" />
           <div className="min-w-0">
-            <div className="text-[10px] text-[#6B7380] mb-0.5">Registry Path</div>
+            <div className="text-[10px] text-[#6B7380] mb-0.5">{t("Registry Path")}</div>
             <code className="text-[10px] text-cyan-300/70 break-all leading-relaxed">{d.registryPath}</code>
             {d.registryName && (
               <code className="text-[10px] text-cyan-300/50 block">→ {d.registryName} ({d.registryType ?? "DWORD"})</code>
@@ -113,8 +126,8 @@ function AdvancedDetails({ tweak }: { tweak: RegistryTweak }) {
         <div className="flex items-start gap-2">
           <AlertTriangle className="size-3 text-yellow-400/60 mt-0.5 shrink-0" />
           <div>
-            <div className="text-[10px] text-yellow-400/70 font-medium mb-0.5">Who should avoid this</div>
-            <p className="text-[10px] text-[#6B7380] leading-relaxed">{tweak.whoShouldAvoid}</p>
+            <div className="text-[10px] text-yellow-400/70 font-medium mb-0.5">{t("Who should avoid this")}</div>
+            <p className="text-[10px] text-[#6B7380] leading-relaxed">{t(tweak.whoShouldAvoid)}</p>
           </div>
         </div>
       )}
@@ -129,7 +142,7 @@ function AdvancedDetails({ tweak }: { tweak: RegistryTweak }) {
       {d?.technicalNote && (
         <div className="flex items-start gap-2">
           <Info className="size-3 text-[#6B7380] mt-0.5 shrink-0" />
-          <p className="text-[10px] text-[#6B7380] leading-relaxed">{d.technicalNote}</p>
+          <p className="text-[10px] text-[#6B7380] leading-relaxed">{t(d.technicalNote)}</p>
         </div>
       )}
     </div>
@@ -137,6 +150,7 @@ function AdvancedDetails({ tweak }: { tweak: RegistryTweak }) {
 }
 
 export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride }: TweakPresetCardProps) {
+  const { t } = useTranslation();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [trustOpen, setTrustOpen] = useState(false);
   const isElectron = isElectronWithTweaks();
@@ -180,12 +194,12 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
         <div className="flex items-start gap-3 flex-wrap">
           <div className="flex-1 min-w-0">
             <h3 className="font-medium text-sm text-foreground group-hover:text-[#E6EAF0] transition-colors leading-tight">
-              {tweak.title}
+              {t(tweak.title)}
             </h3>
             <div className="flex items-center gap-1.5 flex-wrap mt-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
               {isLocked && (
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20 flex items-center gap-1">
-                  <Lock className="inline-block size-3" /> Premium
+                  <Lock className="inline-block size-3" /> {t("Premium")}
                 </span>
               )}
               {!isLocked && !isPremiumTweak && <FreeBadge />}
@@ -198,11 +212,11 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
                 : tweak.risk === "Moderate" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
                 : "bg-red-500/10 text-red-400 border-red-500/20"
               )}>
-                {tweak.risk}
+                {t(tweak.risk)}
               </span>
               {isElectron && (
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20">
-                  <Zap className="inline-block size-3 mr-0.5 -mt-0.5" /> Real
+                  <Zap className="inline-block size-3 mr-0.5 -mt-0.5" /> {t("Real")}
                 </span>
               )}
             </div>
@@ -215,14 +229,15 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
               "size-5 rounded-md flex items-center justify-center transition-all hover:bg-[#2A313A]",
               trustOpen ? "text-primary" : "text-muted-foreground opacity-0 group-hover:opacity-100"
             )}
-            title="Show impact details"
+             title={t("Show impact details")}
+             aria-label={t("Show impact details")}
           >
             <Info className="size-3" />
           </button>
         </div>
 
         <p className="text-xs text-muted-foreground leading-relaxed">
-          {tweak.description}
+          {t(tweak.description)}
         </p>
       </div>
 
@@ -240,13 +255,13 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
           {/* Current / Pending row */}
           <div className="flex items-center gap-4 text-xs">
             <div className="flex-1">
-              <span className="text-[#6B7380] block mb-0.5 text-[10px]">Current (system)</span>
+              <span className="text-[#6B7380] block mb-0.5 text-[10px]">{t("Current (system)")}</span>
               <span className={cn("font-medium", isElectron ? "text-[#E6EAF0]" : "text-[#6B7380]")}>
                 {currentOption?.label ?? "—"}
               </span>
             </div>
             <div className="flex-1">
-              <span className="text-[#6B7380] block mb-0.5 text-[10px]">Pending</span>
+              <span className="text-[#6B7380] block mb-0.5 text-[10px]">{t("Pending")}</span>
               <span className={cn("font-medium transition-colors", isDirty ? "text-primary" : "text-[#6B7380]")}>
                 {isDirty ? (pendingOption?.label ?? "—") : "—"}
               </span>
@@ -281,7 +296,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
                   {isCurrent && (
                     <span className="absolute -top-1 -right-1 size-2 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.7)]" />
                   )}
-                  <span className="leading-snug">{option.label}</span>
+                  <span className="leading-snug">{t(option.label)}</span>
                   {(option.isDefault || isRec) && (
                     <span className={cn(
                       "text-[9px] px-1.5 py-0.5 rounded-full",
@@ -291,7 +306,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
                         ? "bg-primary/15 text-primary"
                         : "bg-[#2A313A] text-[#6B7380]"
                     )}>
-                      {isAiRec ? "AI Pick ✦" : isRec ? "Recommended" : "Default"}
+                      {isAiRec ? `✦ ${t("AI Pick")}` : isRec ? t("Recommended") : t("Default")}
                     </span>
                   )}
                 </button>
@@ -310,7 +325,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
                 transition={{ duration: 0.18 }}
                 className="text-[11px] text-[#6B7380] leading-relaxed"
               >
-                {pendingOption.description}
+                 {t(pendingOption.description)}
               </motion.p>
             )}
           </AnimatePresence>
@@ -325,7 +340,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
               >
                 <div className="flex items-center gap-2 p-2.5 rounded-lg border border-yellow-500/25 bg-yellow-500/10 text-yellow-300 text-xs">
                   <AlertTriangle className="size-3.5 shrink-0" />
-                  <span>This profile conflicts with another active tweak — double-check for interactions before applying.</span>
+                  <span>{t("This profile conflicts with another active tweak — double-check for interactions before applying.")}</span>
                 </div>
               </motion.div>
             )}
@@ -340,7 +355,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
                 className="h-8 px-3 text-xs text-primary border border-primary/30 bg-primary/10 hover:bg-primary/20 gap-2"
                 data-testid={`button-unlock-preset-${tweak.id}`}
               >
-                <Lock className="size-3" /> Unlock
+                  <Lock className="size-3" /> {t("Unlock")}
               </Button>
             ) : (
               <>
@@ -357,7 +372,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
                   )}
                 >
                   {isApplying ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
-                  Apply
+                  {t("Apply")}
                 </Button>
 
                 <Button
@@ -369,7 +384,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
                   className="h-8 px-3 text-xs gap-2 text-[#6B7380] hover:text-amber-300 hover:bg-amber-500/10 border border-[#2A313A]"
                 >
                   <RotateCcw className="size-3" />
-                  Revert to Default
+                  {t("Revert to Default")}
                 </Button>
               </>
             )}
@@ -378,7 +393,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
           {tweak.requiresReboot && isDirty && (
             <p className="text-[11px] text-yellow-400/60 flex items-center gap-1.5">
               <RefreshCw className="size-3" />
-              Restart required for this change to take full effect.
+              {t("Restart required for this change to take full effect.")}
             </p>
           )}
 
@@ -388,7 +403,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
             className="sc-discoverable-control inline-flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/[0.06] px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-primary/80 hover:border-primary/50 hover:bg-primary/15 hover:text-primary transition-all"
           >
             {advancedOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-            {advancedOpen ? "Hide" : "Show"} advanced details
+            {advancedOpen ? t("Hide") : t("Show")} {t("advanced details")}
           </button>
         </div>
       )}

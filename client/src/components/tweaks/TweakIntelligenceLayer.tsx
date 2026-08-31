@@ -10,6 +10,7 @@ import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { useTweakIntelligence, type PressureLevel, type SystemSignal, type TweakRanking, type PostureDimension } from "@/hooks/useTweakIntelligence";
 import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
+import { useTranslation } from "@/lib/i18n";
 
 // ── Tweak title lookup ────────────────────────────────────────────────────────
 
@@ -41,10 +42,11 @@ function buildSplinePath(pts: Pt[]): string {
 }
 
 function Sparkline({ values, color = "#00D4FF", id }: { values: number[]; color?: string; id: string }) {
+  const { t } = useTranslation();
   if (values.length < 2) {
     return (
       <div className="w-full h-10 flex items-center justify-center">
-        <span className="text-[10px] text-[#6B7380]/50">Building history…</span>
+        <span className="text-[10px] text-[#6B7380]/50">{t("Building history…")}</span>
       </div>
     );
   }
@@ -242,6 +244,7 @@ const SIGNAL_ICONS: Record<string, FC<{ className?: string }>> = {
 // ── Signal row ────────────────────────────────────────────────────────────────
 
 function SignalRow({ signal }: { signal: SystemSignal }) {
+  const { t } = useTranslation();
   const Icon = SIGNAL_ICONS[signal.subsystem] ?? Activity;
   const barPct = LEVEL_FILL[signal.level];
 
@@ -253,24 +256,24 @@ function SignalRow({ signal }: { signal: SystemSignal }) {
                  : signal.value === "Declining" ? "text-emerald-400"
                  : "text-[#6B7380]";
     return (
-      <div className="flex items-center gap-2.5 py-1.5 group" title={signal.detail}>
+      <div className="flex items-center gap-2.5 py-1.5 group" title={t(signal.detail)}>
         <Icon className="size-3.5 text-[#6B7380] shrink-0" />
-        <span className="text-xs text-[#A0A8B3] flex-1 truncate leading-none">{signal.label}</span>
+        <span className="text-xs text-[#A0A8B3] flex-1 truncate leading-none">{t(signal.label)}</span>
         <div className={cn("flex items-center gap-1 text-xs font-medium", tColor)}>
           <TIcon className="size-3" />
-          <span>{signal.value}</span>
+          <span>{t(signal.value)}</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-1 py-1 group" title={signal.detail}>
+    <div className="space-y-1 py-1 group" title={t(signal.detail)}>
       <div className="flex items-center gap-2">
         <Icon className="size-3.5 text-[#6B7380] shrink-0" />
-        <span className="text-xs text-[#A0A8B3] flex-1 leading-none">{signal.label}</span>
+        <span className="text-xs text-[#A0A8B3] flex-1 leading-none">{t(signal.label)}</span>
         <span className={cn("text-[10px] font-medium tabular-nums", LEVEL_COLORS[signal.level])}>
-          {signal.value}
+          {t(signal.value)}
         </span>
         <span className={cn("text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded-full",
           signal.level === "low"      ? "bg-emerald-500/10 text-emerald-400"  :
@@ -278,7 +281,7 @@ function SignalRow({ signal }: { signal: SystemSignal }) {
           signal.level === "elevated" ? "bg-orange-500/10 text-orange-400"    :
                                         "bg-red-500/10 text-red-400"
         )}>
-          {LEVEL_LABELS[signal.level]}
+          {t(LEVEL_LABELS[signal.level])}
         </span>
       </div>
       <div className="relative h-1 rounded-full bg-[#21262D] ml-6 overflow-hidden">
@@ -299,6 +302,7 @@ function SignalRow({ signal }: { signal: SystemSignal }) {
 interface CategoryScore { label: string; score: number; count: number; color: string }
 
 function CategoryBars({ rankings }: { rankings: TweakRanking[] }) {
+  const { t } = useTranslation();
   const CATEGORY_MAP: Record<string, { label: string; color: string }> = {
     "System and Power":      { label: "System & Power",   color: "hsl(338,75%,58%)" },
     "Memory and Storage":    { label: "Memory & Storage", color: "hsl(45,90%,55%)"  },
@@ -334,7 +338,7 @@ function CategoryBars({ rankings }: { rankings: TweakRanking[] }) {
           transition={{ duration: 0.4, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
         >
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-[#A0A8B3] leading-none">{cat.label}</span>
+            <span className="text-[10px] text-[#A0A8B3] leading-none">{t(cat.label)}</span>
             <span className="text-[10px] font-medium tabular-nums" style={{ color: cat.score > 10 ? cat.color : "rgba(255,255,255,0.2)" }}>
               {cat.count > 0 ? `${cat.count} opp.` : "—"}
             </span>
@@ -357,7 +361,8 @@ function CategoryBars({ rankings }: { rankings: TweakRanking[] }) {
 // ── Priority tweak item ───────────────────────────────────────────────────────
 
 function PriorityTweakItem({ rank, ranking }: { rank: number; ranking: TweakRanking }) {
-  const title = TWEAK_TITLE_MAP[ranking.tweakId] ?? ranking.tweakId;
+  const { t } = useTranslation();
+  const title = t(TWEAK_TITLE_MAP[ranking.tweakId] ?? ranking.tweakId);
   const barPct = Math.min(100, ranking.score);
 
   const badgeStyle = ranking.relevance === "high"
@@ -380,10 +385,10 @@ function PriorityTweakItem({ rank, ranking }: { rank: number; ranking: TweakRank
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-medium text-[#E6EAF0] leading-none">{title}</span>
           <span className={cn("text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border", badgeStyle)}>
-            {ranking.relevance}
+            {t(ranking.relevance)}
           </span>
         </div>
-        <p className="text-[10px] text-[#6B7380] leading-snug line-clamp-2">{ranking.reason}</p>
+        <p className="text-[10px] text-[#6B7380] leading-snug line-clamp-2">{t(ranking.reason)}</p>
         <div className="relative h-0.5 rounded-full bg-[#21262D] mt-2">
           <motion.div
             className="absolute inset-y-0 left-0 rounded-full"
@@ -429,6 +434,7 @@ function RevealPanel({ children, delay = 0, className }: { children: ReactNode; 
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function TweakIntelligenceLayer() {
+  const { t } = useTranslation();
   const autoRefreshIntelligence = useUserPreferencesStore((s) => s.autoRefreshIntelligence);
   const expandIntelligence = useUserPreferencesStore((s) => s.expandIntelligence);
   const intel = useTweakIntelligence(autoRefreshIntelligence ? 5_000 : 86_400_000);
@@ -473,24 +479,24 @@ export function TweakIntelligenceLayer() {
       >
         <div className="flex items-center gap-2.5">
           <Brain className="size-4 text-primary" />
-          <span className="text-sm font-semibold text-[#E6EAF0]">Performance Intelligence</span>
+          <span className="text-sm font-semibold text-[#E6EAF0]">{t("Performance Intelligence")}</span>
           <motion.span
             className="text-[9px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20"
             animate={{ opacity: [0.6, 1, 0.6] }}
             transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
           >
-            Live
+            {t("Live")}
           </motion.span>
           {intel.loadTrend === "rising" && (
             <span className="text-[9px] font-medium flex items-center gap-0.5 text-orange-400">
-              <TrendingUp className="size-2.5" /> Rising
+              <TrendingUp className="size-2.5" /> {t("Rising")}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {intel.overallCoverage > 0 && (
             <span className="text-xs text-[#6B7380] tabular-nums">
-              Coverage: <span className="text-[#A0A8B3] font-medium">{intel.overallCoverage}%</span>
+              {t("Coverage")}: <span className="text-[#A0A8B3] font-medium">{intel.overallCoverage}%</span>
             </span>
           )}
           <button
@@ -530,7 +536,7 @@ export function TweakIntelligenceLayer() {
                       animate={{ rotate: 360 }}
                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                     />
-                    Loading system intelligence…
+                    {t("Loading system intelligence…")}
                   </motion.div>
                 )}
                 {intel.error && !intel.loading && (
@@ -611,7 +617,7 @@ export function TweakIntelligenceLayer() {
                           {intel.overallCoverage}
                           <span className="text-sm font-normal text-[#6B7380]">%</span>
                         </motion.span>
-                        <p className="text-[10px] text-[#6B7380] mt-0.5">overall coverage</p>
+                        <p className="text-[10px] text-[#6B7380] mt-0.5">{t("overall coverage")}</p>
                       </div>
 
                       {/* Dimension legend */}
@@ -641,7 +647,7 @@ export function TweakIntelligenceLayer() {
                     <div className="flex items-center gap-1.5">
                       <Activity className="size-3.5 text-primary/60" />
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7380]">
-                        Live System Signals
+                        {t("Live System Signals")}
                       </span>
                     </div>
                     {trendSignal && (
@@ -695,7 +701,7 @@ export function TweakIntelligenceLayer() {
                   {/* CPU Sparkline */}
                   <div className="pt-2  space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[9px] text-[#6B7380] uppercase tracking-wider">CPU Load (last {cpuHistory.length}s)</span>
+                      <span className="text-[9px] text-[#6B7380] uppercase tracking-wider">{t("CPU Load (last {count}s)", undefined, { count: cpuHistory.length })}</span>
                       {cpuHistory.length > 0 && (
                         <span className="text-[10px] font-medium tabular-nums text-[#6B7380]">
                           {cpuHistory[cpuHistory.length - 1].toFixed(0)}%
@@ -719,7 +725,7 @@ export function TweakIntelligenceLayer() {
                   <div className="flex items-center gap-1.5">
                     <Sparkles className="size-3.5 text-primary/60" />
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7380]">
-                      Category Opportunities
+                      {t("Category Opportunities")}
                     </span>
                   </div>
 
@@ -760,7 +766,7 @@ export function TweakIntelligenceLayer() {
                     <div className="pt-3  flex items-center gap-1.5">
                       <RefreshCw className="size-3 text-[#6B7380]/50" />
                       <span className="text-[9px] text-[#6B7380]">
-                        {intel.rankings.filter((r) => r.alreadyApplied).length} tweaks already applied
+                        {t("{count} tweaks already applied", undefined, { count: intel.rankings.filter((r) => r.alreadyApplied).length })}
                       </span>
                     </div>
                   )}
@@ -775,11 +781,11 @@ export function TweakIntelligenceLayer() {
                   <div className="flex items-center gap-1.5">
                     <Target className="size-3.5 text-primary/60" />
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7380]">
-                      Top Opportunities Right Now
+                      {t("Top Opportunities Right Now")}
                     </span>
                   </div>
                   {!intel.loading && (
-                    <span className="text-[9px] text-[#6B7380]">Based on current system state</span>
+                    <span className="text-[9px] text-[#6B7380]">{t("Based on current system state")}</span>
                   )}
                 </div>
 
@@ -807,9 +813,9 @@ export function TweakIntelligenceLayer() {
                   >
                     <Sparkles className="size-4 shrink-0 text-emerald-400" />
                     <div>
-                      <span className="font-medium text-emerald-400">System is well-optimized</span>
+                      <span className="font-medium text-emerald-400">{t("System is well-optimized")}</span>
                       <p className="text-[10px] text-emerald-400/50 mt-0.5">
-                        No high-priority opportunities detected under current system state.
+                        {t("No high-priority opportunities detected under current system state.")}
                       </p>
                     </div>
                   </motion.div>

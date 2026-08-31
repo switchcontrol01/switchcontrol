@@ -368,15 +368,15 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
       </span>
     );
     if (!isLocked && !isUnsupported && tweak.risk === 'Risky') badges.push(
-      <span key="risk" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-red-500/10 text-red-400 border-red-500/20">Risky</span>
+      <span key="risk" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-red-500/10 text-red-400 border-red-500/20">{t("Risky")}</span>
     );
     if (!isLocked && !isUnsupported && tweak.requiresReboot) badges.push(
       <span key="restart" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
-        <RefreshCw className="inline-block size-3 mr-0.5 -mt-0.5" /> Restart
+        <RefreshCw className="inline-block size-3 mr-0.5 -mt-0.5" /> {t("Restart")}
       </span>
     );
     return badges.slice(0, 3);
-  }, [isLocked, isUnsupported, tweak.risk, tweak.requiresReboot]);
+  }, [isLocked, isUnsupported, tweak.risk, tweak.requiresReboot, t]);
 
   return (
     <>
@@ -415,7 +415,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
           hoverEffect={false}
         >
           {/* Main row */}
-          <div className="flex items-center justify-between p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
               <div className="flex-1 min-w-0 space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -436,14 +436,14 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                 {/* GPU MSI Mode — adapter selector (only shows when multiple GPUs found) */}
                 {isGpuMsiCard && isReal && !isLocked && gpuScanDone && gpuList.length > 1 && (
                   <div className="mt-1.5 flex items-center gap-2">
-                    <span className="text-[10px] text-muted-foreground shrink-0">GPU:</span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">{t("GPU:")}</span>
                     <select
                       value={selectedGpuId}
                       onChange={e => setSelectedGpuId(e.target.value)}
                       className="text-[10px] bg-[#1A1F27] border border-[#2A313A] rounded px-2 py-0.5 text-[#A0A8B3] focus:outline-none focus:border-primary/50 cursor-pointer min-w-0 truncate"
                       onClick={e => e.stopPropagation()}
                     >
-                      <option value="">— Select adapter —</option>
+                      <option value="">— {t("Select adapter")} —</option>
                       {gpuList.map(g => (
                         <option key={g.deviceInstanceId} value={g.deviceInstanceId}>
                           {g.vendor !== 'Unknown' ? `[${g.vendor}] ` : ''}{g.name}
@@ -454,12 +454,12 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                 )}
                 {/* GPU MSI Mode — no compatible GPU found warning */}
                 {isGpuMsiCard && isReal && !isLocked && gpuScanDone && gpuList.length === 0 && (
-                  <p className="mt-1 text-[10px] text-amber-400/80">No compatible physical display adapter detected.</p>
+                  <p className="mt-1 text-[10px] text-amber-400/80">{t("No compatible physical display adapter detected.")}</p>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-3 pl-4 shrink-0">
+            <div className="flex items-center gap-3 pl-0 sm:pl-4 shrink-0 self-end sm:self-center">
               <motion.div className="sc-discoverable-control rounded-lg" whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }} whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}>
                 <Button
                   variant="ghost" size="icon"
@@ -579,7 +579,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                   whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}
                 >
                   <X className="h-5 w-5 text-[#E6EAF0]" />
-                  <span className="sr-only">Close</span>
+                  <span className="sr-only">{t("Close")}</span>
                 </motion.button>
 
                 <div className="space-y-1.5 pr-8">
@@ -595,23 +595,23 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                       </span>
                     )}
                   </h2>
-                  <p className="text-sm text-muted-foreground">{tweak.category}</p>
+                    <p className="text-sm text-muted-foreground">{t(tweak.category)}</p>
                 </div>
 
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-[#E6EAF0]">Description</h4>
+                    <h4 className="text-sm font-medium text-[#E6EAF0]">{t("Description")}</h4>
                     <p className="text-sm text-muted-foreground">{t(tweak.description)}</p>
                   </div>
 
                   <ExpectedChange expected={tweak.expected} />
 
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-[#E6EAF0]">Impact</h4>
+                    <h4 className="text-sm font-medium text-[#E6EAF0]">{t("Impact")}</h4>
                     <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
                       {tweak.impact.map((item, i) => (
                         <li key={i} className={item.toLowerCase().includes("risk") ? "text-yellow-400" : undefined}>
-                          {item}
+                        {t(item)}
                         </li>
                       ))}
                     </ul>
@@ -661,9 +661,9 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                       <AlertTriangle className={cn("size-4 shrink-0 mt-0.5", tweak.risk === 'Risky' ? "text-red-400" : "")} />
                       <div>
                         <span className={cn("font-medium block mb-1", tweak.risk === 'Risky' ? "text-red-200" : "text-yellow-200")}>
-                          {tweak.risk === 'Risky' ? 'Security Warning' : 'Caution'}
+                          {t(tweak.risk === 'Risky' ? "Security Warning" : "Caution")}
                         </span>
-                        {tweak.detailsConfig.warningText}
+                        {t(tweak.detailsConfig.warningText)}
                       </div>
                     </div>
                   )}
@@ -671,7 +671,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                   {tweak.requiresReboot && !isUnsupported && (
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs">
                       <RefreshCw className="size-4 shrink-0" />
-                      This tweak requires a system restart to take full effect.
+                      {t("This tweak requires a system restart to take full effect.")}
                     </div>
                   )}
 
@@ -679,17 +679,17 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                   {isReal && !isUnsupported && isEnabled && (
                     <div className="space-y-2">
                       <h4 className="text-sm font-medium text-[#E6EAF0] flex items-center gap-2">
-                        <Terminal className="size-4 text-primary" /> Verification Status
+                        <Terminal className="size-4 text-primary" /> {t("Verification Status")}
                       </h4>
                       <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 font-mono text-[10px] space-y-1.5">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="size-3 text-primary shrink-0" />
-                          <span className="text-primary">System state verified — tweak is active</span>
+                          <span className="text-primary">{t("System state verified — tweak is active")}</span>
                         </div>
                         <div className="text-muted-foreground/70 leading-relaxed">
                           {needsAdmin
-                            ? "Registry/service state confirmed by reading back from the system. Changes persist across reboots."
-                            : "HKCU registry value confirmed. Changes are per-user and persist without admin rights."}
+                            ? t("Registry/service state confirmed by reading back from the system. Changes persist across reboots.")
+                            : t("HKCU registry value confirmed. Changes are per-user and persist without admin rights.")}
                         </div>
                       </div>
                     </div>
@@ -698,15 +698,15 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                   {isReal && !isUnsupported && !isEnabled && (
                     <div className="space-y-2">
                       <h4 className="text-sm font-medium text-[#E6EAF0] flex items-center gap-2">
-                        <Terminal className="size-4 text-muted-foreground" /> Verification Status
+                        <Terminal className="size-4 text-muted-foreground" /> {t("Verification Status")}
                       </h4>
                       <div className="p-3 rounded-lg bg-zinc-500/5 border border-zinc-500/20 font-mono text-[10px] space-y-1.5">
                         <div className="flex items-center gap-2">
                           <XCircle className="size-3 text-muted-foreground shrink-0" />
-                          <span className="text-muted-foreground">Not applied — default system state</span>
+                          <span className="text-muted-foreground">{t("Not applied — default system state")}</span>
                         </div>
                         <div className="text-muted-foreground/50">
-                          Toggle to apply real Windows changes that will be verified immediately.
+                          {t("Toggle to apply real Windows changes that will be verified immediately.")}
                         </div>
                       </div>
                     </div>

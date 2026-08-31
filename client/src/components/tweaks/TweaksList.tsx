@@ -22,6 +22,7 @@ import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
 import { useDynamicRecommendations } from "@/hooks/useDynamicRecommendations";
 import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 import { useShallow } from "zustand/react/shallow";
+import { useTranslation } from "@/lib/i18n";
 
 // Module-level sync generation counter — persists across component remounts.
 // Incremented when a new mount starts its sync; old in-flight syncs that
@@ -192,6 +193,7 @@ const LEVEL_WARN: Record<string, { title: string; body: string }> = {
 };
 
 export function TweaksList() {
+  const { t } = useTranslation();
   const tweaks = useStore((s) => s.tweaks);
   const toggleTweak = useStore((s) => s.toggleTweak);
   const setTweak = useStore((s) => s.setTweak);
@@ -376,8 +378,9 @@ export function TweaksList() {
       if (t.isAdvancedTuning) return false; // rendered in its own "Advanced Tuning" section below
       if (!showExperimental && t.level === "Experimental") return false;
       if (hideUnsupported && runtimeUnsupportedReasons[t.id]) return false;
-      const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
-                            t.description.toLowerCase().includes(search.toLowerCase());
+      const query = search.toLocaleLowerCase();
+      const matchesSearch = t(t.title).toLocaleLowerCase().includes(query) ||
+                            t(t.description).toLocaleLowerCase().includes(query);
       let matchesChip: boolean;
       if (activeChip === "All") {
         matchesChip = true;
@@ -404,7 +407,7 @@ export function TweaksList() {
       const bSlider = b.controlType === "slider" ? 1 : 0;
       return aSlider - bSlider;
     });
-  }, [search, activeChip, showRisky, activeLevel, showAppliedFirst, showRecommendedFirst, hideUnsupported, showExperimental, runtimeUnsupportedReasons, tweaks]);
+  }, [search, activeChip, showRisky, activeLevel, showAppliedFirst, showRecommendedFirst, hideUnsupported, showExperimental, runtimeUnsupportedReasons, tweaks, t]);
 
   const toggleTweaks = useMemo(() => filteredTweaks.filter(t => t.controlType !== "slider"), [filteredTweaks]);
   const sliderTweaks = useMemo(() => filteredTweaks.filter(t => t.controlType === "slider"), [filteredTweaks]);
@@ -417,13 +420,14 @@ export function TweaksList() {
       if (!t.isAdvancedTuning) return false;
       if (hideAdvanced || (!showExperimental && t.level === "Experimental")) return false;
       if (hideUnsupported && runtimeUnsupportedReasons[t.id]) return false;
-      const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
-                            t.description.toLowerCase().includes(search.toLowerCase());
+      const query = search.toLocaleLowerCase();
+      const matchesSearch = t(t.title).toLocaleLowerCase().includes(query) ||
+                            t(t.description).toLocaleLowerCase().includes(query);
       const matchesRisk  = showRisky ? true : t.risk !== "Risky";
       const matchesLevel = activeLevel === "All" || t.level === activeLevel;
       return matchesSearch && matchesRisk && matchesLevel;
     });
-  }, [search, showRisky, activeLevel, hideAdvanced, showExperimental, hideUnsupported, runtimeUnsupportedReasons]);
+  }, [search, showRisky, activeLevel, hideAdvanced, showExperimental, hideUnsupported, runtimeUnsupportedReasons, t]);
 
   const advancedSliderTweaks = useMemo(() => advancedTuningTweaks.filter(t => t.controlType === "slider"), [advancedTuningTweaks]);
   const advancedPresetTweaks = useMemo(() => advancedTuningTweaks.filter(t => t.controlType === "preset"), [advancedTuningTweaks]);
@@ -455,7 +459,8 @@ export function TweaksList() {
         <div className="relative flex-1 w-full max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
-            placeholder="Search tweaks…"
+            placeholder={t("Search tweaks…")}
+            aria-label={t("Search tweaks")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             data-testid="input-search-tweaks"
@@ -483,7 +488,7 @@ export function TweaksList() {
               )}
             >
               <Icon className={cn("size-3", isActive ? "" : tab.color)} />
-              {tab.label}
+              {t(tab.label)}
             </button>
           );
         })}
@@ -505,22 +510,22 @@ export function TweaksList() {
             <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300">
               <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-400" />
               <div className="flex-1 min-w-0 space-y-1.5">
-                <p className="text-sm font-semibold text-amber-200">Tweaks may revert automatically</p>
+                <p className="text-sm font-semibold text-amber-200">{t("Tweaks may revert automatically")}</p>
                 <ul className="text-xs text-amber-300/80 space-y-0.5 list-disc list-inside">
                   {tamperProtection === true && (
-                    <li>Windows Tamper Protection is enabled — it blocks registry and service changes</li>
+                    <li>{t("Windows Tamper Protection is enabled — it blocks registry and service changes")}</li>
                   )}
                   {isAdmin === false && (
-                    <li>App is not running as Administrator — some tweaks require elevated privileges</li>
+                    <li>{t("App is not running as Administrator — some tweaks require elevated privileges")}</li>
                   )}
                 </ul>
                 <p className="text-xs text-amber-400/70 font-medium mt-1">
-                  Fix: 1&nbsp;— Disable Tamper Protection in Windows Security&nbsp;&nbsp;2&nbsp;— Run SwitchControl as Administrator&nbsp;&nbsp;3&nbsp;— Re-apply tweaks and reboot
+                  {t("Fix: 1 — Disable Tamper Protection in Windows Security 2 — Run SwitchControl as Administrator 3 — Re-apply tweaks and reboot")}
                 </p>
               </div>
               <button
                 onClick={() => setRevertBannerDismissed(true)}
-                aria-label="Dismiss warning"
+                aria-label={t("Dismiss warning")}
                 className="shrink-0 rounded-md p-0.5 text-amber-400/60 hover:text-amber-300 hover:bg-amber-500/15 transition-colors"
               >
                 <X className="size-3.5" />
@@ -550,7 +555,7 @@ export function TweaksList() {
                     : "bg-[#1A1F26] text-[#6B7380] border-[#2A313A] hover:border-[#2A313A]"
                 )}
               >
-                {chip}
+                {t(chip)}
               </button>
             </motion.div>
           ))}
@@ -583,8 +588,8 @@ export function TweaksList() {
                       <AlertTriangle className="size-4 text-amber-400" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-[#E6EAF0] text-base">{LEVEL_WARN[warnLevel].title}</h3>
-                      <p className="text-sm text-[#A0A8B3] mt-1 leading-relaxed">{LEVEL_WARN[warnLevel].body}</p>
+                      <h3 className="font-semibold text-[#E6EAF0] text-base">{t(LEVEL_WARN[warnLevel].title)}</h3>
+                      <p className="text-sm text-[#A0A8B3] mt-1 leading-relaxed">{t(LEVEL_WARN[warnLevel].body)}</p>
                     </div>
                   </div>
                   <div className="flex gap-2 justify-end">
@@ -593,14 +598,14 @@ export function TweaksList() {
                       data-testid="button-level-warn-cancel"
                       className="px-4 py-2 rounded-lg text-sm text-[#6B7380] hover:text-[#E6EAF0] hover:bg-[#2A313A] transition-colors"
                     >
-                      Cancel
+                      {t("Cancel")}
                     </button>
                     <button
                       onClick={confirmLevelWarn}
                       data-testid="button-level-warn-confirm"
                       className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-500/15 text-amber-300 border border-amber-500/25 hover:bg-amber-500/25 transition-colors"
                     >
-                      I understand
+                      {t("I understand")}
                     </button>
                   </div>
                 </GlassModalSurface>
@@ -624,7 +629,7 @@ export function TweaksList() {
             {syncFailed ? (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/8 border border-orange-500/15 text-xs text-orange-400/80">
                 <AlertTriangle className="size-3.5 shrink-0" />
-                <span>Could not read system state — using cached values.</span>
+                <span>{t("Could not read system state — using cached values.")}</span>
               </div>
             ) : (
               <div className="relative rounded-lg border border-[#1E2530] bg-[#0D1117]/40 px-3 py-2 overflow-hidden">
@@ -635,7 +640,7 @@ export function TweaksList() {
                 />
                 <div className="relative flex items-center gap-2.5 text-xs">
                   <span className="size-1.5 rounded-full bg-cyan-400/80 animate-pulse shrink-0" />
-                  <span className="text-[#6B7380]">Verifying tweak states from system…</span>
+                  <span className="text-[#6B7380]">{t("Verifying tweak states from system…")}</span>
                   <div className="ml-auto overflow-hidden rounded-full h-0.5 w-16 bg-[#1E2530]">
                     <motion.div
                       className="h-full rounded-full bg-cyan-400/50"
@@ -682,7 +687,7 @@ export function TweaksList() {
                 <motion.div
                   key={tweak.id}
                   id={`tweak-card-${tweak.id}`}
-                  className="self-start"
+                  className="self-start min-w-0"
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, transition: { duration: 0.1 } }}
@@ -734,7 +739,7 @@ export function TweaksList() {
                 <motion.div
                   key={tweak.id}
                   id={`tweak-card-${tweak.id}`}
-                  className="self-start"
+                  className="self-start min-w-0"
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, transition: { duration: 0.1 } }}
@@ -815,7 +820,7 @@ export function TweaksList() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
           >
-            No tweaks found matching your search.
+            {t("No tweaks found matching your search.")}
           </motion.div>
         )}
       </div>

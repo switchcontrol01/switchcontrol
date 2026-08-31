@@ -8,6 +8,7 @@ import { PUBLIC_WEBSITE_TRANSLATIONS as OTHER_PUBLIC_TRANSLATIONS } from "./publ
 import { FIRST_RUN_UI_TRANSLATIONS } from "./firstRunTranslations";
 import { APP_UI_TRANSLATIONS } from "./appTranslations";
 import { APP_FEATURE_TRANSLATIONS } from "./featureTranslations";
+import { TWEAK_CONTROL_TRANSLATIONS } from "./authenticatedTranslations/tweaks";
 import { DASHBOARD_AUTH_TRANSLATIONS } from "./authenticatedTranslations/dashboard";
 import { CLEANUP_AUTH_TRANSLATIONS } from "./authenticatedTranslations/cleanup";
 import { DRIVER_LATENCY_AUTH_TRANSLATIONS } from "./authenticatedTranslations/driverLatency";
@@ -2231,5 +2232,11 @@ for (const catalog of [
   }
 }
 for (const [locale, labels] of Object.entries(DASHBOARD_AUTH_TRANSLATIONS) as Array<[Locale, MessageCatalog]>) {
+  Object.assign(CATALOGS[locale], labels);
+}
+
+// Tweak controls are shared by several authenticated pages. Merge them last
+// so a generic dashboard/public label cannot overwrite a card action or badge.
+for (const [locale, labels] of Object.entries(TWEAK_CONTROL_TRANSLATIONS) as Array<[Locale, MessageCatalog]>) {
   Object.assign(CATALOGS[locale], labels);
 }
