@@ -21,6 +21,7 @@ import { runDeviceBindingMigration } from "./lib/deviceBindingMigration";
 import { runPermanentDeviceIdMigration } from "./lib/permanentDeviceIdMigration";
 import { runStripeWebhookDedupMigration } from "./lib/stripeWebhookDedupMigration";
 import { runScalabilityMigration } from "./lib/scalabilityMigration";
+import { isCoreSchemaReady } from "./db";
 import { initDriverFetchScheduler } from "./lib/driverFetcher";
 import { cleanupOldStripeEvents } from "./lib/stripeEventStore";
 import fs from "fs";
@@ -179,9 +180,6 @@ async function ensureAdminUsers() {
 
 async function initStripe() {
   logStripeStartupConfig();
-  runDeviceBindingMigration().catch((e) => console.error("[DeviceBinding] Migration error:", e));
-  runPermanentDeviceIdMigration().catch((e) => console.error("[PermanentDeviceId] Migration error:", e));
-  runStripeWebhookDedupMigration().catch((e) => console.error("[StripeWebhookDedup] Migration error:", e));
   if (!isStripeConfigured) {
     return;
   }
@@ -402,12 +400,28 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
     // Run potentially-slow startup tasks AFTER the server is already listening.
     // Each is wrapped in a timeout so a hung network/DB call can never prevent
     // the health endpoint from responding or the Electron health-check from passing.
-    Promise.all([
-      withTimeout(runScalabilityMigration(), 30_000, "scalabilityMigration"),
-      withTimeout(initStripe(),        8_000, "initStripe"),
-      withTimeout(ensureAdminUsers(),  8_000, "ensureAdminUsers"),
-      withTimeout(cleanupOldStripeEvents(), 8_000, "cleanupStripeEvents"),
-    ]).catch(e => console.error("[Startup] Background init error:", e));
+    (async () => {
+      const schemaReady = await isCoreSchemaReady();
+      if (!schemaReady) {
+        console.info(
+          "[DB] Core schema is not initialized; skipping database startup tasks until the schema is created.",
+        );
+        await withTimeout(initStripe(), 8_000, "initStripe");
+        return;
+      }
+
+      // Scalability creates the long-lived device table used by the legacy
+      // device-ID migration, so it must complete before those migrations run.
+      await withTimeout(runScalabilityMigration(), 30_000, "scalabilityMigration");
+      await Promise.all([
+        withTimeout(initStripe(), 8_000, "initStripe"),
+        withTimeout(runDeviceBindingMigration(), 8_000, "deviceBindingMigration"),
+        withTimeout(runPermanentDeviceIdMigration(), 8_000, "permanentDeviceIdMigration"),
+        withTimeout(runStripeWebhookDedupMigration(), 8_000, "stripeWebhookDedupMigration"),
+        withTimeout(ensureAdminUsers(), 8_000, "ensureAdminUsers"),
+        withTimeout(cleanupOldStripeEvents(), 8_000, "cleanupStripeEvents"),
+      ]);
+    })().catch(e => console.error("[Startup] Background init error:", e));
 
     // Driver version auto-fetch: fires 60s after startup, then every 24h.
     // Not wrapped in withTimeout — the scheduler manages its own timing.

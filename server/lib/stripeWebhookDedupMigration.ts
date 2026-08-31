@@ -11,10 +11,11 @@
  * every startup.
  */
 
-import { pool } from '../db';
+import { isCoreSchemaReady, pool } from '../db';
 
 export async function runStripeWebhookDedupMigration(): Promise<void> {
   if (!pool) return;
+  if (!await isCoreSchemaReady()) return;
 
   const migrations = [
     // 1. Remove pre-existing duplicates, keeping one physical row per event_id.

@@ -21,10 +21,11 @@
  * Runs once on server startup — safe to call multiple times.
  */
 
-import { pool } from '../db';
+import { isCoreSchemaReady, pool } from '../db';
 
 export async function runPermanentDeviceIdMigration(): Promise<void> {
   if (!pool) return;
+  if (!await isCoreSchemaReady()) return;
 
   const migrations = [
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS legacy_device_id VARCHAR(255)`,

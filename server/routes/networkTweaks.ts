@@ -6,7 +6,7 @@
 
 import { Router } from "express";
 import { sql } from "drizzle-orm";
-import { db, isNoDbMode } from "../db";
+import { db, isCoreSchemaReady, isNoDbMode } from "../db";
 import { storage } from "../storage";
 import { requireJwt } from "../middleware/requireCloudAuth";
 import rateLimit from "express-rate-limit";
@@ -49,6 +49,7 @@ const VALID_TWEAK_IDS = new Set<string>([
 
 async function migrateNetworkTweakState() {
   if (isNoDbMode || !db) return;
+  if (!await isCoreSchemaReady()) return;
   try {
     // Step 1: add user_id columns if missing (idempotent)
     await db.execute(sql`

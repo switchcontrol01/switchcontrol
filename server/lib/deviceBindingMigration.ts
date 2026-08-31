@@ -5,10 +5,11 @@
  * Runs once on server startup — safe to call multiple times.
  */
 
-import { pool } from '../db';
+import { isCoreSchemaReady, pool } from '../db';
 
 export async function runDeviceBindingMigration(): Promise<void> {
   if (!pool) return;
+  if (!await isCoreSchemaReady()) return;
 
   const migrations = [
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_bound_device_id VARCHAR(255)`,

@@ -14,7 +14,15 @@ export async function setupVite(server: Server, app: Express) {
     : viteConfig;
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server, path: "/vite-hmr" },
+    // The Replit preview proxy exposes the app on its configured port while
+    // Vite's middleware server otherwise advertises its internal 5173 port.
+    // Pinning the client port prevents the browser's failed localhost:5173
+    // fallback and keeps the websocket same-origin through the proxy.
+    hmr: {
+      server,
+      path: "/vite-hmr",
+      clientPort: Number(process.env.PORT || 5000),
+    },
     allowedHosts: true as const,
   };
 

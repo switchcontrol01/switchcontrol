@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "@shared/schema";
+import { isCoreSchemaReady as queryCoreSchemaReady } from "./lib/startupSchema";
 
 const { Pool } = pg;
 
@@ -43,6 +44,24 @@ const POOL_CONFIG = {
 
 export const pool = isNoDbMode ? null : new Pool(POOL_CONFIG);
 export const db = isNoDbMode ? null : drizzle(pool!, { schema });
+
+let coreSchemaReadyPromise: Promise<boolean> | null = null;
+
+/**
+ * Deduplicate the startup readiness probe so every migration shares the same
+ * answer. A connection/query failure is not treated as an empty schema and is
+ * allowed to surface to the caller.
+ */
+export async function isCoreSchemaReady(): Promise<boolean> {
+  if (!pool) return false;
+  if (!coreSchemaReadyPromise) {
+    coreSchemaReadyPromise = queryCoreSchemaReady(pool).catch((error) => {
+      coreSchemaReadyPromise = null;
+      throw error;
+    });
+  }
+  return coreSchemaReadyPromise;
+}
 
 if (!isNoDbMode) {
   console.log(`[DB] Pool configured: max=${POOL_CONFIG.max}, idleTimeout=${POOL_CONFIG.idleTimeoutMillis}ms`);

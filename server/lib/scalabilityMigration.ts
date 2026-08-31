@@ -9,7 +9,7 @@
  * idempotent in Postgres.  Runs at server startup, after the pool is ready.
  */
 
-import { pool } from '../db';
+import { isCoreSchemaReady, pool } from '../db';
 
 const MIGRATIONS: string[] = [
   // ── Permanent device history table ────────────────────────────────────────
@@ -154,6 +154,7 @@ const MIGRATIONS: string[] = [
 
 export async function runScalabilityMigration(): Promise<void> {
   if (!pool) return;
+  if (!await isCoreSchemaReady()) return;
 
   let applied = 0;
   for (const statement of MIGRATIONS) {
