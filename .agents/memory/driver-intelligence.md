@@ -17,6 +17,21 @@ driver/firmware versions against a server-maintained cloud DB.
 - **Cloud DB is server-maintained reference data, never live-scraped.** Endpoint
   `/api/driver-intel/*` is intentionally unauthenticated (reference data only); the
   page itself is premium-gated client-side. Client keeps a bundled local DB fallback.
+- **Never infer version order across vendor version namespaces.** Only structured,
+  multi-part numeric driver versions from a verified common source/namespace are
+  orderable. Equal opaque strings, mixed alphanumeric firmware IDs, missing catalog
+  entries, and package-vs-device-driver versions stay unknown. An installed version
+  above a comparable latest-known version is fully healthy, explicitly labeled newer
+  than the database, and must expose no update/history action that could imply a downgrade.
+  **Why:** model-specific BIOS/SSD firmware naming has no universal ordering, while
+  vendor driver tools can install releases newer than the last successful DB refresh;
+  AMD Windows display builds and Adrenalin releases are a concrete incompatible pair.
+  **How to apply:** Resolve installed versions once, then use that resolved component
+  list for cards, maps, health scores, actions, AI context, and detail panels. Generic
+  category slots (Wi-Fi/Ethernet/audio/Bluetooth) are not comparable until the native
+  payload preserves device identity and is matched to the displayed hardware record.
+  Missing installed versions also remain unknown; official update actions stay dormant
+  until a verified comparison proves the installed version is older.
 
 ## State machine — "partial" is a cache-hit, not a failure
 - Phases: idle → scanning → ready | partial (| error only if everything fails).

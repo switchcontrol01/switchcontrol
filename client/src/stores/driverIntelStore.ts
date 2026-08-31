@@ -39,6 +39,7 @@ import {
   networkAction,
   audioAction,
   bluetoothAction,
+  applyInstalledVersion,
 } from "@/lib/driver-intel-data";
 import {
   useSystemIntelligenceStore,
@@ -336,9 +337,10 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
     releaseDate: gpuEntry?.releaseDate ?? null,
     releaseNotes: gpuEntry?.releaseNotes ?? null,
     knownIssues: gpuEntry?.knownIssues,
-    health: gpuVendor ? "outdated" : "unknown",
+    health: "unknown",
     safety: gpuEntry?.safety ?? "safe",
-    action: gpuAction(gpuVendor),
+    action: null,
+    candidateAction: gpuAction(gpuVendor),
     rationale: gpuVendor
       ? `Latest ${gpuVendor.toUpperCase()} driver is ${gpuEntry?.latest ?? "unknown"}. Open the vendor app to verify your installed version and update safely.`
       : "Could not identify the GPU vendor. Open your GPU control panel to check for updates.",
@@ -373,9 +375,10 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
     latest: chipEntry?.latest ?? null,
     releaseNotes: chipEntry?.releaseNotes ?? null,
     knownIssues: chipEntry?.knownIssues,
-    health: chipVendor ? "outdated" : "unknown",
+    health: "unknown",
     safety: chipEntry?.safety ?? "safe",
-    action: chipsetAction(chipVendor),
+    action: null,
+    candidateAction: chipsetAction(chipVendor),
     rationale: chipVendor
       ? `Latest ${chipVendor.toUpperCase()} chipset package is ${chipEntry?.latest ?? "unknown"}. Improves power management and core scheduling.`
       : "Chipset vendor unknown.",
@@ -385,7 +388,7 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
   const moboVendor = detectMoboVendor(hw.moboMaker);
   const biosEntry = moboVendor ? db.bios[moboVendor] ?? null : null;
   const biosHealth = resolveHealth(hw.biosVersion, biosEntry);
-  out.push({
+  const biosComponent: DriverComponent = {
     kind: "bios",
     title: "BIOS / Firmware",
     device:
@@ -396,13 +399,19 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
     releaseDate: biosEntry?.releaseDate ?? null,
     releaseNotes: biosEntry?.releaseNotes ?? null,
     knownIssues: biosEntry?.knownIssues,
-    health: biosHealth === "healthy" && !hw.biosVersion ? "unknown" : biosHealth,
+    health: biosHealth,
     safety: biosEntry?.safety ?? "caution",
-    action: biosAction(moboVendor),
+    action: null,
+    candidateAction: biosAction(moboVendor),
     rationale: hw.biosVersion
       ? `Installed BIOS ${hw.biosVersion}${biosEntry ? `; latest reference is ${biosEntry.latest}` : ""}. We never flash automatically, only open the manufacturer page.${motherboardProbeHint ? ` ${motherboardProbeHint}` : ""}`
       : `BIOS version not detected. Open the manufacturer page to check.${motherboardProbeHint ? ` ${motherboardProbeHint}` : ""}`,
-  });
+  };
+  out.push(
+    hw.biosVersion
+      ? applyInstalledVersion(biosComponent, hw.biosVersion)
+      : biosComponent,
+  );
 
   // SSD firmware
   const ssdVendor = detectSsdVendor(hw.ssdName);
@@ -415,9 +424,10 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
     current: null,
     latest: ssdEntry?.latest ?? null,
     releaseNotes: ssdEntry?.releaseNotes ?? null,
-    health: ssdVendor ? "outdated" : "unknown",
+    health: "unknown",
     safety: ssdEntry?.safety ?? "caution",
-    action: ssdAction(ssdVendor),
+    action: null,
+    candidateAction: ssdAction(ssdVendor),
     rationale: ssdVendor
       ? `Use the official ${ssdVendor} utility to check SSD firmware and update safely.`
       : hw.ssdName
@@ -437,9 +447,10 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
     latest: netEntry?.latest ?? null,
     releaseNotes: netEntry?.releaseNotes ?? null,
     knownIssues: netEntry?.knownIssues,
-    health: netVendor ? "outdated" : "unknown",
+    health: "unknown",
     safety: netEntry?.safety ?? "safe",
-    action: networkAction(netVendor),
+    action: null,
+    candidateAction: networkAction(netVendor),
     rationale: netVendor
       ? `Latest ${netVendor} network driver is ${netEntry?.latest ?? "unknown"}. Affects RSS, interrupt moderation and latency.`
       : hw.netName
@@ -472,9 +483,10 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
     current: null,
     latest: audioEntry?.latest ?? null,
     releaseNotes: audioEntry?.releaseNotes ?? null,
-    health: audioVendor ? "outdated" : "unknown",
+    health: "unknown",
     safety: audioEntry?.safety ?? ("safe" as const),
-    action: audioAction(audioVendor),
+    action: null,
+    candidateAction: audioAction(audioVendor),
     rationale: audioVendor
       ? `Latest ${audioVendorLabel} audio driver is ${audioEntry?.latest ?? "available on the vendor page"}.${audioDeviceName?.includes("inferred") ? " Detected from your motherboard model." : ""} Use the link below to update from the official source.${audioProbeHint ? ` ${audioProbeHint}` : ""}`
       : `Audio device not detected. Visit your motherboard manufacturer's support page to check for the latest audio driver.${audioProbeHint ? ` ${audioProbeHint}` : ""}`,
@@ -491,9 +503,10 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
     current: null,
     latest: btEntry?.latest ?? null,
     releaseNotes: btEntry?.releaseNotes ?? null,
-    health: btVendor ? "outdated" : "unknown",
+    health: "unknown",
     safety: btEntry?.safety ?? "safe",
-    action: bluetoothAction(btVendor),
+    action: null,
+    candidateAction: bluetoothAction(btVendor),
     rationale: btVendor
       ? `Latest ${btVendor} Bluetooth driver is ${btEntry?.latest ?? "unknown"}. Updating can fix pairing drops and audio stutter on BT headsets.${bluetoothProbeHint ? ` ${bluetoothProbeHint}` : ""}`
       : `Bluetooth adapter vendor not detected. Check your Wi-Fi/Bluetooth card's vendor page.${bluetoothProbeHint ? ` ${bluetoothProbeHint}` : ""}`,

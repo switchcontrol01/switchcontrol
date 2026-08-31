@@ -107,6 +107,8 @@
     safety: SafetyLevel;
     /** The update / action to take (detect-and-redirect). null when healthy/unknown. */
     action: UpdateAction | null;
+    /** Dormant official action, enabled only after a verified older result. */
+    candidateAction?: UpdateAction | null;
     /** Why this status — one human sentence for the panel. */
     rationale: string;
   }
@@ -396,8 +398,9 @@
     current: string | null,
     entry: DriverDbEntry | null,
   ): ComponentHealth {
-    if (!entry) return current ? "healthy" : "unknown";
+    if (!entry) return "unknown";
     if (!current) return "unknown";
+<<<<<<< HEAD
     const a = current.trim().toLowerCase();
     const b = entry.latest.trim().toLowerCase();
     if (!a) return "unknown";
@@ -405,6 +408,12 @@
     if (comparison === "newer") return "newer";
     if (comparison === "same") return "healthy";
     if (comparison === "unknown" && (a === b || a.includes(b) || b.includes(a))) return "healthy";
+=======
+    if (!current.trim()) return "unknown";
+    const comparison = compareDriverVersions(current, entry.latest);
+    if (comparison === "newer") return "newer";
+    if (comparison === "same") return "healthy";
+>>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
     if (comparison === "unknown") return "unknown";
     if (entry.safety === "critical") return "critical";
     return "outdated";
@@ -419,6 +428,7 @@
     component: DriverComponent,
     current: string,
   ): DriverComponent {
+<<<<<<< HEAD
     const health = resolveHealth(
       current,
       component.latest
@@ -431,23 +441,90 @@
           }
         : null,
     );
+=======
+    const comparable = usesComparableVersionNamespace(component, current);
+    const health = comparable
+      ? resolveHealth(
+          current,
+          component.latest
+            ? {
+                latest: component.latest,
+                releaseDate: component.releaseDate ?? undefined,
+                releaseNotes: component.releaseNotes ?? undefined,
+                knownIssues: component.knownIssues,
+                safety: component.safety,
+              }
+            : null,
+        )
+      : "unknown";
+>>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
     const rationale =
       health === "newer"
         ? `Installed version ${current} is newer than our database's latest known version ${component.latest}. No downgrade is recommended.`
         : health === "healthy" && component.latest
           ? `Installed version ${current} matches the latest known version ${component.latest}.`
+<<<<<<< HEAD
+=======
+          : !comparable && component.latest && compareDriverVersions(current, component.latest) !== "unknown"
+            ? `Installed version ${current} and database reference ${component.latest} use different vendor version schemes, so SwitchControl will not guess which is newer.`
+>>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
           : component.rationale;
     return {
       ...component,
       current,
       health,
       action:
+<<<<<<< HEAD
         health === "newer" || health === "healthy"
           ? null
           : component.action,
       rationale,
     };
   }
+=======
+        health === "outdated" || health === "critical"
+          ? component.action ?? component.candidateAction ?? null
+          : null,
+      rationale,
+    };
+  }
+
+  function versionPartCount(value: string | null): number {
+    return value ? [...value.matchAll(/\d+/g)].length : 0;
+  }
+
+  /**
+   * A numeric shape alone does not prove two values share a namespace. AMD's
+   * Display-class registry value (32.0.x.x), for example, cannot be compared
+   * with an Adrenalin package release (26.8.1). Keep the allowlist narrow.
+   */
+  function usesComparableVersionNamespace(
+    component: DriverComponent,
+    current: string,
+  ): boolean {
+    if (!component.latest) return false;
+    const currentParts = versionPartCount(current);
+    const latestParts = versionPartCount(component.latest);
+
+    if (component.kind === "gpu") {
+      if (component.vendorKey === "nvidia") {
+        return currentParts === 2 && latestParts === 2;
+      }
+      if (component.vendorKey === "intel") {
+        return currentParts === 4 && latestParts === 4;
+      }
+      if (component.vendorKey === "amd") {
+        return currentParts === 3 && latestParts === 3;
+      }
+      return false;
+    }
+
+    // Other native values are currently generic category slots rather than
+    // identity-bound device records. A Wi-Fi version, for example, must never
+    // be compared with the independently selected Ethernet card/vendor.
+    return false;
+  }
+>>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
   
   export interface HealthScore {
     overall: number;

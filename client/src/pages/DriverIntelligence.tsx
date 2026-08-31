@@ -48,6 +48,10 @@ import {
   HEALTH_META,
   SCAN_STEPS,
   countActionable,
+<<<<<<< HEAD
+=======
+  computeHealthScore,
+>>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
   applyInstalledVersion,
 } from "@/lib/driver-intel-data";
 import { MotherboardMap } from "@/components/driver-intel/MotherboardMap";
@@ -304,6 +308,10 @@ export default function DriverIntelligence() {
   const scanning = phase === "scanning";
   const dataReady = hasData(phase);
   const actionable = useMemo(() => countActionable(displayComponents), [displayComponents]);
+  const displayScore = useMemo(
+    () => (dataReady ? computeHealthScore(displayComponents) : score),
+    [dataReady, displayComponents, score],
+  );
 
   const selectedComponent = useMemo(
     () => displayComponents.find((c) => c.kind === selected) ?? null,
@@ -535,7 +543,7 @@ export default function DriverIntelligence() {
             </div>
 
             <MotherboardMap
-              components={components}
+              components={displayComponents}
               scanning={scanning}
               activeKind={selected}
               onSelect={(k) => setSelected(k)}
@@ -575,8 +583,8 @@ export default function DriverIntelligence() {
           {/* Right: health radial */}
           <GlassCard className="p-6 flex flex-col">
             <h2 className="text-sm font-semibold text-[#E6EAF0] mb-4">{t("Health Score")}</h2>
-            {score ? (
-              <HealthRadial score={score} />
+            {displayScore ? (
+              <HealthRadial score={displayScore} />
             ) : (
               <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground py-10">
                  {scanning ? t("Calculating…") : t("Run a scan to see your score")}

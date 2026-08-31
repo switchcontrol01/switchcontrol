@@ -277,7 +277,9 @@ function PanelBody({
               : "Get a plain-language explanation tailored to your system."
           }
         />
-        {onRecordUpdate && c.latest && (
+        {onRecordUpdate &&
+          c.latest &&
+          (c.health === "outdated" || c.health === "critical") && (
           <ActionButton
             disabled={readOnly}
             onClick={() => onRecordUpdate(c)}
