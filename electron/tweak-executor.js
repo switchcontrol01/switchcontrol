@@ -1018,15 +1018,18 @@ const ADMIN_TWEAKS = {
     check:  `$p = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"; $v = Get-ItemProperty -Path $p -Name "com.squirrel.Teams.Teams" -EA SilentlyContinue; $v2 = Get-ItemProperty -Path $p -Name "Teams" -EA SilentlyContinue; -not $v -and -not $v2`,
   },
   'vendor-updaters': {
-    name: 'Disable Vendor Update Helpers',
+    name: 'Disable OEM Vendor Update Helpers',
     requiresAdmin: true,
     requiresReboot: false,
-    // apply: only disables services that are NOT already disabled, records changed
-    // services to a backup file. This prevents false-positive check results on
-    // machines where IT policy pre-disabled one of these services before the user
-    // ever ran this tweak (the old check returned true for ANY disabled service).
-    apply:  `$names = @("DellSupportAssistRemedationService","DellOptimizer","HPWarrantyCheck","HPPrintScanDoctor","LenovoVantageService","IntelManagementEngine","IntelDriverUpdate","NVIDIAWebHelper","NvContainerLocalSystem","AMDExternalEvents"); $bk = "${_VENDOR_UPDATERS_BK}"; $bdir = Split-Path $bk; if (-not (Test-Path $bdir)) { New-Item -ItemType Directory -Path $bdir -Force | Out-Null }; $changed = @(); foreach ($n in $names) { $s = Get-Service -Name $n -EA SilentlyContinue; if ($s -and $s.StartType -ne "Disabled") { Stop-Service $n -Force -EA SilentlyContinue; Set-Service $n -StartupType Disabled; $changed += $n } }; @{ changed = $changed } | ConvertTo-Json -Compress | Out-File -FilePath $bk -Encoding utf8 -Force; Get-ScheduledTask -TaskName "Dell*","HP*","Lenovo*","Intel*Driver*","NVIDIA*","AMD*" -EA SilentlyContinue | ForEach-Object { Disable-ScheduledTask -TaskName $_.TaskName -TaskPath $_.TaskPath | Out-Null }`,
-    revert: `$bk = "${_VENDOR_UPDATERS_BK}"; if (Test-Path $bk) { $data = Get-Content $bk -Raw | ConvertFrom-Json; foreach ($n in $data.changed) { $s = Get-Service -Name $n -EA SilentlyContinue; if ($s) { Set-Service $n -StartupType Automatic -EA SilentlyContinue; Start-Service $n -EA SilentlyContinue } }; Remove-Item $bk -Force -EA SilentlyContinue }; Get-ScheduledTask -TaskName "Dell*","HP*","Lenovo*","Intel*Driver*","NVIDIA*","AMD*" -EA SilentlyContinue | ForEach-Object { Enable-ScheduledTask -TaskName $_.TaskName -TaskPath $_.TaskPath | Out-Null }`,
+    // NVIDIA services and tasks are intentionally excluded. They can be used by
+    // NVIDIA App, Control Panel, driver configuration, and update flows.
+    // Apply only disables services that are NOT already disabled and records the
+    // exact services changed, preventing false-positive check results.
+    apply:  `$names = @("DellSupportAssistRemedationService","DellOptimizer","HPWarrantyCheck","HPPrintScanDoctor","LenovoVantageService","IntelManagementEngine","IntelDriverUpdate","AMDExternalEvents"); $bk = "${_VENDOR_UPDATERS_BK}"; $bdir = Split-Path $bk; if (-not (Test-Path $bdir)) { New-Item -ItemType Directory -Path $bdir -Force | Out-Null }; $changed = @(); foreach ($n in $names) { $s = Get-Service -Name $n -EA SilentlyContinue; if ($s -and $s.StartType -ne "Disabled") { Stop-Service $n -Force -EA SilentlyContinue; Set-Service $n -StartupType Disabled; $changed += $n } }; @{ changed = $changed } | ConvertTo-Json -Compress | Out-File -FilePath $bk -Encoding utf8 -Force; Get-ScheduledTask -TaskName "Dell*","HP*","Lenovo*","Intel*Driver*","AMD*" -EA SilentlyContinue | ForEach-Object { Disable-ScheduledTask -TaskName $_.TaskName -TaskPath $_.TaskPath | Out-Null }`,
+    // Revert also re-enables NVIDIA* tasks as a one-way recovery path for
+    // backups created by older SwitchControl versions. New applies never add
+    // NVIDIA services/tasks to the backup.
+    revert: `$bk = "${_VENDOR_UPDATERS_BK}"; if (Test-Path $bk) { $data = Get-Content $bk -Raw | ConvertFrom-Json; foreach ($n in $data.changed) { $s = Get-Service -Name $n -EA SilentlyContinue; if ($s) { Set-Service $n -StartupType Automatic -EA SilentlyContinue; Start-Service $n -EA SilentlyContinue } }; Remove-Item $bk -Force -EA SilentlyContinue }; Get-ScheduledTask -TaskName "Dell*","HP*","Lenovo*","Intel*Driver*","AMD*","NVIDIA*" -EA SilentlyContinue | ForEach-Object { Enable-ScheduledTask -TaskName $_.TaskName -TaskPath $_.TaskPath | Out-Null }`,
     // check: only reports applied if our backup file exists AND all services we
     // changed are still disabled. Returns false if no backup (tweak was never
     // applied by SwitchControl, even if some services happen to be disabled).
@@ -1169,6 +1172,16 @@ function cleanupTimerResProcess() {
 
 // ─── Special handlers ──────────────────────────────────────────────────────────
 async function executeNvidiaTelemetry(action) {
+  if (action === 'apply') {
+    return {
+      ok: false,
+      unsupported: true,
+      commandsRun: [],
+      message: 'NVIDIA telemetry changes are disabled to protect NVIDIA App and driver functionality.',
+      rebootRequired: false,
+    };
+  }
+
   // Detect NVIDIA GPU
   const hasNvidia = await checkPowerShell(
     "(Get-CimInstance Win32_VideoController -EA SilentlyContinue | Where-Object { $_.Name -like '*NVIDIA*' }) -ne $null"
@@ -2017,9 +2030,28 @@ async function executePciMsiMode(action) {
 
   if (action === 'apply') {
     // 1. Scan compatible PCI devices
-    const devices = await scanPciMsiDevices();
+    const scannedDevices = await scanPciMsiDevices();
+    // Do not change interrupt mode for NVIDIA display adapters. This tweak is
+    // still available for other PCI devices, but NVIDIA driver configuration
+    // must remain untouched.
+    const devices = scannedDevices.filter((device) => {
+      if (device.deviceClass !== 'gpu') return true;
+      return !/nvidia|geforce|quadro|tesla|rtx|gtx/i.test(device.deviceName || '');
+    });
     if (devices.length === 0) {
-      return { ok: false, commandsRun: [], message: 'No compatible PCI devices found on this system.', errorCode: 'no_devices' };
+      const hadNvidiaGpu = scannedDevices.some((device) =>
+        device.deviceClass === 'gpu' &&
+        /nvidia|geforce|quadro|tesla|rtx|gtx/i.test(device.deviceName || ''),
+      );
+      return {
+        ok: false,
+        unsupported: hadNvidiaGpu,
+        commandsRun: [],
+        message: hadNvidiaGpu
+          ? 'PCI MSI Mode is disabled for NVIDIA display adapters to protect NVIDIA driver functionality.'
+          : 'No compatible PCI devices found on this system.',
+        errorCode: hadNvidiaGpu ? 'nvidia_protected' : 'no_devices',
+      };
     }
 
     // 2. Batch-read current MSISupported value for all devices in one PS call
@@ -2167,6 +2199,16 @@ async function executeGpuMsiMode(action, options) {
     }
 
     const { name: gpuName, vendor, deviceInstanceId, registryPath } = targetGpu;
+    if (vendor === 'NVIDIA' || /nvidia|geforce|quadro|tesla|rtx|gtx/i.test(gpuName || '')) {
+      return {
+        ok: false,
+        unsupported: true,
+        commandsRun: [],
+        message: 'GPU MSI Mode is disabled for NVIDIA adapters to protect NVIDIA driver functionality.',
+        errorCode: 'nvidia_protected',
+        rebootRequired: true,
+      };
+    }
     const psRegPath = registryPath;
 
     // Verify the exact adapter registry node and interrupt management structure exist

@@ -606,13 +606,13 @@ const BASE: BaseTweak[] = [
   },
   {
     id: "nvidia-telemetry",
-    title: "Disable Legacy NVIDIA Telemetry (older drivers only)",
-    description: "Targeted the NvTelemetryContainer service and NvTm*/NvNode* scheduled tasks removed by NVIDIA in the 500-series driver package. Not applicable to any modern GeForce/RTX install.",
+    title: "Disable Legacy NVIDIA Telemetry (disabled)",
+    description: "This action is disabled to protect NVIDIA App and driver functionality. Legacy telemetry components are left unchanged.",
     impact: [
       "No effect on modern NVIDIA drivers (500-series and later)",
       "Legacy: reduced NVIDIA background telemetry tasks on pre-500 drivers",
     ],
-    unsupportedReason: "Not applicable to current NVIDIA drivers — the legacy NvTelemetryContainer service and NvTm*/NvNode* scheduled tasks were removed by NVIDIA in the 500-series driver package.",
+    unsupportedReason: "Disabled to protect NVIDIA App and driver functionality. SwitchControl will not disable NVIDIA services or scheduled tasks.",
     expected: { cpu: "None", disk: "None", ram: "None", gpu: "None", network: "None", latency: "None", stabilityRisk: "Low" },
     category: "Privacy and Telemetry", level: "Advanced", risk: "Safe",
     supported: false, requiresAdmin: true,

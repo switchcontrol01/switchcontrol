@@ -1020,6 +1020,10 @@ const UNSUPPORTED_SCAN_IDS = new Set([
   'event_logs_old', 'windows_installer_leftovers', 'windows_defender_history',
   'old_windows_update', 'windows_font_cache', 'windows_icon_cache',
   'update_downloads', 'windows_delivery_optimization',
+  // NVIDIA caches and installer folders are intentionally read-only in
+  // SwitchControl. They are not required for cleanup and can remove useful
+  // shader or driver-recovery material while investigating NVIDIA failures.
+  'shader_cache', 'nvidia_driver_cache',
 ]);
 for (const id of UNSUPPORTED_SCAN_IDS) delete SCAN_DEFS[id];
 

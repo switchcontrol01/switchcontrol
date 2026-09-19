@@ -780,11 +780,15 @@ const PROTECTED_APP_PATTERNS = [
   /^microsoft windows$/i,
   /windows update/i,
   /windows subsystem for linux/i,
+  /nvidia/i,
+  /geforce/i,
+  /physx/i,
 ];
-function isAppProtected(name) {
+function isAppProtected(name, publisher = '') {
   if (!name) return true;
+  const identity = `${String(name)} ${String(publisher)}`;
   for (const pat of PROTECTED_APP_PATTERNS) {
-    if (pat.test(String(name))) return true;
+    if (pat.test(identity)) return true;
   }
   return false;
 }
@@ -1054,7 +1058,7 @@ $apps | ConvertTo-Json -Compress -Depth 1
         const windowsInstaller = a.WI === 1 || a.WI === '1';
         const registryKeyPath  = String(a.KP || '').trim();
         const source           = String(a.SR || 'HKLM').trim();
-         const protected_       = isAppProtected(name);
+         const protected_       = isAppProtected(name, publisher);
          const isSelf           = isCurrentSwitchControlInstall(name, a.IL, unStr || quietStr);
         // Reliable method detection:
         // WindowsInstaller=1 with any GUID → MSI
@@ -1133,7 +1137,7 @@ ipcMain.handle('installedApps:uninstall', async (event, app) => {
   if (!trusted.ok) {
     return { ok: false, status: 'stale-record', errorDetail: trusted.error };
   }
-  if (isAppProtected(trusted.name)) {
+  if (isAppProtected(trusted.name, trusted.publisher)) {
     return { ok: false, status: 'blocked', errorDetail: 'App is protected and cannot be removed.' };
   }
   if (isCurrentSwitchControlInstall(trusted.name, trusted.installLocation, trusted.uninstallString || trusted.quietUninstall)) {
