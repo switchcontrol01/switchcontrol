@@ -1,14 +1,10 @@
 {
-  "version": "1.3.2",
-  "title": "Localized Onboarding, Adaptive Performance & Desktop Reliability",
-  "headline": "SwitchControl 1.3.2 brings a localized first-run experience, faster demand-loaded startup, adaptive performance profiles, honest telemetry, and stronger desktop reliability.",
-  "date": "2026-08-30",
+  "version": "1.3.3",
+  "title": "NVIDIA App Compatibility Fix",
+  "headline": "SwitchControl 1.3.3 prevents NVIDIA-related tweaks from breaking the NVIDIA App.",
+  "date": "2026-09-20",
   "type": "patch",
   "changes": [
-    "Added a localized first-run and onboarding flow so new users can choose their language before the welcome, disclaimer, and product education surfaces begin",
-    "Made Electron startup faster and demand-loaded by moving deep hardware enrichment off the critical path while preserving accurate system context",
-    "Introduced adaptive application and machine performance profiles that tune work to available capability without conflating them with display preferences",
-    "Improved responsiveness and process telemetry honesty by labeling real system signals accurately and avoiding unsupported input-latency claims or guessed process counts",
-    "Hardened desktop reliability across entitlement refresh, startup handoffs, native verification, cleanup cancellation, GPU detection, and other Windows flows"
+    "Fixed NVIDIA-related tweaks that could break NVIDIA App functionality."
   ]
 }

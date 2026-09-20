@@ -96,18 +96,18 @@ export default function ReleaseStory() {
           <Reveal>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-mono text-white/30 mb-6">
               <Layers className="w-3 h-3" />
-              {t("Version 1.3.2")}
+              {t("Version 1.3.3")}
             </div>
           </Reveal>
           <Reveal delay={0.1}>
             <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-              {t("Faster. More Reliable.")}{" "}
-              <span className="font-light italic text-white/50">{t("from the very first frame.")}</span>
+              {t("NVIDIA App compatibility fix.")}{" "}
+              <span className="font-light italic text-white/50">{t("Safer tweaks.")}</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
             <p className="text-white/30 max-w-lg mx-auto text-sm md:text-base leading-relaxed">
-              {t("Premium status is now instant on every launch, startup reliability is overhauled, GPU VRAM detection is fixed for modern cards, and Driver Intelligence is fully polished with AI-powered insights.")}
+              {t("SwitchControl 1.3.3 prevents NVIDIA-related tweaks from breaking the NVIDIA App and protects NVIDIA services, tasks, caches, installed apps, and display adapters.")}
             </p>
           </Reveal>
         </div>
