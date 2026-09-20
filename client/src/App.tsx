@@ -2132,6 +2132,7 @@ function ElectronAppContent() {
   const authContextValue: AppAuthContextValue = {
     user: user,
     isPremium: entitlementsVerified && _resolvedIsPremium,
+    isAdmin: entitlementsVerified && user?.isAdmin === true,
     entitlementsVerified,
     isSigningOut,
     canSimulateFirstTimeUser:
@@ -2827,6 +2828,7 @@ function WebsiteContent() {
   const authContextValue: AppAuthContextValue = {
     user,
     isPremium: !!user && (user?.isPremium ?? false),
+    isAdmin: user?.isAdmin === true,
     entitlementsVerified: !!user,
     logout: handleLogout,
     isSigningOut: false,

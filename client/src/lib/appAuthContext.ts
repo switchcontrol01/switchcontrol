@@ -4,6 +4,7 @@ import type { AuthUser } from "@/lib/auth-store";
 export interface AppAuthContextValue {
   user: AuthUser | null;
   isPremium: boolean;
+  isAdmin: boolean;
   entitlementsVerified: boolean;
   isSigningOut: boolean;
   canSimulateFirstTimeUser: boolean;
@@ -16,6 +17,7 @@ export interface AppAuthContextValue {
 export const AppAuthContext = createContext<AppAuthContextValue>({
   user: null,
   isPremium: false,
+  isAdmin: false,
   entitlementsVerified: false,
   isSigningOut: false,
   canSimulateFirstTimeUser: false,

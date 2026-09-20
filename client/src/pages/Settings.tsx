@@ -881,6 +881,7 @@ export default function Settings() {
   const { toast } = useToast();
   const {
     isPremium,
+    isAdmin,
     user,
     entitlementsVerified,
     canSimulateFirstTimeUser: canReplayFirstRun,
