@@ -8,7 +8,6 @@ import { setupGoogleAuth, requirePremium } from "./auth/google";
 import { setupDiscordAuth } from "./auth/discord";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { isPremiumTweakById } from "../shared/tweak-tiers";
-import { INSTALLER_CONFIG } from "../shared/downloadConfig";
 import { getTierFromTweakCount, getRandomMessage, getSmartRecommendations, type SystemContext } from "./lib/aiMessages";
 import { csrfProtection, generateCsrfToken } from "./middleware/csrf";
 import { requireJwt, requireCloudPremium } from "./middleware/requireCloudAuth";
@@ -1008,9 +1007,9 @@ export async function registerRoutes(
   app.get("/downloads/:fileName", async (req, res) => {
     const { fileName } = req.params;
     const source = typeof req.query.source === "string" ? req.query.source : "direct";
-    let installerUrl = process.env.INSTALLER_DOWNLOAD_URL;
+    const configuredInstallerUrl = process.env.INSTALLER_DOWNLOAD_URL;
 
-    if (!installerUrl) {
+    if (!configuredInstallerUrl) {
       console.error(`[Download] INSTALLER_DOWNLOAD_URL is not configured — cannot serve ${fileName}`);
       return res.status(503).json({
         error: "Installer temporarily unavailable. Please try again later.",
@@ -1018,13 +1017,24 @@ export async function registerRoutes(
       });
     }
 
-    // Always target the current release object. The deployment variable may
-    // retain an older version after a release, which otherwise causes a
-    // confusing R2 404 even though the current installer is present.
+    let installerUrl: URL;
+    let installerFileName: string;
     try {
-      const parsed = new URL(installerUrl);
-      parsed.pathname = `/${encodeURIComponent(INSTALLER_CONFIG.fileName)}`;
-      installerUrl = parsed.toString();
+      installerUrl = new URL(configuredInstallerUrl);
+      if (installerUrl.protocol !== "https:") {
+        throw new Error("Installer URL must use HTTPS");
+      }
+
+      // INSTALLER_DOWNLOAD_URL is the complete upstream object URL. Do not
+      // replace its path with the version baked into this build: that prevents
+      // deployment configuration from selecting a restored or alternate file.
+      const encodedFileName = installerUrl.pathname.split("/").pop() || "";
+      installerFileName = decodeURIComponent(encodedFileName)
+        .replace(/[^A-Za-z0-9._ -]/g, "_")
+        .trim();
+      if (!installerFileName.toLowerCase().endsWith(".exe")) {
+        throw new Error("Installer URL must point to an .exe file");
+      }
     } catch {
       console.warn(`[Download] Ignoring malformed INSTALLER_DOWNLOAD_URL for ${fileName}`);
       return res.status(503).json({
@@ -1033,12 +1043,13 @@ export async function registerRoutes(
       });
     }
 
-    console.log(`[Download] Installer requested — requestedFile=${fileName} source=${source} proxyingCurrentRelease=true`);
+    const upstreamTarget = `${installerUrl.origin}${installerUrl.pathname}`;
+    console.log(`[Download] Installer requested — requestedFile=${fileName} source=${source} upstream=${upstreamTarget}`);
 
     try {
       const upstream = await fetch(installerUrl);
       if (!upstream.ok || !upstream.body) {
-        console.error(`[Download] Upstream installer unavailable — status=${upstream.status}`);
+        console.error(`[Download] Upstream installer unavailable — status=${upstream.status} upstream=${upstreamTarget}`);
         return res.status(502).json({ error: "Installer temporarily unavailable. Please try again later." });
       }
 
@@ -1046,9 +1057,10 @@ export async function registerRoutes(
       res.setHeader("Content-Type", upstream.headers.get("content-type") || "application/octet-stream");
       const contentLength = upstream.headers.get("content-length");
       if (contentLength) res.setHeader("Content-Length", contentLength);
+      const safeFileName = installerFileName.replace(/["\\]/g, "_");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="SwitchControl Setup ${INSTALLER_CONFIG.version}.exe"; filename*=UTF-8''SwitchControl%20Setup%20${INSTALLER_CONFIG.version}.exe`,
+        `attachment; filename="${safeFileName}"; filename*=UTF-8''${encodeURIComponent(safeFileName)}`,
       );
       res.setHeader("Cache-Control", "public, max-age=3600");
       Readable.fromWeb(upstream.body as any).on("error", (error) => {
@@ -1057,7 +1069,7 @@ export async function registerRoutes(
         res.destroy(error);
       }).pipe(res);
     } catch (error) {
-      console.error("[Download] Installer proxy request failed:", error);
+      console.error(`[Download] Installer proxy request failed — upstream=${upstreamTarget}`, error);
       if (!res.headersSent) {
         res.status(502).json({ error: "Installer temporarily unavailable. Please try again later." });
       } else {
