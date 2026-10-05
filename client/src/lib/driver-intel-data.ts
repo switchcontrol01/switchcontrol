@@ -1,8 +1,10 @@
 ﻿// Restored Driver Intelligence Architecture Types, Constants, and Functions
 export const LOCAL_DB_FALLBACK = {};
 export const SCAN_STEPS = [];
+export const HEALTH_META = {}; // Satisfies MotherboardMap.tsx export dependency
 
 // Export expected Type Aliases / Interfaces
+export type ComponentKind = 'gpu' | 'cpu' | 'mobo' | 'ssd' | 'network' | 'audio' | 'bluetooth' | 'unknown';
 export interface DriverComponent { id: string; name: string; version: string; status: string; }
 export interface DriverDatabase { [key: string]: any; }
 export interface DriverNewsItem { id: string; title: string; date: string; }
