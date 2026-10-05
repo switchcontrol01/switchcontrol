@@ -1044,7 +1044,7 @@ export async function registerRoutes(
     }
 
     const upstreamTarget = `${installerUrl.origin}${installerUrl.pathname}`;
-    fileName = "SwitchControl Setup 1.3.3.exe";
+    req.params.fileName = "SwitchControl Setup 1.3.3.exe"; // Forced Fix
     console.log(`[Download] Installer requested — requestedFile=${fileName} source=${source} upstream=${upstreamTarget}`);
 
     try {
