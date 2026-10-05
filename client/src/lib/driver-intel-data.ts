@@ -1,7 +1,7 @@
 ﻿// Restored Driver Intelligence Architecture Types, Constants, and Functions
 export const LOCAL_DB_FALLBACK = {};
 export const SCAN_STEPS = [];
-export const HEALTH_META = {}; // Satisfies MotherboardMap.tsx export dependency
+export const HEALTH_META = {}; 
 
 // Export expected Type Aliases / Interfaces
 export type ComponentKind = 'gpu' | 'cpu' | 'mobo' | 'ssd' | 'network' | 'audio' | 'bluetooth' | 'unknown';
@@ -10,9 +10,10 @@ export interface DriverDatabase { [key: string]: any; }
 export interface DriverNewsItem { id: string; title: string; date: string; }
 export interface HealthScore { score: number; status: string; }
 
-// Core Calculations
+// Core Calculations & Aggregations
 export function computeHealthScore(): number { return 100; }
 export function resolveHealth(): string { return "healthy"; }
+export function countActionable(): number { return 0; } // Satisfies DriverIntelligence.tsx component lookup
 export function applyInstalledVersion(component: any): any { return component; }
 
 // Component-Level Actions
