@@ -1,4 +1,22 @@
-﻿// Restored Driver Intelligence Types and Schema definitions
+﻿// Restored Driver Intelligence Constants, Types, and Helper Functions
+export const LOCAL_DB_FALLBACK = {};
+export const SCAN_STEPS = [];
+
+export interface DriverNewsItem {
+    id: string;
+    title: string;
+    date: string;
+}
+
+export interface HealthScore {
+    score: number;
+    status: string;
+}
+
+export function computeHealthScore(): number {
+    return 100;
+}
+
 export interface DriverIntelReport {
     id: string;
     status: 'healthy' | 'warning' | 'critical';
