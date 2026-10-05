@@ -48,14 +48,7 @@ import {
   HEALTH_META,
   SCAN_STEPS,
   countActionable,
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
   computeHealthScore,
->>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
-=======
-  computeHealthScore,
->>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
   applyInstalledVersion,
 } from "@/lib/driver-intel-data";
 import { MotherboardMap } from "@/components/driver-intel/MotherboardMap";
