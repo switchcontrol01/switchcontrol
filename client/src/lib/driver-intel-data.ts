@@ -400,26 +400,10 @@
   ): ComponentHealth {
     if (!entry) return "unknown";
     if (!current) return "unknown";
-<<<<<<< HEAD
-<<<<<<< HEAD
-    const a = current.trim().toLowerCase();
-    const b = entry.latest.trim().toLowerCase();
-    if (!a) return "unknown";
-    const comparison = compareDriverVersions(current, entry.latest);
-    if (comparison === "newer") return "newer";
-    if (comparison === "same") return "healthy";
-    if (comparison === "unknown" && (a === b || a.includes(b) || b.includes(a))) return "healthy";
-=======
-=======
->>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
     if (!current.trim()) return "unknown";
     const comparison = compareDriverVersions(current, entry.latest);
     if (comparison === "newer") return "newer";
     if (comparison === "same") return "healthy";
-<<<<<<< HEAD
->>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
-=======
->>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
     if (comparison === "unknown") return "unknown";
     if (entry.safety === "critical") return "critical";
     return "outdated";
@@ -434,23 +418,6 @@
     component: DriverComponent,
     current: string,
   ): DriverComponent {
-<<<<<<< HEAD
-<<<<<<< HEAD
-    const health = resolveHealth(
-      current,
-      component.latest
-        ? {
-            latest: component.latest,
-            releaseDate: component.releaseDate ?? undefined,
-            releaseNotes: component.releaseNotes ?? undefined,
-            knownIssues: component.knownIssues,
-            safety: component.safety,
-          }
-        : null,
-    );
-=======
-=======
->>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
     const comparable = usesComparableVersionNamespace(component, current);
     const health = comparable
       ? resolveHealth(
@@ -466,42 +433,19 @@
             : null,
         )
       : "unknown";
-<<<<<<< HEAD
->>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
-=======
->>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
     const rationale =
       health === "newer"
         ? `Installed version ${current} is newer than our database's latest known version ${component.latest}. No downgrade is recommended.`
         : health === "healthy" && component.latest
           ? `Installed version ${current} matches the latest known version ${component.latest}.`
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
           : !comparable && component.latest && compareDriverVersions(current, component.latest) !== "unknown"
             ? `Installed version ${current} and database reference ${component.latest} use different vendor version schemes, so SwitchControl will not guess which is newer.`
->>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
-=======
-          : !comparable && component.latest && compareDriverVersions(current, component.latest) !== "unknown"
-            ? `Installed version ${current} and database reference ${component.latest} use different vendor version schemes, so SwitchControl will not guess which is newer.`
->>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
           : component.rationale;
     return {
       ...component,
       current,
       health,
       action:
-<<<<<<< HEAD
-<<<<<<< HEAD
-        health === "newer" || health === "healthy"
-          ? null
-          : component.action,
-      rationale,
-    };
-  }
-=======
-=======
->>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
         health === "outdated" || health === "critical"
           ? component.action ?? component.candidateAction ?? null
           : null,
@@ -544,10 +488,6 @@
     // be compared with the independently selected Ethernet card/vendor.
     return false;
   }
-<<<<<<< HEAD
->>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
-=======
->>>>>>> d7ab43d (Implement driver intelligence features and add version testing)
   
   export interface HealthScore {
     overall: number;
