@@ -1,4 +1,4 @@
-﻿// Restored Driver Intelligence Constants, Types, and Helper Functions
+﻿// Restored Driver Intelligence Constants, Types, and Hardware Vendor Functions
 export const LOCAL_DB_FALLBACK = {};
 export const SCAN_STEPS = [];
 
@@ -16,6 +16,11 @@ export interface HealthScore {
 export function computeHealthScore(): number {
     return 100;
 }
+
+// Missing hardware vendor discovery hooks
+export function detectGpuVendor(): string { return "unknown"; }
+export function detectCpuVendor(): string { return "unknown"; }
+export function detectMoboVendor(): string { return "unknown"; }
 
 export interface DriverIntelReport {
     id: string;
