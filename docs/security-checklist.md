@@ -14,8 +14,9 @@
   - Cannot verify packaged asar from this environment. Must be verified post-build by inspecting the asar archive contents.
 
 - [x] **All secrets stored in environment variables** — PASS
-  - `JWT_SECRET`, `SESSION_SECRET`, `STRIPE_SECRET_KEY`, `GOOGLE_CLIENT_SECRET`, `DISCORD_CLIENT_SECRET`, `DATABASE_URL` all loaded from `process.env`.
+  - `JWT_SECRET`, `SESSION_SECRET`, `STRIPE_SECRET_KEY`, `GOOGLE_CLIENT_SECRET`, `DISCORD_CLIENT_SECRET`, `RAILWAY_DATABASE_URL`, and `DATABASE_URL` are loaded from `process.env`.
   - `.env` is in `.gitignore`.
+  - Railway PostgreSQL is the only database provider; connection strings must not be copied into Markdown, source files, or frontend bundles.
 
 - [x] **Structured logging implemented** — PASS
   - Every API request now logs: `[requestId] ISO-timestamp METHOD path statusCode durationMs`.

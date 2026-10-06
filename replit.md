@@ -9,7 +9,8 @@ SwitchControl is a web-based gaming optimization dashboard. It offers a UI-first
 - **Permanent hosting platform:** Railway.
 - The app and project must remain hosted on Railway, never Replit.
 - Replit is used only as a development workspace/editor; do not treat Replit's managed database or deployment as the production source of truth.
-- Production PostgreSQL must use Railway's public connection endpoint, not Railway's private `*.railway.internal` hostname.
+- Railway is the only PostgreSQL provider. Use Railway's private `DATABASE_URL` from services inside Railway and Railway's public `DATABASE_PUBLIC_URL` from external tools/workspaces; both refer to the Railway database.
+- Never store database connection strings in tracked files or Markdown. The server currently resolves `RAILWAY_DATABASE_URL` first, then `DATABASE_URL`; it does not read `DATABASE_PUBLIC_URL` directly. For an external app process, set `RAILWAY_DATABASE_URL` to the public Railway endpoint until runtime selection is updated.
 
 ## User Preferences
 

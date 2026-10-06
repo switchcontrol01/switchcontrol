@@ -6,7 +6,7 @@ A premium gaming optimization dashboard with a cyberpunk aesthetic.
 
 ## Hosting
 
-SwitchControl is permanently hosted on **Railway**. Replit is used only as a development workspace/editor and is not the production hosting platform or production database. Keep production PostgreSQL on Railway using its public connection endpoint; never switch the project to Replit hosting or Replit's managed database.
+SwitchControl is hosted on **Railway**, and Railway is the only PostgreSQL provider for this project. Replit is a development workspace/editor only; never use Replit's managed database or host production there. Use Railway's private `DATABASE_URL` from services running inside Railway and its public `DATABASE_PUBLIC_URL` from external tools or workspaces. Both point to the Railway database. Never put connection strings in tracked files or Markdown.
 
 ---
 
@@ -14,7 +14,7 @@ SwitchControl is permanently hosted on **Railway**. Replit is used only as a dev
 
 ### Prerequisites
 
-1. **Node.js LTS** (v18 or v20) - Download from [nodejs.org](https://nodejs.org/)
+1. **Node.js LTS** (v20 or newer) - Download from [nodejs.org](https://nodejs.org/)
 2. **Visual Studio Code** - Download from [code.visualstudio.com](https://code.visualstudio.com/)
 3. **Git** (optional) - For version control
 
@@ -41,7 +41,7 @@ This updates `package.json` with the Electron configuration and scripts.
 ### Step 4: Install Dependencies
 
 ```bash
-npm install
+npm ci
 ```
 
 This will install all required packages including Electron.
@@ -68,8 +68,12 @@ The Windows icon is already included in the `build/` folder:
 
 ### Step 7: Build Windows Installer
 
-```bash
+```powershell
+npm run build
+if ($LASTEXITCODE -ne 0) { throw "Build failed; do not continue to the installer step." }
+
 npm run electron:build
+if ($LASTEXITCODE -ne 0) { throw "Installer build failed." }
 ```
 
 **Output location:** `release/SwitchControl-Setup-1.0.0.exe`
@@ -174,10 +178,15 @@ The app icon is already configured in `build/icon.ico`. To use a custom icon:
 
 ## Environment Variables
 
+Keep database connection strings in environment variables, not in source control or Markdown. `DATABASE_URL` is the private Railway endpoint for the Railway-hosted app; `DATABASE_PUBLIC_URL` is the public Railway endpoint for external tools and workspaces.
+
+The current server reads `RAILWAY_DATABASE_URL` first and then `DATABASE_URL`; it does not read `DATABASE_PUBLIC_URL` directly. For the app running outside Railway, set `RAILWAY_DATABASE_URL` to the public Railway endpoint until the runtime selector is updated.
+
 For local development, create a `.env` file:
 
 ```env
-DATABASE_URL=your_postgres_connection_string
+DATABASE_URL=your_railway_private_postgres_connection_string
+RAILWAY_DATABASE_URL=your_railway_public_postgres_connection_string
 SESSION_SECRET=your_session_secret
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
