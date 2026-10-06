@@ -97,3 +97,4 @@
 - [Authenticated tweak catalog ordering](tweak-catalog-order.md) — tweak-card controls merge after dashboard/public catalogs so shared labels keep their card-specific meaning.
 - [Shared HTTP WebSocket upgrades](shared-websocket-upgrades.md) — path-gate telemetry upgrades with noServer when Vite HMR shares the same HTTP server, or ws can return 400 before Vite handles HMR.
 - [NVIDIA safety boundary](nvidia-safety-boundary.md) — NVIDIA services/tasks, uninstall entries, caches, and adapter MSI settings must fail closed; legacy recovery may only re-enable prior state.
+- [Replit package firewall recovery](replit-package-firewall.md) — if a blocked lock entry remains after updating its parent, add a safe compatible release through the managed package tool; never bypass the firewall.

@@ -5,6 +5,14 @@ const { compareDriverVersions } = require("../../shared/driverVersion.ts");
 const {
   resolveHealth,
   applyInstalledVersion,
+  computeHealthScore,
+  countActionable,
+  detectGpuVendor,
+  getHealthMeta,
+  gpuAction,
+  HEALTH_META,
+  LOCAL_DB_FALLBACK,
+  SCAN_STEPS,
 } = require("../../client/src/lib/driver-intel-data.ts");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -42,6 +50,52 @@ test("uncatalogued installed versions remain unknown", () => {
     }),
     "unknown",
   );
+});
+
+test("all Driver Intelligence health states have safe display metadata", () => {
+  for (const status of ["healthy", "newer", "outdated", "critical", "unknown", "scanning"]) {
+    const meta = getHealthMeta(status);
+    assert.ok(meta.label, `${status} has a label`);
+    assert.match(meta.color, /^#[0-9a-f]{6}$/i, `${status} has a color`);
+    assert.ok(meta.glow, `${status} has a glow`);
+  }
+
+  assert.equal(getHealthMeta("unexpected-runtime-state"), HEALTH_META.unknown);
+  assert.equal(getHealthMeta(undefined), HEALTH_META.unknown);
+  assert.equal(getHealthMeta(null), HEALTH_META.unknown);
+  assert.equal(getHealthMeta("toString"), HEALTH_META.unknown);
+  assert.ok(SCAN_STEPS.length > 0, "the scan progress UI has steps");
+  for (const category of ["gpu", "chipset", "bios", "ssd", "network", "audio", "bluetooth"]) {
+    assert.ok(LOCAL_DB_FALLBACK[category], `offline database includes ${category}`);
+  }
+});
+
+test("offline Intel Arc scan produces an actionable result without Windows or cloud access", () => {
+  const vendor = detectGpuVendor("Intel(R) Arc(TM) A770 Graphics");
+  assert.equal(vendor, "intel");
+
+  const initial = {
+    kind: "gpu",
+    title: "Graphics",
+    device: "Intel(R) Arc(TM) A770 Graphics",
+    vendorKey: vendor,
+    current: null,
+    latest: LOCAL_DB_FALLBACK.gpu.intel.latest,
+    health: "unknown",
+    safety: "safe",
+    action: null,
+    candidateAction: gpuAction(vendor),
+    rationale: "Checking installed Intel graphics driver.",
+  };
+  const scanned = applyInstalledVersion(initial, "32.0.101.6078");
+
+  assert.equal(scanned.health, "outdated");
+  assert.equal(scanned.action.url, "https://www.intel.com/content/www/us/en/support/detect.html");
+  assert.equal(countActionable([scanned]), 1);
+  assert.deepEqual(computeHealthScore([scanned]), {
+    overall: 55,
+    subscores: [{ kind: "gpu", label: "Graphics", score: 55 }],
+  });
 });
 
 test("a pre-populated newer component exposes no update action", () => {

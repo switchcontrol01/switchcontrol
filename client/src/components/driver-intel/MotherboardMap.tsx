@@ -23,7 +23,7 @@ import {
 import {
   type DriverComponent,
   type ComponentKind,
-  HEALTH_META,
+  getHealthMeta,
 } from "@/lib/driver-intel-data";
 import { useTranslation } from "@/lib/i18n";
 
@@ -133,7 +133,7 @@ export function MotherboardMap({
         {/* Connection traces from hub to each node */}
         {nodes.map((c) => {
           const p = NODE_POS[c.kind];
-          const meta = HEALTH_META[c.health];
+          const meta = getHealthMeta(c.health);
           return (
             <g key={`trace-${c.kind}`}>
               <line
@@ -193,7 +193,7 @@ export function MotherboardMap({
       {/* Node chips */}
       {nodes.map((c) => {
         const p = NODE_POS[c.kind];
-        const meta = HEALTH_META[c.health];
+        const meta = getHealthMeta(c.health);
         const Icon = ICONS[c.kind];
         const isActive = activeKind === c.kind;
         return (

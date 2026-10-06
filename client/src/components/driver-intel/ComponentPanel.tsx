@@ -26,7 +26,7 @@ import {
   type DriverComponent,
   type SafetyLevel,
   type UpdateAction,
-  HEALTH_META,
+  getHealthMeta,
 } from "@/lib/driver-intel-data";
 import { useTranslation } from "@/lib/i18n";
 
@@ -140,7 +140,7 @@ function PanelBody({
   onRecordUpdate?: (component: DriverComponent) => void;
   t: (key: string) => string;
 }) {
-  const health = HEALTH_META[c.health];
+  const health = getHealthMeta(c.health);
   const safety = SAFETY_META[c.safety];
   const SafetyIcon = safety.Icon;
 

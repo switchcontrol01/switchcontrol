@@ -45,7 +45,7 @@ import {
   type ComponentKind,
   type DriverComponent,
   type UpdateAction,
-  HEALTH_META,
+  getHealthMeta,
   SCAN_STEPS,
   countActionable,
   computeHealthScore,
@@ -622,7 +622,7 @@ export default function DriverIntelligence() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {news.map((n, i) => {
-                const meta = HEALTH_META[n.safety === "critical" ? "critical" : n.safety === "caution" ? "outdated" : "healthy"];
+                const meta = getHealthMeta(n.safety === "critical" ? "critical" : n.safety === "caution" ? "outdated" : "healthy");
                 return (
                   <motion.div
                     key={n.id}
@@ -765,7 +765,7 @@ function ComponentCard({
   onClick: () => void;
 }) {
   const { t } = useTranslation();
-  const meta = HEALTH_META[c.health];
+  const meta = getHealthMeta(c.health);
   return (
     <motion.button
       onClick={onClick}
