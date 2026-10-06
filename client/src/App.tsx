@@ -1937,7 +1937,7 @@ function ElectronAppContent() {
     const currentUser = useAuthStore.getState().user;
     const serverVerifiedUser = verifiedAdminSnapshotRef.current;
     if (
-      !canSimulateFirstTimeUser(
+      !canSimulateFirstTimeUserPolicy(
         currentUser,
         entitlementsVerified,
         isElectron,

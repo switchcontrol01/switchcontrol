@@ -35,6 +35,20 @@ test("simulation privilege gate is exact, normalized, server-verified, and deskt
   assert.match(app, /verifiedAdminSnapshotRef/);
   assert.match(app, /serverVerifiedUser\.id !== currentUser\?\.id/);
   assert.match(app, /serverVerifiedUser\.isAdmin !== true/);
+  const action = app.slice(
+    app.indexOf("const handleSimulateFirstTimeUser"),
+    app.indexOf("const handleSafeRefreshEntitlements"),
+  );
+  assert.match(
+    action,
+    /canSimulateFirstTimeUserPolicy\(/,
+    "the action must call the imported server-verification policy",
+  );
+  assert.doesNotMatch(
+    action,
+    /(?<!Policy)canSimulateFirstTimeUser\(/,
+    "the action must not call an undefined unaliased policy name",
+  );
   assert.match(context, /canSimulateFirstTimeUser: boolean/);
   assert.match(app, /verifiedAdminSnapshotRef\.current\?\.isAdmin === true/);
 });
