@@ -1062,7 +1062,7 @@ export default function Pricing() {
 
           <div className="space-y-2.5">
             {OBJECTIONS.map((item, i) => (
-              <ObjectionItem key={item.q} item={item} index={i} />
+              <ObjectionItem key={item.q} item={item} index={i} t={t} />
             ))}
           </div>
         </div>
