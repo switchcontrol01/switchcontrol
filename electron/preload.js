@@ -631,6 +631,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }),
   },
   settings: {
+    getApplicationPreferences: () => ipcRenderer.invoke('settings:getApplicationPreferences'),
     apply: (preferences) => {
       assertPlainObject(preferences, 'settings.apply preferences');
       return ipcRenderer.invoke('settings:apply', preferences);

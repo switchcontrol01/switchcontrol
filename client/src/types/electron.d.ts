@@ -1,5 +1,6 @@
 import type {
   AdaptiveCapabilitySnapshot,
+  AdaptivePerformanceOverride,
   AdaptivePerformanceProfile,
 } from "@shared/adaptivePerformance";
 
@@ -276,6 +277,10 @@ declare global {
         onEvent: (callback: (payload: { event: string; state: UpdaterState }) => void) => () => void;
       };
       settings: {
+        getApplicationPreferences: () => Promise<{
+          applicationMode: "normal" | "light" | null;
+          performanceProfileOverride: AdaptivePerformanceOverride | null;
+        }>;
         apply: (preferences: Record<string, unknown>) => Promise<{ ok: boolean; error?: string }>;
       };
 

@@ -165,7 +165,10 @@ export const useAppModeStore = create<AppModeState>()(
     {
       name: "sc-app-mode",
       partialize: (s) => ({
-        mode: s.mode,
+        // Save the user's selection as soon as the transition starts. The
+        // rendered mode still flips halfway through the overlay, but a quick
+        // app exit must not restore the mode they were trying to leave.
+        mode: s.transitionTarget ?? s.mode,
         recommendationShown: s.recommendationShown,
         dontAskAgain: s.dontAskAgain,
         lastRecommendation: s.lastRecommendation,

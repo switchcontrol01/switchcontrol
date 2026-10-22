@@ -6719,9 +6719,28 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     ipcMain.handle('app:isIPCReady',      () => ipcReady);
   
     ipcMain.handle('updater:getState', () => updaterService.getState());
+    ipcMain.handle('settings:getApplicationPreferences', () => {
+      const applicationMode = configStore.get('preference:applicationMode');
+      const performanceProfileOverride = configStore.get('preference:performanceProfileOverride');
+      return {
+        applicationMode: ['normal', 'light'].includes(applicationMode) ? applicationMode : null,
+        performanceProfileOverride: ['automatic', 'efficiency', 'balanced', 'enhanced'].includes(performanceProfileOverride)
+          ? performanceProfileOverride
+          : null,
+      };
+    });
     ipcMain.handle('settings:apply', (_event, preferences) => {
       if (!preferences || typeof preferences !== 'object' || Array.isArray(preferences)) {
         return { ok: false, error: 'Invalid preferences payload.' };
+      }
+      if (preferences.applicationMode !== undefined && !['normal', 'light'].includes(preferences.applicationMode)) {
+        return { ok: false, error: 'Invalid application mode.' };
+      }
+      if (
+        preferences.performanceProfileOverride !== undefined &&
+        !['automatic', 'efficiency', 'balanced', 'enhanced'].includes(preferences.performanceProfileOverride)
+      ) {
+        return { ok: false, error: 'Invalid performance profile override.' };
       }
       const allowed = [
         'startWithWindows', 'launchMinimized', 'openDashboardOnStartup',
@@ -6732,6 +6751,12 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
       try {
         for (const key of allowed) {
           if (typeof preferences[key] === 'boolean') configStore.set(`preference:${key}`, preferences[key]);
+        }
+        if (preferences.applicationMode !== undefined) {
+          configStore.set('preference:applicationMode', preferences.applicationMode);
+        }
+        if (preferences.performanceProfileOverride !== undefined) {
+          configStore.set('preference:performanceProfileOverride', preferences.performanceProfileOverride);
         }
         if (typeof preferences.startWithWindows === 'boolean') {
           app.setLoginItemSettings({ openAtLogin: preferences.startWithWindows });

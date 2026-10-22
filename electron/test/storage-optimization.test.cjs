@@ -77,6 +77,31 @@ test('newer per-volume Windows optimization evidence overrides stale app history
   assert.equal(recommendation.due, false);
 });
 
+test('an old per-drive Windows run can make TRIM due even when the global schedule is enabled', async () => {
+  const { getStorageOptimizationRecommendation } = await import(moduleUrl);
+  const lastRunAt = new Date(NOW - 53 * 86_400_000).toISOString();
+  const recommendation = getStorageOptimizationRecommendation(
+    {
+      ...ssd,
+      optimization: {
+        scheduleEnabled: true,
+        status: 'available',
+        source: 'windows-scheduled-task',
+        lastRunAt,
+        lastRunOperation: 'trim',
+        lastRunSource: 'windows-defrag-event-log',
+      },
+    },
+    [],
+    NOW,
+  );
+
+  assert.equal(recommendation.days, 53);
+  assert.equal(recommendation.lastRunLabel, 'Windows');
+  assert.equal(recommendation.due, true);
+  assert.equal(recommendation.action, 'TRIM optimization recommended');
+});
+
 test('future or untrusted native timestamps cannot override valid app history', async () => {
   const { getStorageOptimizationRecommendation } = await import(moduleUrl);
   const recommendation = getStorageOptimizationRecommendation(

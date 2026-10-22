@@ -1,6 +1,17 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useUserPreferencesStore, getAccentColor } from "@/stores/userPreferencesStore";
 import { useStore } from "@/lib/store";
+import { useAppModeStore } from "@/lib/appModeStore";
+import type { ApplicationMode } from "@/lib/appModeStore";
+import type { AdaptivePerformanceOverride } from "@shared/adaptivePerformance";
+
+const APPLICATION_MODES: ApplicationMode[] = ["normal", "light"];
+const PERFORMANCE_PROFILE_OVERRIDES: AdaptivePerformanceOverride[] = [
+  "automatic",
+  "efficiency",
+  "balanced",
+  "enhanced",
+];
 
 function hexToHsl(hex: string): string {
   const clean = hex.replace("#", "");
@@ -28,7 +39,12 @@ function hexToHsl(hex: string): string {
 
 export function UserPreferencesSync() {
   const preferences = useUserPreferencesStore();
+  const appMode = useAppModeStore((state) => state.mode);
+  const transitionTarget = useAppModeStore((state) => state.transitionTarget);
+  const modeToPersist = transitionTarget ?? appMode;
   const setRealtimeMetricsEnabled = useStore((s) => s.setRealtimeMetricsEnabled);
+  const setPreference = useUserPreferencesStore((state) => state.setPreference);
+  const [desktopSettingsLoaded, setDesktopSettingsLoaded] = useState(false);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -54,8 +70,52 @@ export function UserPreferencesSync() {
   }, [preferences]);
 
   useEffect(() => {
-    const api = (window as any).electronAPI?.settings;
-    if (!api?.apply) return;
+    let cancelled = false;
+    const settings = window.electronAPI?.settings;
+    if (!settings?.getApplicationPreferences) {
+      setDesktopSettingsLoaded(true);
+      return;
+    }
+
+    const initialMode = useAppModeStore.getState().mode;
+    const initialOverride = useUserPreferencesStore.getState().performanceProfileOverride;
+    settings.getApplicationPreferences()
+      .then((saved) => {
+        if (cancelled) return;
+
+        const currentMode = useAppModeStore.getState();
+        if (
+          APPLICATION_MODES.includes(saved.applicationMode as ApplicationMode) &&
+          currentMode.mode === initialMode &&
+          !currentMode.transitioning &&
+          !currentMode.transitionTarget
+        ) {
+          currentMode.setMode(saved.applicationMode as ApplicationMode);
+        }
+
+        const currentOverride = useUserPreferencesStore.getState().performanceProfileOverride;
+        if (
+          PERFORMANCE_PROFILE_OVERRIDES.includes(saved.performanceProfileOverride as AdaptivePerformanceOverride) &&
+          currentOverride === initialOverride
+        ) {
+          setPreference("performanceProfileOverride", saved.performanceProfileOverride as AdaptivePerformanceOverride);
+        }
+      })
+      .catch((error) => {
+        console.warn("[Preferences] Could not restore desktop mode preferences:", error);
+      })
+      .finally(() => {
+        if (!cancelled) setDesktopSettingsLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setPreference]);
+
+  useEffect(() => {
+    const api = window.electronAPI?.settings;
+    if (!api?.apply || !desktopSettingsLoaded) return;
     api.apply({
       startWithWindows: preferences.startWithWindows,
       launchMinimized: preferences.launchMinimized,
@@ -69,8 +129,13 @@ export function UserPreferencesSync() {
       showHealthAlerts: preferences.showHealthAlerts,
       showPremiumReminders: preferences.showPremiumReminders,
       autoRevertFailed: preferences.autoRevertFailed,
+      applicationMode: modeToPersist,
+      performanceProfileOverride: preferences.performanceProfileOverride,
     }).catch(() => {});
   }, [
+    desktopSettingsLoaded,
+    modeToPersist,
+    preferences.performanceProfileOverride,
     preferences.startWithWindows, preferences.launchMinimized,
     preferences.openDashboardOnStartup, preferences.autoUpdateChecks,
     preferences.anonymousCrashReports, preferences.sharePerformanceDiagnostics,

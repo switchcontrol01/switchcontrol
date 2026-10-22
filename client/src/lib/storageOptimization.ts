@@ -133,7 +133,10 @@ export function getStorageOptimizationRecommendation(
     };
   }
 
-  if (windowsState?.scheduleEnabled === true) {
+  const verifiedWindowsRunIsOverdue =
+    lastRunSource === "windows" && days !== null && days > 30;
+
+  if (windowsState?.scheduleEnabled === true && !verifiedWindowsRunIsOverdue) {
     return {
       action: "Windows automatic optimization is enabled",
       duration: isHdd ? "5–15 min" : "< 5 sec",
@@ -161,7 +164,7 @@ export function getStorageOptimizationRecommendation(
       lastRunAt: new Date(lastRunTimestamp).toISOString(),
       lastRunSource,
       lastRunLabel,
-      reason: `No successful optimization has been recorded for ${days} days.`,
+      reason: `No successful optimization has been recorded in the last 30 days; the latest ${lastRunLabel} record is ${days} days old.`,
     };
   }
 

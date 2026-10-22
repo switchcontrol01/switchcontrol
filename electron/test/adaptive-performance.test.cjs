@@ -254,3 +254,19 @@ test("Electron, settings, visuals, and telemetry use the shared capability bound
     assert.match(settings, new RegExp(`value: "${profile}"`));
   }
 });
+
+test("selected application and adaptive profiles are persisted before app restart", () => {
+  const appMode = fs.readFileSync("client/src/lib/appModeStore.ts", "utf8");
+  const preferencesSync = fs.readFileSync("client/src/components/UserPreferencesSync.tsx", "utf8");
+  const main = fs.readFileSync("electron/main.js", "utf8");
+  const preload = fs.readFileSync("electron/preload.js", "utf8");
+
+  assert.match(appMode, /mode:\s*s\.transitionTarget\s*\?\?\s*s\.mode/);
+  assert.match(preferencesSync, /getApplicationPreferences/);
+  assert.match(preferencesSync, /applicationMode:\s*modeToPersist/);
+  assert.match(preferencesSync, /performanceProfileOverride:\s*preferences\.performanceProfileOverride/);
+  assert.match(main, /settings:getApplicationPreferences/);
+  assert.match(main, /preference:applicationMode/);
+  assert.match(main, /preference:performanceProfileOverride/);
+  assert.match(preload, /getApplicationPreferences/);
+});
