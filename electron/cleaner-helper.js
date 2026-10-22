@@ -59,24 +59,65 @@ async function getGpuCapabilities() {
       } | ConvertTo-Json -Compress
     `, 10000);
     const parsed = JSON.parse(output || '{}');
+    // ConvertTo-Json emits a one-item PowerShell array as a scalar. Normalize
+    // both shapes so a single-GPU PC is not mistaken for an unknown vendor.
+    const names = Array.isArray(parsed.names)
+      ? parsed.names.filter(name => typeof name === 'string' && name.trim())
+      : typeof parsed.names === 'string' && parsed.names.trim()
+        ? [parsed.names]
+        : [];
     gpuCapabilityCache = {
       amd: parsed.amd === true,
       nvidia: parsed.nvidia === true,
-      names: Array.isArray(parsed.names) ? parsed.names : [],
+      known: names.length > 0,
+      names,
     };
   } catch {
-    // Unknown must not silently disable a vendor scan. The scan will run and
-    // report its real filesystem result when Windows cannot identify the GPU.
-    gpuCapabilityCache = { amd: true, nvidia: true, names: [] };
+    // Unknown is not proof that an AMD/NVIDIA cache is safe to touch. The
+    // vendor-sensitive items below fail closed until Windows can identify it.
+    gpuCapabilityCache = { amd: true, nvidia: true, known: false, names: [] };
   }
   gpuCapabilityCachedAt = Date.now();
   return gpuCapabilityCache;
 }
 
-function isVendorApplicable(id, gpuCapabilities) {
-  if (id === 'nvidia_driver_cache') return gpuCapabilities.nvidia;
-  if (id === 'amd_driver_cache') return gpuCapabilities.amd;
-  return true;
+function getCleanerAvailability(id, gpuCapabilities) {
+  if (id === 'nvidia_driver_cache') {
+    if (!gpuCapabilities.known) {
+      return { unsupported: true, unsupportedReason: 'GPU vendor could not be confirmed; NVIDIA installer files were left protected.' };
+    }
+    if (!gpuCapabilities.nvidia) {
+      return { notApplicable: true, notApplicableReason: 'No NVIDIA GPU was detected.' };
+    }
+  }
+  if (id === 'amd_driver_cache') {
+    if (!gpuCapabilities.known) {
+      return { unsupported: true, unsupportedReason: 'GPU vendor could not be confirmed; AMD installer files were left untouched.' };
+    }
+    if (!gpuCapabilities.amd) {
+      return { notApplicable: true, notApplicableReason: 'No AMD GPU was detected.' };
+    }
+  }
+  if (id === 'shader_cache') {
+    if (!gpuCapabilities.known) {
+      return { unsupported: true, unsupportedReason: 'GPU vendor could not be confirmed; shared shader caches were left untouched.' };
+    }
+    if (gpuCapabilities.nvidia) {
+      return { unsupported: true, unsupportedReason: 'NVIDIA shader cache paths are protected to avoid disrupting driver or game troubleshooting.' };
+    }
+  }
+  const protectedReason = PROTECTED_SCAN_REASONS[id];
+  if (protectedReason) {
+    return { unsupported: true, unsupportedReason: protectedReason };
+  }
+  if (!Object.prototype.hasOwnProperty.call(SCAN_DEFS, id)) {
+    return { unsupported: true, unsupportedReason: 'No safe native cleanup handler is available for this item.' };
+  }
+  return null;
+}
+
+function quotePowerShellLiteral(value) {
+  return `'${String(value).replace(/'/g, "''")}'`;
 }
 
 // ── SCAN_DEFS builder helpers ─────────────────────────────────────────────────
@@ -84,7 +125,7 @@ function isVendorApplicable(id, gpuCapabilities) {
 // filter:  optional glob (e.g. '*.pf'); null = all files
 // recurse: true = -Recurse (default)
 function buildPathsScanCmd(paths, { filter = null, recurse = true } = {}) {
-  const psArr = paths.map(p => `'${p}'`).join(',\n        ');
+  const psArr = paths.map(quotePowerShellLiteral).join(',\n        ');
   let gci = 'Get-ChildItem $p';
   if (filter) gci += ` -Filter '${filter}'`;
   if (recurse) gci += ' -Recurse';
@@ -112,7 +153,7 @@ function buildPathsScanCmd(paths, { filter = null, recurse = true } = {}) {
 // cleaned.
 // removeEmptyDirs: true = also prune empty directories after file deletion
 function buildPathsCleanCmd(paths, { filter = null, recurse = true, removeEmptyDirs = false } = {}) {
-  const psArr = paths.map(p => `'${p}'`).join(',\n        ');
+  const psArr = paths.map(quotePowerShellLiteral).join(',\n        ');
   // Recursive per-file Remove-Item is extremely slow for browser/game caches.
   // For unfiltered directory targets, delete each direct child recursively and
   // compare before/after inventory so locked files are still reported honestly.
@@ -182,8 +223,8 @@ function buildPathsCleanCmd(paths, { filter = null, recurse = true, removeEmptyD
 // default drive or profile name. Only well-known disposable subdirectories
 // are returned; parent folders are never eligible for recursive deletion.
 function buildDiscoveredCacheCmd({ roots, subdirs, recurse = true } = {}) {
-  const rootArr = roots.map(root => `'${root}'`).join(',\n        ');
-  const subArr = subdirs.map(sub => `'${sub}'`).join(', ');
+  const rootArr = roots.map(quotePowerShellLiteral).join(',\n        ');
+  const subArr = subdirs.map(quotePowerShellLiteral).join(', ');
   const recurseFlag = recurse ? ' -Recurse' : '';
   const scan = `
       $roots = @(${rootArr}); $subs = @(${subArr}); $paths = @()
