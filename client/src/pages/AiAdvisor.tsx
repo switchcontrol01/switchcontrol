@@ -802,6 +802,7 @@ function NavigationCard({ items, onNavigate }: {
 
 function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmin, isPremium, onOpenUpgrade, onViewTweaks, onViewNetwork, onNavigate, onGuideMe }: {
   msg: ChatMessage;
+  avatarUrl: string | null;
   isSlow: boolean;
   reducedMotion: boolean;
   onApply?: (recs: AiTweakRecommendation[]) => void;
@@ -887,8 +888,16 @@ function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmi
       </div>
 
       {msg.role === "user" && (
-        <div className="shrink-0 w-7 h-7 rounded-xl bg-[#21262D] border border-[#2A313A] flex items-center justify-center mt-0.5">
+        <div className="relative shrink-0 w-7 h-7 rounded-xl bg-[#21262D] border border-[#2A313A] flex items-center justify-center mt-0.5 overflow-hidden">
           <User className="w-3.5 h-3.5 text-[#A0A8B3]" />
+          {avatarUrl && (
+            <img
+              src={avatarUrl}
+              alt="Your profile"
+              className="absolute inset-0 w-full h-full rounded-xl object-cover"
+              onError={(event) => event.currentTarget.remove()}
+            />
+          )}
         </div>
       )}
     </motion.div>
@@ -2585,6 +2594,7 @@ export default function AiAdvisor() {
                   <ChatBubble
                     key={msg.id}
                     msg={msg}
+                    avatarUrl={auth.user?.avatar ?? null}
                     isSlow={msg.isThinking ? isSlowRequest : false}
                     reducedMotion={prefersReducedMotion}
                     onApply={handleApplyAiRecommendations}
