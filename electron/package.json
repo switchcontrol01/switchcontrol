@@ -8,6 +8,7 @@
   "type": "commonjs",
   "scripts": {
     "start": "electron .",
+    "build": "npm run prebuild && node scripts/verify-package-contract.js && npm run build:native && electron-builder --dir",
     "prebuild": "node -e \"const f=require('fs'),p=require('path'),base=process.cwd();const run=s=>{const sp=p.join(base,'scripts',s+'.js');if(f.existsSync(sp)){require(sp);}else{console.warn('[prebuild] '+s+'.js not found — using inline fallback');}};run('ensure-assets');const distSp=p.join(base,'scripts','ensure-dist.js');if(f.existsSync(distSp)){require(distSp);}else{const src=p.join(base,'..','dist-electron');if(!f.existsSync(src)){console.error('[prebuild] dist-electron/ not found — run npm run build first');process.exit(1);}console.log('[prebuild] using dist-electron directly (no staging copy)');}\"",
     "build:native": "node -e \"const f=require('fs'),p=require('path');const sp=p.join(process.cwd(),'scripts','build-native.js');if(f.existsSync(sp)){require(sp);}else{console.warn('[build:native] build-native.js not found — skipping (existing bin/sc_memory.exe will be used)');}\"",
     "dist:win": "npm run prebuild && node scripts/verify-package-contract.js && npm run build:native && electron-builder --win",
