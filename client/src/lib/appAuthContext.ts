@@ -11,7 +11,7 @@ export interface AppAuthContextValue {
   logout: () => void;
   factoryReset: () => Promise<void>;
   simulateFirstTimeUser: () => Promise<boolean>;
-  safeRefreshEntitlements: () => Promise<{ user: AuthUser | null }>;
+  safeRefreshEntitlements: () => Promise<{ user: AuthUser | null; verified: boolean }>;
 }
 
 export const AppAuthContext = createContext<AppAuthContextValue>({
@@ -24,7 +24,7 @@ export const AppAuthContext = createContext<AppAuthContextValue>({
   logout: () => {},
   factoryReset: async () => {},
   simulateFirstTimeUser: async () => false,
-  safeRefreshEntitlements: async () => ({ user: null }),
+  safeRefreshEntitlements: async () => ({ user: null, verified: false }),
 });
 
 export function useAppAuth() {

@@ -15,6 +15,8 @@ import { UpdateCard } from "@/components/UpdateCard";
 import { useToast } from "@/hooks/use-toast";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAppAuth } from "@/lib/appAuthContext";
+import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
+import { useTrialCountdown } from "@/hooks/useTrialCountdown";
 import { useAuthStore } from "@/lib/auth-store";
 import { LicenseManagementModal } from "@/components/LicenseManagementModal";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -883,11 +885,12 @@ export default function Settings() {
     isPremium,
     isAdmin,
     user,
-    entitlementsVerified,
     canSimulateFirstTimeUser: canReplayFirstRun,
     factoryReset,
     simulateFirstTimeUser,
   } = useAppAuth();
+  const entitlement = useEntitlementUiState();
+  const trialCountdown = useTrialCountdown(user?.plan === "trial" ? user.trialEndsAt : null);
   const resetPreferences = useUserPreferencesStore((s) => s.resetPreferences);
   const [licenseModalOpen, setLicenseModalOpen] = useState(false);
   const [showPatchNotesModal, setShowPatchNotesModal] = useState(false);
@@ -979,7 +982,41 @@ export default function Settings() {
                   <Input value={user.email} readOnly disabled className="bg-muted/50 text-muted-foreground" data-testid="input-account-email" />
                 </div>
               )}
-              {isPremium ? (
+              {entitlement.status === "trial_active" ? (
+                <div className="flex items-center justify-between gap-3 bg-[#00D4FF]/[0.06] border border-[#00D4FF]/25 p-3 rounded-md">
+                  <div className="space-y-0.5 min-w-0">
+                    <span className="text-sm font-medium text-[#33E0FF]">{t("Trial (Limited)")}</span>
+                    <p className="text-xs text-[#00D4FF]/70">
+                      {trialCountdown}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 border-[#00D4FF]/30 text-[#33E0FF] hover:text-white hover:bg-[#00D4FF]/10"
+                    onClick={() => setLicenseModalOpen(true)}
+                    data-testid="button-manage-license"
+                  >
+                    {t("Manage")}
+                  </Button>
+                </div>
+              ) : entitlement.status === "trial_expired" ? (
+                <div className="flex items-center justify-between gap-3 bg-[#1A1F26] border border-[#2A313A] p-3 rounded-md">
+                  <div className="space-y-0.5 min-w-0">
+                    <span className="text-sm font-medium text-[#A0A8B3]">{t("Trial Expired")}</span>
+                    <p className="text-xs text-[#6B7380]">{t("Your account is on the Free plan.")}</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 border-[#2A313A] text-[#A0A8B3] hover:text-[#E6EAF0] hover:bg-[#21262D]"
+                    onClick={() => setLicenseModalOpen(true)}
+                    data-testid="button-manage-license"
+                  >
+                    {t("Manage")}
+                  </Button>
+                </div>
+              ) : isPremium ? (
                 <div className="flex items-center justify-between bg-emerald-500/5 border border-emerald-500/20 p-3 rounded-md">
                   <div className="space-y-0.5">
                     <span className="text-sm font-medium text-emerald-400">{t("Premium (Lifetime)")}</span>
@@ -1414,8 +1451,6 @@ export default function Settings() {
       <LicenseManagementModal
         open={licenseModalOpen}
         onOpenChange={setLicenseModalOpen}
-        isPremium={isPremium}
-        userId={user?.id || ""}
       />
     </AppLayout>
   );

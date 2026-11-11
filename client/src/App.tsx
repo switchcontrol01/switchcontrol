@@ -2841,7 +2841,7 @@ function WebsiteContent() {
       clearSwitchControlStorage();
       window.location.reload();
     },
-    safeRefreshEntitlements: async () => ({ user: null }),
+    safeRefreshEntitlements: async () => ({ user: null, verified: false }),
   };
 
   return (

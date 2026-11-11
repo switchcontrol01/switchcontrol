@@ -9,8 +9,11 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence, modalBackdrop, modalContent } from "@/lib/motion";
 import { cn } from "@/lib/utils";
-import { usePremiumGraceStore, GRACE_WINDOW_MS } from "@/stores/premiumGraceStore";
+import { usePremiumGraceStore } from "@/stores/premiumGraceStore";
 import { useNetworkStore } from "@/stores/networkStore";
+import { useTrialCountdown } from "@/hooks/useTrialCountdown";
+import { formatTrialEndsAt } from "@/lib/trialCountdown";
+import { resolveLicenseSnapshot, type VerifiedLicense } from "@/lib/licensePresentation";
 
 const SUPPORT_EMAIL = "Switchcontrol67@gmail.com";
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
@@ -18,18 +21,6 @@ const isElectron = typeof window !== "undefined" && !!(window as any).electronAP
 interface LicenseManagementModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  isPremium: boolean;
-  userId: string;
-}
-
-// ── Verified snapshot, set only after a live network check OR confirmed offline grace ──
-type VerifiedStatus = "active" | "grace" | "expired" | "free" | "unknown";
-interface VerifiedLicense {
-  status: VerifiedStatus;
-  plan: string | null;
-  isPremium: boolean;
-  lastVerifiedAt: number | null;
-  graceRemainingMs: number;
 }
 
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -61,9 +52,9 @@ function formatLastVerified(ts: number | null): string {
   return `${days} days ago`;
 }
 
-export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }: LicenseManagementModalProps) {
+export function LicenseManagementModal({ open, onOpenChange }: LicenseManagementModalProps) {
   const { toast } = useToast();
-  const { safeRefreshEntitlements } = useAppAuth();
+  const { safeRefreshEntitlements, user: currentUser, entitlementsVerified } = useAppAuth();
   const grace = usePremiumGraceStore();
   const isBackendReachable = useNetworkStore((s) => s.isBackendReachable);
   const networkState = useNetworkStore((s) => s.networkState);
@@ -74,7 +65,12 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
   //   a) live refresh   → result from server
   //   b) offline        → confirmed valid offline-grace entry from grace store
   const [licenseLoading, setLicenseLoading] = useState(false);
-  const [verifiedLicense, setVerifiedLicense] = useState<VerifiedLicense | null>(null);
+  const [verifiedSnapshot, setVerifiedLicense] = useState<VerifiedLicense | null>(null);
+  // The countdown re-renders this component, so crossing the expiry timestamp
+  // changes the displayed trial status without waiting for another server poll.
+  const verifiedLicense = verifiedSnapshot?.plan === "trial"
+    ? resolveLicenseSnapshot(verifiedSnapshot, verifiedSnapshot.lastVerifiedAt, verifiedSnapshot.isOfflineCached)
+    : verifiedSnapshot;
 
   const [isRestoring, setIsRestoring] = useState(false);
   const [appVersion, setAppVersion] = useState("1.3.4");
@@ -88,6 +84,9 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
 
   // ── Resolve offline grace, reads grace store to confirm a real grace window ──
   function resolveOfflineGrace(): VerifiedLicense {
+    if (currentUser?.plan === "trial") {
+      return resolveLicenseSnapshot(currentUser, grace.lastVerifiedAt, true);
+    }
     const graceStatus = grace.getStatus(false); // pass false, we know we're offline
     const graceMs = grace.graceRemainingMs();
 
@@ -97,6 +96,8 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
         status: 'grace',
         plan: grace.plan,
         isPremium: true,
+        trialEndsAt: null,
+        isOfflineCached: true,
         lastVerifiedAt: grace.lastVerifiedAt,
         graceRemainingMs: graceMs,
       };
@@ -106,6 +107,8 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
         status: 'expired',
         plan: grace.plan,
         isPremium: false,
+        trialEndsAt: null,
+        isOfflineCached: true,
         lastVerifiedAt: grace.lastVerifiedAt,
         graceRemainingMs: 0,
       };
@@ -116,6 +119,8 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
       status: 'free',
       plan: null,
       isPremium: false,
+      trialEndsAt: null,
+      isOfflineCached: true,
       lastVerifiedAt: grace.lastVerifiedAt,
       graceRemainingMs: 0,
     };
@@ -196,20 +201,16 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
     safeRefreshEntitlements()
       .then((result) => {
         if (cancelled) return;
-        if (result.user) {
+        if (result.verified && result.user) {
           // Write verified data back to grace store (persistence layer only)
           grace.setVerified(result.user.isPremium, result.user.plan ?? null, result.user.id ?? null);
-          const verified: VerifiedLicense = {
-            status: result.user.isPremium ? 'active' : 'free',
-            plan: result.user.plan ?? null,
-            isPremium: result.user.isPremium,
-            lastVerifiedAt: Date.now(),
-            graceRemainingMs: 0,
-          };
+          const verified = resolveLicenseSnapshot(result.user, Date.now());
           console.log('[PremiumTruth] modal auto-refresh done, isPremium:', result.user.isPremium, 'status:', verified.status);
           setVerifiedLicense(verified);
+        } else if (result.verified) {
+          setVerifiedLicense({ status: 'free', plan: null, isPremium: false, trialEndsAt: null, isOfflineCached: false, lastVerifiedAt: null, graceRemainingMs: 0 });
         } else {
-          setVerifiedLicense({ status: 'free', plan: null, isPremium: false, lastVerifiedAt: null, graceRemainingMs: 0 });
+          setVerifiedLicense(resolveOfflineGrace());
         }
       })
       .catch((err) => {
@@ -224,6 +225,21 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
     return () => { cancelled = true; };
   }, [open]);
 
+  // Global entitlement refreshes keep an already-open Manage dialog in sync
+  // with account plan changes instead of leaving its opening snapshot frozen.
+  useEffect(() => {
+    if (!open || licenseLoading || !entitlementsVerified || !currentUser || isOffline) return;
+    setVerifiedLicense((previous) => {
+      if (!previous) return previous;
+      if (
+        previous.plan === currentUser.plan &&
+        previous.isPremium === currentUser.isPremium &&
+        previous.trialEndsAt === currentUser.trialEndsAt
+      ) return previous;
+      return resolveLicenseSnapshot(currentUser, Date.now());
+    });
+  }, [open, licenseLoading, entitlementsVerified, isOffline, currentUser?.id, currentUser?.plan, currentUser?.isPremium, currentUser?.trialEndsAt]);
+
   const handleRefreshLicense = async () => {
     if (isOffline) {
       toast({ title: "Offline", description: "Cannot verify license while offline.", variant: "destructive" });
@@ -233,21 +249,22 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
     setVerifiedLicense(null);
     try {
       const result = await safeRefreshEntitlements();
-      if (result.user) {
+      if (result.verified && result.user) {
         grace.setVerified(result.user.isPremium, result.user.plan ?? null, result.user.id ?? null);
-        const verified: VerifiedLicense = {
-          status: result.user.isPremium ? 'active' : 'free',
-          plan: result.user.plan ?? null,
-          isPremium: result.user.isPremium,
-          lastVerifiedAt: Date.now(),
-          graceRemainingMs: 0,
-        };
+        const verified = resolveLicenseSnapshot(result.user, Date.now());
         setVerifiedLicense(verified);
-        if (result.user.isPremium) {
+        if (verified.status === "trial_active") {
+          toast({ title: "Trial Verified", description: "Your limited trial is active." });
+        } else if (verified.status === "active") {
           toast({ title: "License Verified", description: "Your Premium license is active and up to date." });
         } else {
           toast({ title: "License Status", description: "No active premium license found.", variant: "destructive" });
         }
+      } else if (result.verified) {
+        setVerifiedLicense({ status: 'free', plan: null, isPremium: false, trialEndsAt: null, isOfflineCached: false, lastVerifiedAt: null, graceRemainingMs: 0 });
+      } else {
+        setVerifiedLicense(resolveOfflineGrace());
+        toast({ title: "Verification Unavailable", description: "Showing cached license information. Please try again when connected.", variant: "destructive" });
       }
     } catch {
       toast({ title: "Refresh Failed", description: "Could not verify license. Please try again.", variant: "destructive" });
@@ -268,21 +285,22 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
     setVerifiedLicense(null);
     try {
       const result = await safeRefreshEntitlements();
-      if (result.user) {
+      if (result.verified && result.user) {
         grace.setVerified(result.user.isPremium, result.user.plan ?? null, result.user.id ?? null);
-        const verified: VerifiedLicense = {
-          status: result.user.isPremium ? 'active' : 'free',
-          plan: result.user.plan ?? null,
-          isPremium: result.user.isPremium,
-          lastVerifiedAt: Date.now(),
-          graceRemainingMs: 0,
-        };
+        const verified = resolveLicenseSnapshot(result.user, Date.now());
         setVerifiedLicense(verified);
-        if (result.user.isPremium) {
+        if (verified.status === "trial_active") {
+          toast({ title: "Trial Found", description: "Your limited trial is active." });
+        } else if (verified.status === "active") {
           toast({ title: "Purchase Restored", description: "Your Premium license has been restored successfully." });
         } else {
           toast({ title: "No License Found", description: "No active Premium license found for this account.", variant: "destructive" });
         }
+      } else if (result.verified) {
+        setVerifiedLicense({ status: 'free', plan: null, isPremium: false, trialEndsAt: null, isOfflineCached: false, lastVerifiedAt: null, graceRemainingMs: 0 });
+      } else {
+        setVerifiedLicense(resolveOfflineGrace());
+        toast({ title: "Verification Unavailable", description: "A purchase could not be verified. Showing cached license information.", variant: "destructive" });
       }
     } catch {
       toast({ title: "Restore Failed", description: "Could not connect to the license server. Please try again later.", variant: "destructive" });
@@ -317,6 +335,8 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
   }, [open]);
 
   const busy = licenseLoading || isRestoring;
+  const trialCountdown = useTrialCountdown(verifiedLicense?.trialEndsAt ?? null);
+  const isTrialLicense = verifiedLicense?.status === "trial_active";
 
   // ── Status block, rendered ONLY from modal-local verified state ──────────────
   // Hard rule: while licenseLoading is true, never render any plan/status.
@@ -332,6 +352,79 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
     }
 
     // Render from verified modal-local snapshot, not from grace store.
+    if (verifiedLicense.status === "trial_active") {
+      return (
+        <div className="relative rounded-xl overflow-hidden border border-[#00D4FF]/25 bg-[#00D4FF]/[0.04] shadow-[inset_0_0_28px_rgba(0,212,255,0.06)]">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#00D4FF]/35 to-transparent" />
+          <div className="px-4 py-3.5 divide-y divide-[#00D4FF]/[0.1]">
+            <InfoRow label="Plan">
+              <Badge className="bg-[#00D4FF]/15 text-[#55E5FF] border-[#00D4FF]/25 text-[10px] font-medium px-2.5 py-0.5">
+                Trial (Limited)
+              </Badge>
+            </InfoRow>
+            <InfoRow label="Status">
+              <div className="flex items-center gap-2">
+                <span className="relative flex size-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D4FF] opacity-50" />
+                  <span className="relative inline-flex rounded-full size-1.5 bg-[#00D4FF]" />
+                </span>
+                <span className="text-[12px] text-[#33E0FF] font-medium">
+                  {verifiedLicense.isOfflineCached ? "Active · Cached" : "Active"}
+                </span>
+                <CheckCircle2 className="size-3.5 text-[#33E0FF]" />
+              </div>
+            </InfoRow>
+            <InfoRow label="Time Remaining">
+              <span className="text-[12px] text-[#55E5FF] font-medium" data-testid="text-trial-countdown">
+                {trialCountdown}
+              </span>
+            </InfoRow>
+            <InfoRow label="Trial Ends">
+              <span className="text-[12px] text-[#A0A8B3]">
+                {formatTrialEndsAt(verifiedLicense.trialEndsAt)}
+              </span>
+            </InfoRow>
+            <InfoRow label="Last Verified">
+              <span className="text-[12px] text-[#A0A8B3]">{formatLastVerified(verifiedLicense.lastVerifiedAt)}</span>
+            </InfoRow>
+          </div>
+          <div className="px-4 pb-3 text-[11px] text-[#00D4FF]/70">
+            {verifiedLicense.isOfflineCached
+              ? "Showing cached trial information. Connect to verify your current license."
+              : "Limited trial access is active. Your account will move to the Free plan when the trial ends."}
+          </div>
+        </div>
+      );
+    }
+
+    if (verifiedLicense.status === "trial_expired") {
+      return (
+        <div className="relative rounded-xl overflow-hidden border border-[#2A313A] bg-[#1A1F26]">
+          <div className="px-4 py-3.5 divide-y divide-white/[0.05]">
+            <InfoRow label="Plan">
+              <Badge className="bg-[#21262D] text-[#A0A8B3] border-white/[0.1] text-[10px] font-medium px-2.5 py-0.5">
+                Trial (Limited)
+              </Badge>
+            </InfoRow>
+            <InfoRow label="Status">
+              <span className="text-[12px] text-[#A0A8B3] font-medium">Trial Expired</span>
+            </InfoRow>
+            {verifiedLicense.trialEndsAt && (
+              <InfoRow label="Trial Ended">
+                <span className="text-[12px] text-[#A0A8B3]">{formatTrialEndsAt(verifiedLicense.trialEndsAt)}</span>
+              </InfoRow>
+            )}
+            <InfoRow label="Last Verified">
+              <span className="text-[12px] text-[#A0A8B3]">{formatLastVerified(verifiedLicense.lastVerifiedAt)}</span>
+            </InfoRow>
+          </div>
+          <div className="px-4 pb-3 text-[11px] text-[#6B7380]">
+            Your trial has ended. Your account is currently on the Free plan.
+          </div>
+        </div>
+      );
+    }
+
     if (verifiedLicense.status === 'active') {
       return (
         <div className="relative rounded-xl overflow-hidden border border-emerald-500/[0.22] bg-emerald-500/[0.04] shadow-[inset_0_0_28px_rgba(16,185,129,0.07)]">
@@ -455,7 +548,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
             exit="exit"
           >
             <div
-              className="relative rounded-2xl overflow-hidden glass-surface-bg backdrop-blur-2xl border border-[#2A313A] shadow-[0_24px_80px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)]"
+              className="relative max-h-[90vh] overflow-y-auto rounded-2xl glass-surface-bg backdrop-blur-2xl border border-[#2A313A] shadow-[0_24px_80px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="pointer-events-none absolute -top-20 -right-20 w-60 h-60 rounded-full bg-emerald-500/[0.06] blur-3xl" />
@@ -464,12 +557,17 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
               {/* Header */}
               <div className="relative flex items-center justify-between px-6 pt-5 pb-4 ">
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center size-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_16px_rgba(16,185,129,0.12)]">
-                    <Shield className="size-4 text-emerald-400" />
+                  <div className={cn(
+                    "flex items-center justify-center size-9 rounded-xl border",
+                    isTrialLicense
+                      ? "bg-[#00D4FF]/10 border-[#00D4FF]/25 shadow-[0_0_16px_rgba(0,212,255,0.12)]"
+                      : "bg-emerald-500/10 border-emerald-500/20 shadow-[0_0_16px_rgba(16,185,129,0.12)]"
+                  )}>
+                    <Shield className={cn("size-4", isTrialLicense ? "text-[#33E0FF]" : "text-emerald-400")} />
                   </div>
                   <div>
                     <h2 className="text-sm font-semibold text-[#E6EAF0] leading-tight">License Management</h2>
-                    <p className="text-[10px] text-[#6B7380] mt-0.5">Manage your SwitchControl license</p>
+                    <p className="text-[10px] text-[#6B7380] mt-0.5">{isTrialLicense ? "Manage your limited trial" : "Manage your SwitchControl license"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -561,7 +659,9 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
                   <button
                     className={cn(
                       "w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[12px] font-medium border transition-all",
-                      "border-emerald-500/20 text-emerald-400/80 bg-emerald-500/[0.04] hover:bg-emerald-500/[0.09] hover:border-emerald-500/35 hover:text-emerald-300",
+                      isTrialLicense
+                        ? "border-[#00D4FF]/25 text-[#33E0FF] bg-[#00D4FF]/[0.04] hover:bg-[#00D4FF]/[0.09] hover:border-[#00D4FF]/40 hover:text-white"
+                        : "border-emerald-500/20 text-emerald-400/80 bg-emerald-500/[0.04] hover:bg-emerald-500/[0.09] hover:border-emerald-500/35 hover:text-emerald-300",
                       (busy || isOffline) && "opacity-40 cursor-not-allowed"
                     )}
                     onClick={handleRefreshLicense}
