@@ -6,12 +6,6 @@
   "scripts": {
     "dev": "tsx server/index.ts",
     "build": "npx tsx script/build.ts",
-<<<<<<< HEAD
-=======
-    "test:cpu-tweak-removal": "node --import tsx --test electron/test/cpu-tweak-removal.test.cjs",
-    "test:nic-tuning-removal": "node --import tsx --test electron/test/nic-tuning-removal.test.cjs",
-    "test:desktop-auth": "node --import tsx --test server/test/desktop-auth.test.ts",
->>>>>>> 2e31edb (Remove NIC Tuning UI and native tuning paths; safely retire legacy actions and preserve Network Tweaks)
     "start": "node dist/index.cjs",
     "postinstall": "cd electron && npm install",
     "electron:dev": "cd electron && npm start",
