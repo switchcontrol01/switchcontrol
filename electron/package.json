@@ -51,6 +51,7 @@
       "config-store.js",
       "critical-logger.js",
       "probe-status.js",
+      "driver-probe-output.js",
       "security-helper.js",
       "firewall-status.js",
       "debloat-helper.js",

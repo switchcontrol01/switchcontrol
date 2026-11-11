@@ -53,7 +53,7 @@ test("uncatalogued installed versions remain unknown", () => {
 });
 
 test("all Driver Intelligence health states have safe display metadata", () => {
-  for (const status of ["healthy", "newer", "outdated", "critical", "unknown", "scanning"]) {
+  for (const status of ["healthy", "working", "newer", "outdated", "critical", "unknown", "scanning"]) {
     const meta = getHealthMeta(status);
     assert.ok(meta.label, `${status} has a label`);
     assert.match(meta.color, /^#[0-9a-f]{6}$/i, `${status} has a color`);
@@ -219,7 +219,7 @@ test("all rendered Driver Intelligence surfaces consume resolved versions", () =
 
   assert.match(page, /components=\{displayComponents\}/);
   assert.match(page, /computeHealthScore\(displayComponents\)/);
-  assert.match(page, /applyInstalledVersion\(c, detected\)/);
+  assert.match(page, /resolveInstalledComponent\(c, installedVersions\)/);
   const store = fs.readFileSync(
     path.join(__dirname, "../../client/src/stores/driverIntelStore.ts"),
     "utf8",
@@ -230,4 +230,181 @@ test("all rendered Driver Intelligence surfaces consume resolved versions", () =
     panel,
     /c\.health === "outdated" \|\| c\.health === "critical"/,
   );
+});
+// ── Installed-driver probe resolution ─────────────────────────────────────────
+
+const { resolveInstalledComponent } = require("../../client/src/lib/driver-intel-data.ts");
+const { parseDriverProbeOutput } = require("../driver-probe-output.js");
+
+function component(overrides) {
+  return {
+    kind: "gpu",
+    title: "Graphics",
+    device: "AMD Radeon RX 7800 XT",
+    vendorKey: "amd",
+    current: null,
+    latest: "26.10.2",
+    health: "unknown",
+    safety: "safe",
+    action: null,
+    candidateAction: { label: "Open AMD support", url: "https://www.amd.com/en/support" },
+    rationale: "Not compared yet.",
+    ...overrides,
+  };
+}
+
+test("AMD Adrenalin package version is compared with the published release", () => {
+  const same = resolveInstalledComponent(component({}), {
+    amd_gpu: "32.0.21025.10016",
+    amd_gpu_adrenalin: "26.10.2",
+    status_gpu_amd: "ok",
+  });
+  assert.equal(same.health, "healthy");
+  assert.equal(same.current, "26.10.2");
+  assert.equal(same.action, null);
+
+  const older = resolveInstalledComponent(component({}), {
+    amd_gpu_adrenalin: "26.8.1",
+    status_gpu_amd: "ok",
+  });
+  assert.equal(older.health, "outdated");
+  assert.equal(older.action?.label, "Open AMD support");
+});
+
+test("a working GPU without a comparable package version is Working, not unknown", () => {
+  const resolved = resolveInstalledComponent(component({}), {
+    amd_gpu: "32.0.21025.10016",
+    status_gpu_amd: "ok",
+  });
+  assert.equal(resolved.health, "working");
+  assert.equal(resolved.current, "32.0.21025.10016");
+  assert.equal(resolved.action, null);
+  assert.equal(getHealthMeta(resolved.health).color, HEALTH_META.healthy.color);
+});
+
+test("legacy GPU driver branches are never told to update to the mainstream release", () => {
+  const pascal = resolveInstalledComponent(
+    component({ device: "NVIDIA GeForce GTX 1080 Ti", vendorKey: "nvidia", latest: "621.14" }),
+    { nvidia_gpu: "581.57", status_gpu_nvidia: "ok" },
+  );
+  assert.equal(pascal.health, "working");
+  assert.equal(pascal.action, null);
+
+  const turing = resolveInstalledComponent(
+    component({ device: "NVIDIA GeForce RTX 2070", vendorKey: "nvidia", latest: "621.14" }),
+    { nvidia_gpu: "581.57", status_gpu_nvidia: "ok" },
+  );
+  assert.equal(turing.health, "outdated");
+
+  const polaris = resolveInstalledComponent(component({ device: "AMD Radeon RX 580" }), {
+    amd_gpu_adrenalin: "23.9.1",
+    status_gpu_amd: "ok",
+  });
+  assert.equal(polaris.health, "working");
+
+  const rdna1 = resolveInstalledComponent(component({ device: "AMD Radeon RX 5700 XT" }), {
+    amd_gpu_adrenalin: "26.10.2",
+    status_gpu_amd: "ok",
+  });
+  assert.equal(rdna1.health, "healthy");
+
+  const intelLegacy = resolveInstalledComponent(
+    component({ device: "Intel(R) UHD Graphics 630", vendorKey: "intel", latest: "32.0.101.9175" }),
+    { intel_gpu: "31.0.101.2135", status_gpu_intel: "ok" },
+  );
+  assert.equal(intelLegacy.health, "working");
+});
+
+test("chipset compares only the installed package version", () => {
+  const chipset = component({
+    kind: "chipset",
+    title: "Chipset",
+    device: "AMD platform",
+    latest: "8.09.28.1124",
+  });
+  assert.equal(
+    resolveInstalledComponent(chipset, { amd_chipset_package: "8.09.28.1124", status_chipset: "ok" }).health,
+    "healthy",
+  );
+  const deviceOnly = resolveInstalledComponent(chipset, {
+    amd_chipset: "5.12.0.38",
+    status_chipset: "ok",
+  });
+  assert.equal(deviceOnly.health, "working");
+  assert.equal(deviceOnly.action, null);
+});
+
+test("network, audio, Bluetooth, and storage use Windows device state", () => {
+  for (const [kind, slot] of [["network", "network"], ["audio", "audio"], ["bluetooth", "bluetooth"], ["ssd", "storage"]]) {
+    const base = component({ kind, vendorKey: "intel", latest: "24.80.0", device: "Device" });
+    assert.equal(resolveInstalledComponent(base, { [`status_${slot}`]: "ok" }).health, "working", kind);
+    const broken = resolveInstalledComponent(base, {
+      [`status_${slot}`]: "problem",
+      [`detail_${slot}`]: "Intel Wireless Bluetooth (CM_PROB_FAILED_START)",
+    });
+    assert.equal(broken.health, "critical", kind);
+    assert.match(broken.rationale, /Windows reports a problem/);
+    assert.equal(resolveInstalledComponent(base, { [`status_${slot}`]: "absent" }).health, "unknown", kind);
+    assert.equal(resolveInstalledComponent(base, {}).health, "unknown", kind);
+  }
+});
+
+test("working components count fully toward the health score", () => {
+  const score = computeHealthScore([
+    component({ health: "working" }),
+    component({ kind: "cpu", health: "working" }),
+  ]);
+  assert.equal(score.overall, 100);
+});
+
+test("probe output parser tolerates PowerShell noise before the payload", () => {
+  const parsed = parseDriverProbeOutput(
+    'WARNING: something noisy\r\nSCDRV:{"amd_gpu_adrenalin":"26.10.1","status_gpu_amd":"ok","n":1}\r\n',
+  );
+  assert.equal(parsed.ok, true);
+  assert.deepEqual(parsed.data, { amd_gpu_adrenalin: "26.10.1", status_gpu_amd: "ok" });
+  assert.deepEqual(parseDriverProbeOutput('{"wifi":"1.2"}').data, { wifi: "1.2" });
+  assert.deepEqual(parseDriverProbeOutput("garbage").data, {});
+});
+
+// ── Official vendor source parsers ────────────────────────────────────────────
+
+const {
+  parseAmdAdrenalinPage,
+  parseAmdChipsetPage,
+  parseIntelDownloadPage,
+  parseNvidiaLookup,
+} = require("../../server/lib/driverSourceParsers.ts");
+
+test("AMD parser reads labelled Adrenalin revisions and their own release dates", () => {
+  const html = `<meta property="og:updated" content="2026-06-10">
+    <div>AMD Software: Adrenalin Edition Revision Number <b>Adrenalin 26.10.2 WHQL (Optional)</b> File Size 979 MB Release Date 2026-10-30</div>
+    <div>AMD Software: Adrenalin Edition Revision Number <b>Adrenalin 26.10.1 WHQL (Recommended)</b> File Size 887 MB Release Date 2026-10-20</div>`;
+  const parsed = parseAmdAdrenalinPage(html);
+  assert.equal(parsed.latest, "26.10.2");
+  assert.equal(parsed.releaseDate, "2026-10-30");
+  assert.match(parsed.releaseNotes, /Recommended release is 26\.10\.1/);
+  assert.throws(() => parseAmdAdrenalinPage("<html>26.10.2 2026-06-10</html>"));
+});
+
+test("AMD chipset, Intel, and NVIDIA parsers read official structured fields", () => {
+  assert.deepEqual(
+    parseAmdChipsetPage("Chipset Drivers Revision Number 8.09.28.1124 File Size 79 MB Release Date 2026-10-21").latest,
+    "8.09.28.1124",
+  );
+  const intel = parseIntelDownloadPage(
+    '<meta name="DownloadVersion" content="32.0.101.9175 WHQL Certified"><meta name="LastUpdate" content="11/04/2026 00:00:00">',
+    "Intel GPU",
+  );
+  assert.equal(intel.latest, "32.0.101.9175");
+  assert.equal(intel.releaseDate, "2026-11-04");
+  const nvidia = parseNvidiaLookup({
+    IDS: [
+      { downloadInfo: { Version: "621.01", ReleaseDateTime: "Wed Oct 21, 2026", IsBeta: "0", Name: "GeForce%20Game%20Ready%20Driver" } },
+      { downloadInfo: { Version: "621.14", ReleaseDateTime: "Wed Nov 04, 2026", IsBeta: "0", Name: "GeForce%20Game%20Ready%20Driver" } },
+      { downloadInfo: { Version: "625.00", ReleaseDateTime: "Thu Nov 05, 2026", IsBeta: "1", Name: "Beta" } },
+    ],
+  });
+  assert.equal(nvidia.latest, "621.14");
+  assert.equal(nvidia.releaseDate, "2026-11-04");
 });

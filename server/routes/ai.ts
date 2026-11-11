@@ -803,11 +803,22 @@ export function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<ty
   // ── Driver Intel ──────────────────────────────────────────────────────────
   const driverIntel = context?.driverIntel;
   if (driverIntel && typeof driverIntel === "object" && Object.keys(driverIntel).length > 0) {
-    const entries = Object.entries(driverIntel)
-      .filter(([, v]) => v)
+    const all = Object.entries(driverIntel).filter(([, v]) => typeof v === "string" && v);
+    const entries = all
+      .filter(([k]) => !k.startsWith("status_") && !k.startsWith("detail_"))
       .map(([k, v]) => `${k.replace(/_/g, " ")}: v${v}`);
     if (entries.length > 0) {
       parts.push(`Installed driver versions (from Driver Intel): ${entries.join(", ")}`);
+    }
+    const statuses = all
+      .filter(([k, v]) => k.startsWith("status_") && v !== "absent")
+      .map(([k, v]) => {
+        const slot = k.slice("status_".length);
+        const detail = (driverIntel as Record<string, unknown>)[`detail_${slot}`];
+        return `${slot.replace(/_/g, " ")}: ${v === "ok" ? "working" : "problem"}${typeof detail === "string" && detail ? ` (${detail})` : ""}`;
+      });
+    if (statuses.length > 0) {
+      parts.push(`Windows device status (from Driver Intel): ${statuses.join(", ")}`);
     }
   } else {
     parts.push("Driver Intel: version scan not yet run — navigate to <<NAV:/driver-intel:Driver Intel>> to run it");

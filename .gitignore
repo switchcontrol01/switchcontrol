@@ -18,3 +18,4 @@ logs/
 .cache/
 attached_assets/
 screenshots/electron/native/sc_memory/target/
+/generated-artifacts/

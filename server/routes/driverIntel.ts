@@ -66,51 +66,45 @@
    * the server data changes. Keys are normalised vendor identifiers.
    */
   const DATABASE = {
-    dbVersion: "2026.08.2",
-    updatedAt: "2026-08-31",
+    dbVersion: "2026.11.1",
+    updatedAt: "2026-11-11",
   
     gpu: {
       nvidia: {
-        latest: "596.99",
-        releaseDate: "2026-06-10",
+        latest: "621.14",
+        releaseDate: "2026-11-04",
         releaseNotes:
-          "Game Ready driver. Adds optimisations for recent titles, fixes a DPC latency regression present in 575.x, improves DLSS frame generation stability.",
-        knownIssues: [
-          "Some users report idle clock fluctuations on multi-monitor high-refresh setups.",
-        ],
+          "GeForce Game Ready Driver 621.14 (WHQL), released 2026-11-04. Full notes are on NVIDIA's official driver page.",
         safety: "safe",
       } as DriverDbEntry,
       amd: {
-        latest: "26.8.1",
-        releaseDate: "2026-06-04",
+        latest: "26.10.2",
+        releaseDate: "2026-10-30",
         releaseNotes:
-          "Adrenalin Edition. Performance uplift in DX12 titles, fixes for AFMF stutter, improved Radeon Anti-Lag compatibility.",
-        knownIssues: ["Anti-Lag may be disabled in select anti-cheat titles."],
+          "AMD Software: Adrenalin Edition 26.10.2 (Optional), released 2026-10-30. AMD's current Recommended release is 26.10.1.",
         safety: "safe",
       } as DriverDbEntry,
       intel: {
-        latest: "32.0.101.8974",
-        releaseDate: "2026-05-28",
+        latest: "32.0.101.9175",
+        releaseDate: "2026-11-04",
         releaseNotes:
-          "Arc & Iris Xe driver. Game optimisations and DX11 overhead reductions, several application-crash fixes.",
+          "Intel Arc & Iris Xe Graphics driver 32.0.101.9175, released 2026-11-04.",
         safety: "safe",
       } as DriverDbEntry,
     },
   
     chipset: {
       amd: {
-        latest: "23.205.114.203",
-        releaseDate: "2026-05-20",
-        releaseNotes:
-          "AMD Chipset driver bundle. Updated power plan behaviour, preferred-core (CPPC) scheduling refinements, USB stability fixes.",
+        latest: "8.09.28.1124",
+        releaseDate: "2026-10-21",
+        releaseNotes: "AMD Chipset Drivers 8.09.28.1124, released 2026-10-21.",
         knownIssues: [],
         safety: "safe",
       } as DriverDbEntry,
       intel: {
         latest: "10.1.20658.8883",
-        releaseDate: "2026-04-30",
-        releaseNotes:
-          "Intel Chipset Device Software. Refreshes device identification for current platforms.",
+        releaseDate: "2026-01-08",
+        releaseNotes: "Intel Chipset Device Software 10.1.20658.8883, released 2026-01-08.",
         safety: "safe",
       } as DriverDbEntry,
     },
@@ -173,10 +167,9 @@
   
     network: {
       intel: {
-        latest: "31.2.2",
-        releaseDate: "2026-05-15",
-        releaseNotes:
-          "Intel Ethernet/Wi-Fi driver. RSS and interrupt-moderation tuning, latency improvements, security fixes.",
+        latest: "31.3",
+        releaseDate: "2026-10-16",
+        releaseNotes: "Intel Ethernet Adapter package 31.3, released 2026-10-16.",
         knownIssues: [],
         safety: "safe",
       } as DriverDbEntry,
@@ -263,9 +256,9 @@
   
     bluetooth: {
       intel: {
-        latest: "24.60.0",
-        releaseDate: "2026-05-15",
-        releaseNotes: "Intel Bluetooth driver. Connection stability and pairing fixes.",
+        latest: "24.80.0",
+        releaseDate: "2026-10-20",
+        releaseNotes: "Intel Wireless Bluetooth package 24.80.0, released 2026-10-20.",
         safety: "safe",
       } as DriverDbEntry,
       realtek: {
@@ -289,63 +282,70 @@
     },
   };
   
+  // Only releases verified against official vendor sources belong here.
   const NEWS: DriverNewsItem[] = [
     {
-      id: "news-db-20260822",
+      id: "news-db-20261111",
       vendor: "SwitchControl",
       category: "Database",
-      title: "Driver database updated — August 2026",
+      title: "Driver database updated — November 2026",
       summary:
-        "Verified vendor refresh: NVIDIA, AMD, and Intel GPU/chipset/network/Bluetooth records are current as of August 22, 2026. Realtek remains on its last known-good baseline because its official server sources block automated access.",
-      date: "2026-08-22",
+        "Verified against official NVIDIA, AMD, and Intel sources on November 11, 2026. Realtek remains on its last known-good baseline because its official sources block automated access.",
+      date: "2026-11-11",
       safety: "safe",
     },
     {
-      id: "news-nv-59699",
+      id: "news-nv-62114",
       vendor: "NVIDIA",
       category: "GPU",
-      title: "NVIDIA Game Ready 596.99 available",
-      summary:
-        "Fixes a DPC latency regression from the 575 branch and improves frame-generation stability.",
-      date: "2026-06-10",
+      title: "NVIDIA Game Ready 621.14 available",
+      summary: "WHQL Game Ready driver released November 4, 2026.",
+      date: "2026-11-04",
       safety: "safe",
     },
     {
-      id: "news-amd-chipset-23205",
+      id: "news-intel-gpu-9175",
+      vendor: "Intel",
+      category: "GPU",
+      title: "Intel Arc & Iris Xe 32.0.101.9175",
+      summary: "WHQL graphics driver released November 4, 2026.",
+      date: "2026-11-04",
+      safety: "safe",
+    },
+    {
+      id: "news-amd-adrenalin-26102",
+      vendor: "AMD",
+      category: "GPU",
+      title: "AMD Adrenalin 26.10.2 available",
+      summary: "Optional WHQL release from October 30, 2026. 26.10.1 (October 20) is AMD's current Recommended release.",
+      date: "2026-10-30",
+      safety: "safe",
+    },
+    {
+      id: "news-amd-chipset-8092811",
       vendor: "AMD",
       category: "Chipset",
-      title: "AMD chipset 23.205.114.203 available",
-      summary:
-        "Preferred-core scheduling refinements and USB stability fixes for AM5 platforms.",
-      date: "2026-05-20",
+      title: "AMD Chipset Drivers 8.09.28.1124",
+      summary: "Chipset package for AM4 and AM5 platforms released October 21, 2026.",
+      date: "2026-10-21",
       safety: "safe",
     },
     {
-      id: "news-giga-f10",
-      vendor: "Gigabyte",
-      category: "BIOS",
-      title: "Gigabyte F10 BIOS (AGESA 1.2.0.3)",
-      summary:
-        "Improved memory training for high-frequency EXPO kits and a security microcode update.",
-      date: "2026-05-12",
-      safety: "caution",
+      id: "news-intel-bt-24800",
+      vendor: "Intel",
+      category: "Bluetooth",
+      title: "Intel Wireless Bluetooth 24.80.0",
+      summary: "Bluetooth package released October 20, 2026.",
+      date: "2026-10-20",
+      safety: "safe",
     },
     {
-      id: "news-intel-lan-3122",
+      id: "news-intel-lan-313",
       vendor: "Intel",
       category: "Network",
-      title: "Intel LAN/Wi-Fi 31.2.2 update",
-      summary: "RSS and interrupt-moderation tuning with measurable latency improvements.",
-      date: "2026-05-15",
-      safety: "safe",
-    },
-    {
-      id: "news-realtek-audio",
-      vendor: "Realtek",
-      category: "Audio",
-      title: "Realtek UAD audio 6.0.9670.1",
-      summary: "DPC latency reductions and crackle fixes on select motherboards.",
-      date: "2026-05-19",
+      title: "Intel Ethernet Adapter package 31.3",
+      summary: "Ethernet driver package released October 16, 2026.",
+      date: "2026-10-16",
       safety: "safe",
     },
   ];
@@ -390,6 +390,13 @@
       const bucket = merged[cat] ?? (merged[cat] = {});
       const existing: DriverDbEntry | undefined = bucket[row.vendorKey];
       const entry: DriverDbEntry = existing ? { ...existing } : { latest: row.latest, safety: "safe" };
+      if (existing && existing.latest !== row.latest) {
+        // Baseline metadata describes a different release; never pair it
+        // with the fetched version (e.g. an old date next to a new driver).
+        delete entry.releaseDate;
+        delete entry.releaseNotes;
+        entry.knownIssues = [];
+      }
       entry.latest = row.latest;
       if (row.releaseDate) entry.releaseDate = row.releaseDate;
       if (row.releaseNotes) entry.releaseNotes = row.releaseNotes;

@@ -48,8 +48,9 @@ import {
   getHealthMeta,
   SCAN_STEPS,
   countActionable,
+  countUnverified,
   computeHealthScore,
-  applyInstalledVersion,
+  resolveInstalledComponent,
 } from "@/lib/driver-intel-data";
 import { MotherboardMap } from "@/components/driver-intel/MotherboardMap";
 import { HealthRadial } from "@/components/driver-intel/HealthRadial";
@@ -267,44 +268,18 @@ export default function DriverIntelligence() {
     };
   }, [components]);
 
-  // Map a component kind + vendorKey to the right installedVersions key.
-  function getInstalledVersion(kind: string, vendorKey: string | null): string | null {
-    const v = installedVersions;
-    const vendor = (vendorKey ?? "").toLowerCase();
-    if (kind === "gpu") {
-      if (vendor.includes("amd") || vendor.includes("radeon"))
-        return v.amd_gpu_adrenalin || v.amd_gpu || null;
-      if (vendor.includes("nvidia")) return v.nvidia_gpu || null;
-      if (vendor.includes("intel")) return v.intel_gpu || null;
-    }
-    if (kind === "chipset") {
-      if (vendor.includes("amd")) return v.amd_chipset || null;
-      if (vendor.includes("intel")) return v.intel_chipset || null;
-    }
-    if (kind === "network") return v.wifi || v.ethernet || null;
-    if (kind === "bluetooth") return v.bluetooth || null;
-    if (kind === "monitor") return v.display || null;
-    if (kind === "ssd") return v.storage || null;
-    if (kind === "cpu") return v.processor || null;
-    if (kind === "audio") return v.audio || null;
-    return null;
-  }
-
-  // Merge registry-detected installed versions into component list for display.
-  // bios and monitor already have real values from hw data — only fill null slots.
+  // Resolve every component against the Windows installed-driver probe:
+  // comparable versions → version status; Device Manager state → Working /
+  // Action needed; otherwise the component stays "Not verified".
   const displayComponents = useMemo<DriverComponent[]>(() => {
     if (installedLoading || Object.keys(installedVersions).length === 0) return components;
-    return components.map((c) => {
-      if (c.current !== null) return c; // already has a real value — never overwrite
-      const detected = getInstalledVersion(c.kind, c.vendorKey);
-      if (!detected) return c;
-       return applyInstalledVersion(c, detected);
-    });
-  }, [components, installedVersions, installedLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+    return components.map((c) => resolveInstalledComponent(c, installedVersions));
+  }, [components, installedVersions, installedLoading]);
 
   const scanning = phase === "scanning";
   const dataReady = hasData(phase);
   const actionable = useMemo(() => countActionable(displayComponents), [displayComponents]);
+  const unverified = useMemo(() => countUnverified(displayComponents), [displayComponents]);
   const displayScore = useMemo(
     () => (dataReady ? computeHealthScore(displayComponents) : score),
     [dataReady, displayComponents, score],
@@ -528,13 +503,17 @@ export default function DriverIntelligence() {
                   style={
                     actionable > 0
                       ? { background: "rgba(251,191,36,0.15)", color: "#fbbf24" }
-                      : { background: "rgba(52,211,153,0.15)", color: "#34d399" }
+                      : unverified > 0
+                        ? { background: "rgba(148,163,184,0.15)", color: "#94a3b8" }
+                        : { background: "rgba(52,211,153,0.15)", color: "#34d399" }
                   }
                   data-testid="text-actionable-count"
                 >
                   {actionable > 0
-                    ? `${actionable} ${t(actionable === 1 ? "update available" : "updates available")}`
-                    : t("All systems healthy")}
+                    ? `${actionable} ${t(actionable === 1 ? "item needs attention" : "items need attention")}`
+                    : unverified > 0
+                      ? `${unverified} ${t(unverified === 1 ? "component not verified" : "components not verified")}`
+                      : t("All systems healthy")}
                 </span>
               )}
             </div>

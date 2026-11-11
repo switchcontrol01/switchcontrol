@@ -8,15 +8,14 @@
  *
  * Merge order: static DATABASE < driverFetchCache < driverDbOverrides
  *
- * ── Vendor accessibility notes (Replit datacenter IPs, 2026-07) ──────────────
+ * ── Official sources (verified from Replit datacenter IPs, 2026-11) ─────────
  *
- *  NVIDIA GPU       developer.nvidia.com/vulkan-driver — static HTML, no bot gate
- *  AMD GPU          amd.com product page — static HTML, publicly accessible
- *  AMD Chipset      amd.com/en/support/downloads/drivers.html — static, accessible
- *  Intel GPU        intel.com download center — requires XHR headers to unlock 200
- *  Intel Chipset    intel.com download center — same XHR unlock
- *  Intel Network    intel.com download center — same XHR unlock
- *  Intel Bluetooth  intel.com download center — same XHR unlock
+ *  NVIDIA GPU       gfwsl.geforce.com driver lookup JSON (backs nvidia.com/Download)
+ *  AMD GPU          amd.com Radeon RX download page — needs a browser UA
+ *  AMD Chipset      amd.com AM5 chipset download page — needs a browser UA
+ *  Intel GPU/Chipset/Network/Bluetooth
+ *                   intel.com download center <meta name="DownloadVersion"> —
+ *                   returns 403 to spoofed browser UAs; honest client UA works
  *  Realtek Network  Cloudflare JS-challenge on all Realtek pages; MS Update Catalog
  *                   requires client-side ActiveX/scripting — not accessible server-side
  *  Realtek Audio    Same block as Realtek Network
@@ -25,28 +24,31 @@
 import { db } from "../db";
 import { driverFetchCache, type DriverFetchCache } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
+import {
+  parseAmdAdrenalinPage,
+  parseAmdChipsetPage,
+  parseIntelDownloadPage,
+  parseNvidiaLookup,
+} from "./driverSourceParsers";
 
 // ── Shared fetch helpers ───────────────────────────────────────────────────────
 
-/** Standard browser UA — passes most User-Agent checks. */
+/**
+ * Browser UA — AMD's CDN drops non-browser clients (connection timeout).
+ * Intel's CDN is the opposite: it returns 403 to spoofed browser UAs from
+ * datacenter IPs, but serves the page to an honest client identifier.
+ */
 const UA_BROWSER = {
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
     "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
   Accept: "text/html,application/xhtml+xml,*/*;q=0.9",
   "Accept-Language": "en-US,en;q=0.9",
-  Referer: "https://www.google.com/",
 };
 
-/**
- * XHR headers — unlock Intel's download center pages.
- * Intel returns HTTP 403 to plain browser UA from datacenter IPs, but
- * returns 200 with full HTML when these XHR-style headers are present.
- */
-const UA_XHR = {
-  ...UA_BROWSER,
-  Accept: "application/json",
-  "X-Requested-With": "XMLHttpRequest",
+const UA_CLIENT = {
+  "User-Agent": "SwitchControl-DriverIntel/1.0 (+https://switchcontrol.org)",
+  Accept: "text/html,application/json;q=0.9,*/*;q=0.8",
 };
 
 const FETCH_TIMEOUT_MS = 20_000;
@@ -62,184 +64,69 @@ interface FetchResult {
   source: string;
 }
 
-// ── Vendor fetchers ────────────────────────────────────────────────────────────
+async function fetchText(url: string, headers: Record<string, string>): Promise<string> {
+  const r = await fetch(url, { headers, signal: signal() });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.text();
+}
 
-/**
- * NVIDIA Game Ready Driver — scrapes the NVIDIA Vulkan driver developer page.
- *
- * This static page at developer.nvidia.com/vulkan-driver is publicly
- * accessible from any IP without bot-protection. It lists the current
- * minimum required Windows display driver version for each Vulkan release.
- *
- * The highest version-shaped number (format NNN.NN or NNN.NNN in the
- * 550–700 range) is the most recent GRD/Studio driver recommendation.
- *
- * Why NOT the GFWSL API: gfwsl.geforce.com returns Success:"0" (no results)
- * for all pfid/osid combinations from datacenter IPs — it is server-blocked.
- * Why NOT the security advisory page: it contains SVG path coordinates that
- * match the same regex pattern (e.g. 976.81, 656.26 are bezier values).
- */
+// ── Vendor fetchers ────────────────────────────────────────────────────────────
+// Each fetcher reads one official vendor source and uses a strict parser that
+// only accepts explicitly labelled releases (see driverSourceParsers.ts).
+
+/** NVIDIA's official driver lookup service (backs nvidia.com/Download). */
 async function fetchNvidiaGpu(): Promise<FetchResult> {
-  const r = await fetch("https://developer.nvidia.com/vulkan-driver", {
-    headers: UA_BROWSER,
+  // psid 131 / pfid 1066 = GeForce RTX desktop; osID 57 = Windows 10/11 64-bit.
+  // Game Ready drivers are unified, so one current product returns the branch.
+  const url =
+    "https://gfwsl.geforce.com/services_toolkit/services/com/nvidia/services/AjaxDriverService.php" +
+    "?func=DriverManualLookup&psid=131&pfid=1066&osID=57&languageCode=1033&beta=0&isWHQL=1" +
+    "&dltype=-1&dch=1&upCRD=0&qnf=0&sort1=0&numberOfResults=5";
+  const r = await fetch(url, {
+    headers: { ...UA_CLIENT, Accept: "application/json" },
     signal: signal(),
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const html = await r.text();
-
-  // Collect clean Windows GRD version numbers.
-  // Plausible range for 2024–2027: 550.xx – 700.xx.
-  // Exclude matches inside SVG path data attributes (d="M... N.NN ...").
-  // The vulkan page is plain HTML — no SVG — so this regex is sufficient.
-  const versions = [
-    ...html.matchAll(/\b(5[5-9]\d\.\d{2,3}|6\d{2}\.\d{2,3}|7[01]\d\.\d{2,3})\b/g),
-  ].map((m) => m[1]);
-
-  if (!versions.length) {
-    throw new Error("NVIDIA version not found on vulkan-driver page");
-  }
-
-  // Sort descending — highest version number = most recent driver.
-  versions.sort((a, b) => parseFloat(b) - parseFloat(a));
-  const latest = versions[0];
-
-  const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
-  return { latest, releaseDate: dateM?.[1], source: "nvidia-vulkan-developer-page" };
+  return { ...parseNvidiaLookup(await r.json()), source: "nvidia-driver-lookup" };
 }
 
-/**
- * AMD Adrenalin GPU driver — AMD's RX 7000-series product download page.
- * Server-rendered, no bot-gate, stable URL.
- */
+/** AMD Adrenalin — official Radeon RX download page. */
 async function fetchAmdGpu(): Promise<FetchResult> {
-  const url =
-    "https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-rx/radeon-rx-7000-series/amd-radeon-rx-7900-xtx.html";
-  const r = await fetch(url, { headers: UA_BROWSER, signal: signal() });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const html = await r.text();
-
-  const versionMatch =
-    html.match(/Adrenalin(?:\s+Edition)?\s+(\d{2,}\.\d+\.\d+)/i) ||
-    html.match(/"version"\s*:\s*"(\d{2,}\.\d+\.\d+)"/) ||
-    html.match(/(\d{2,}\.\d+\.\d+)\s*(?:WHQL|Release)/i);
-  if (!versionMatch) throw new Error("AMD GPU version not found in page");
-
-  const dateMatch = html.match(/(\d{4}-\d{2}-\d{2})/);
-  return {
-    latest: versionMatch[1],
-    releaseDate: dateMatch?.[1],
-    source: "amd-downloads-page",
-  };
+  const html = await fetchText(
+    "https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-rx/radeon-rx-7000-series/amd-radeon-rx-7900-xtx.html",
+    UA_BROWSER,
+  );
+  return { ...parseAmdAdrenalinPage(html), source: "amd-downloads-page" };
 }
 
-/**
- * Intel Arc / Iris Xe GPU driver — Intel download center page 785597.
- *
- * Intel's download center serves HTTP 403 to plain browser requests from
- * datacenter IPs. Adding XHR-style headers (X-Requested-With + JSON Accept)
- * unlocks a 200 response with full HTML. The canonical version string is
- * embedded in a <meta content="32.0.101.XXXX"> attribute on the page.
- */
-async function fetchIntelGpu(): Promise<FetchResult> {
-  const url =
-    "https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html";
-  const r = await fetch(url, { headers: UA_XHR, signal: signal() });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const html = await r.text();
-
-  // Meta content holds the version string: content="32.0.101.8864"
-  const m =
-    html.match(/content="[^"]*?(\d{2,3}\.\d+\.\d+\.\d{4,})[^"]*"/) ||
-    html.match(/(\d{2,3}\.\d+\.\d+\.\d{4,})/);
-  if (!m) throw new Error("Intel GPU version not found in meta content");
-
-  const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
-  return { latest: m[1], releaseDate: dateM?.[1], source: "intel-download-center" };
-}
-
-/**
- * Intel Chipset Device Software (INF Utility) — download page 19347.
- * Same XHR-header unlock as GPU. Version format: 10.1.XXXXX.XXXX.
- */
-async function fetchIntelChipset(): Promise<FetchResult> {
-  const url =
-    "https://www.intel.com/content/www/us/en/download/19347/intel-chipset-device-software-inf-utility.html";
-  const r = await fetch(url, { headers: UA_XHR, signal: signal() });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const html = await r.text();
-
-  const m =
-    html.match(/content="[^"]*?(\d{1,2}\.\d+\.\d{5,}\.\d+)[^"]*"/) ||
-    html.match(/(\d{1,2}\.\d+\.\d{5,}\.\d+)/);
-  if (!m) throw new Error("Intel Chipset version not found");
-
-  const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
-  return { latest: m[1], releaseDate: dateM?.[1], source: "intel-download-center" };
-}
-
-/**
- * AMD Chipset Software — AMD's general driver download landing page.
- *
- * All per-chipset product URLs (e.g. /chipset/amd-socket-am5/…) return 404.
- * The general page at /support/downloads/drivers.html returns 200 and embeds
- * the current AMD chipset software version in 4-part format (e.g. 23.212.7.108).
- */
+/** AMD Chipset Drivers — official AM5 chipset page (same package for AM4). */
 async function fetchAmdChipset(): Promise<FetchResult> {
-  const url = "https://www.amd.com/en/support/downloads/drivers.html";
-  const r = await fetch(url, { headers: UA_BROWSER, signal: signal() });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const html = await r.text();
-
-  // AMD chipset version format: YY.DDD.M.PATCH — e.g. 23.212.7.108
-  const m =
-    html.match(/\b(\d{2}\.\d{3}\.\d+\.\d+)\b/) ||
-    html.match(/\b(\d+\.\d+\.\d+\.\d{3,})\b/);
-  if (!m) throw new Error("AMD Chipset version not found on download page");
-
-  const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
-  return { latest: m[1], releaseDate: dateM?.[1], source: "amd-downloads-page" };
+  const html = await fetchText(
+    "https://www.amd.com/en/support/downloads/drivers.html/chipsets/am5/x670e.html",
+    UA_BROWSER,
+  );
+  return { ...parseAmdChipsetPage(html), source: "amd-chipset-page" };
 }
 
-/**
- * Intel Network Adapter driver — download page 18293.
- * XHR-header unlock; version format: 31.2.2 (2–3 part, major ≥ 2 digits).
- */
-async function fetchIntelNetwork(): Promise<FetchResult> {
-  const url =
-    "https://www.intel.com/content/www/us/en/download/18293/intel-network-adapter-driver-for-windows-10.html";
-  const r = await fetch(url, { headers: UA_XHR, signal: signal() });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const html = await r.text();
-
-  const m =
-    html.match(/content="[^"]*?(\d{2,}\.\d+(?:\.\d+)?)[^"]*"/) ||
-    html.match(/\b(\d{2,}\.\d+(?:\.\d+)?)\b/);
-  if (!m) throw new Error("Intel Network version not found");
-
-  const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
-  return { latest: m[1], releaseDate: dateM?.[1], source: "intel-download-center" };
+async function fetchIntelDownload(id: string, label: string): Promise<FetchResult> {
+  const html = await fetchText(
+    `https://www.intel.com/content/www/us/en/download/${id}.html`,
+    UA_CLIENT,
+  );
+  return { ...parseIntelDownloadPage(html, label), source: "intel-download-center" };
 }
 
-/**
- * Intel Wireless Bluetooth driver — download page 18649.
- * Same XHR unlock. Version format: 24.50.0 (3-part, major ≥ 2 digits).
- */
-async function fetchIntelBluetooth(): Promise<FetchResult> {
-  const url =
-    "https://www.intel.com/content/www/us/en/download/18649/intel-wireless-bluetooth-for-windows-10-and-windows-11.html";
-  const r = await fetch(url, { headers: UA_XHR, signal: signal() });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const html = await r.text();
-
-  const m =
-    html.match(/content="[^"]*?(\d{2,}\.\d+\.\d+)[^"]*"/) ||
-    html.match(/Version[^0-9]*(\d{2,}\.\d+\.\d+)/i) ||
-    html.match(/"softwareVersion"\s*:\s*"(\d{2,}\.\d+\.\d+)"/);
-  if (!m) throw new Error("Intel Bluetooth version not found");
-
-  const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
-  return { latest: m[1], releaseDate: dateM?.[1], source: "intel-download-center" };
-}
+const fetchIntelGpu = () =>
+  fetchIntelDownload("785597/intel-arc-graphics-windows", "Intel Arc & Iris Xe Graphics driver");
+const fetchIntelChipset = () =>
+  fetchIntelDownload("19347/chipset-inf-utility", "Intel Chipset Device Software");
+const fetchIntelNetwork = () =>
+  fetchIntelDownload("18293/intel-network-adapter-driver-for-windows-10", "Intel Ethernet Adapter package");
+const fetchIntelBluetooth = () =>
+  fetchIntelDownload(
+    "18649/intel-wireless-bluetooth-drivers-for-windows-10-and-windows-11",
+    "Intel Wireless Bluetooth package",
+  );
 
 /**
  * Realtek PCIe GbE LAN driver — NOT ACCESSIBLE from server-side.

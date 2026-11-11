@@ -33,6 +33,28 @@ driver/firmware versions against a server-maintained cloud DB.
   Missing installed versions also remain unknown; official update actions stay dormant
   until a verified comparison proves the installed version is older.
 
+## Green means evidence, in two strengths
+- "healthy"/"newer" = a comparable installed *package* version was checked against
+  the catalog. "working" (also green) = Windows Device Manager / storage stack reports
+  the present device working; used when versions are not comparable. Device errors
+  (excluding user-disabled code 22) → "critical". No evidence → "Not verified" (grey).
+  **Why:** user wanted all-green; most peripherals have no universal comparable
+  version, but Windows device state is real, cross-PC evidence.
+- Comparable sources: AMD `RadeonSoftwareVersion` (Adrenalin), nvidia-smi, Intel 4-part
+  same-major, chipset uninstall-entry package versions. Legacy GPU branches (Pascal and
+  older, Polaris/Vega, Intel 31.x) are never told to update to the mainstream release.
+- The Electron probe prints an `SCDRV:` marker line; never JSON.parse raw PowerShell
+  stdout (warnings on stdout silently produced `{}` → everything grey).
+
+## Official source quirks (verified 2026-11)
+- NVIDIA: gfwsl lookup JSON works from Replit; the Vulkan dev page lists stale versions.
+- AMD pages need a browser UA (non-browser UA times out); parse "Revision Number …
+  Release Date" pairs — the first date on the page is unrelated metadata.
+- Intel download center 403s spoofed browser UAs but serves an honest client UA; read
+  `<meta name="DownloadVersion">` + `LastUpdate`.
+- When a fetched version differs from the static baseline, drop the baseline's
+  date/notes/known issues — they describe a different release.
+
 ## State machine — "partial" is a cache-hit, not a failure
 - Phases: idle → scanning → ready | partial (| error only if everything fails).
 - Per-field fallback: any undetectable component degrades to a single "unknown" card;

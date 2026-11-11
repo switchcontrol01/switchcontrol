@@ -196,7 +196,9 @@ function PanelBody({
           </div>
           <div className="text-sm font-medium mt-1 break-words" data-testid="text-current-version">
             {c.current ??
-              (c.kind === "ssd" && c.device !== "Unknown drive"
+              (c.health === "working"
+                ? t("Working — version not reported")
+                : c.kind === "ssd" && c.device !== "Unknown drive"
                 ? t("Device detected — firmware unavailable")
                 : t("Not detected"))}
           </div>

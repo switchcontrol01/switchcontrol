@@ -355,7 +355,7 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
     vendorKey: cpuVendor,
     current: hw.cpuBrand ?? null,
     latest: null,
-    health: hw.cpuBrand ? "healthy" : "unknown",
+    health: hw.cpuBrand ? "working" : "unknown",
     safety: "safe",
     action: null,
     rationale: hw.cpuBrand
@@ -407,10 +407,21 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
       ? `Installed BIOS ${hw.biosVersion}${biosEntry ? `; latest reference is ${biosEntry.latest}` : ""}. We never flash automatically, only open the manufacturer page.${motherboardProbeHint ? ` ${motherboardProbeHint}` : ""}`
       : `BIOS version not detected. Open the manufacturer page to check.${motherboardProbeHint ? ` ${motherboardProbeHint}` : ""}`,
   };
+  // BIOS strings are model-specific (F10, 2604, 7E12v1H…) and rarely
+  // orderable. A version Windows reports from firmware is real evidence the
+  // board's firmware is identified and running, so an uncomparable version is
+  // "Working" rather than "Not verified".
+  const resolvedBios = hw.biosVersion
+    ? applyInstalledVersion(biosComponent, hw.biosVersion)
+    : biosComponent;
   out.push(
-    hw.biosVersion
-      ? applyInstalledVersion(biosComponent, hw.biosVersion)
-      : biosComponent,
+    hw.biosVersion && resolvedBios.health === "unknown"
+      ? {
+          ...resolvedBios,
+          health: "working",
+          rationale: `Installed BIOS ${hw.biosVersion} is detected. BIOS versions are specific to each motherboard model, so check the manufacturer page for your exact board — SwitchControl never flashes firmware.${motherboardProbeHint ? ` ${motherboardProbeHint}` : ""}`,
+        }
+      : resolvedBios,
   );
 
   // SSD firmware
@@ -520,7 +531,7 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
     vendorKey: null,
     current: hw.monitor ?? null,
     latest: null,
-    health: hw.monitor ? "healthy" : "unknown",
+    health: hw.monitor ? "working" : "unknown",
     safety: "safe",
     action: null,
     rationale: hw.monitor

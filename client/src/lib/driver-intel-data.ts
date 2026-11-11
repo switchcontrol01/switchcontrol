@@ -14,6 +14,7 @@ export type { DriverVersionComparison, SystemIntelligenceProfile };
 
 export type ComponentHealth =
   | "healthy"
+  | "working"
   | "newer"
   | "outdated"
   | "critical"
@@ -184,13 +185,13 @@ export const LOCAL_DB_FALLBACK: DriverDatabase = {
   dbVersion: "local",
   updatedAt: "bundled",
   gpu: {
-    nvidia: { latest: "596.99", releaseDate: "2026-06-10", safety: "safe" },
-    amd: { latest: "26.8.1", releaseDate: "2026-06-10", safety: "safe" },
-    intel: { latest: "32.0.101.8974", releaseDate: "2026-05-28", safety: "safe" },
+    nvidia: { latest: "621.14", releaseDate: "2026-11-04", safety: "safe" },
+    amd: { latest: "26.10.2", releaseDate: "2026-10-30", safety: "safe" },
+    intel: { latest: "32.0.101.9175", releaseDate: "2026-11-04", safety: "safe" },
   },
   chipset: {
-    amd: { latest: "23.205.114.203", safety: "safe" },
-    intel: { latest: "10.1.20658.8883", safety: "safe" },
+    amd: { latest: "8.09.28.1124", releaseDate: "2026-10-21", safety: "safe" },
+    intel: { latest: "10.1.20658.8883", releaseDate: "2026-01-08", safety: "safe" },
   },
   bios: {
     gigabyte: { latest: "F10", safety: "caution" },
@@ -217,7 +218,7 @@ export const LOCAL_DB_FALLBACK: DriverDatabase = {
     transcend: { latest: "S9FM01.8", safety: "caution" },
   },
   network: {
-    intel: { latest: "31.2.2", safety: "safe" },
+    intel: { latest: "31.3", releaseDate: "2026-10-16", safety: "safe" },
     realtek: { latest: "11.20.0610", safety: "safe" },
     killer: { latest: "3.1.1456", safety: "caution" },
     qualcomm: { latest: "3.3.0.814", safety: "safe" },
@@ -246,7 +247,7 @@ export const LOCAL_DB_FALLBACK: DriverDatabase = {
     logitech: { latest: "G HUB 2026.4", safety: "caution" },
   },
   bluetooth: {
-    intel: { latest: "24.60.0", safety: "safe" },
+    intel: { latest: "24.80.0", releaseDate: "2026-10-20", safety: "safe" },
     realtek: { latest: "1.8.1061", safety: "safe" },
     qualcomm: { latest: "12.0.0.900", safety: "safe" },
     mediatek: { latest: "3.3.0.501", safety: "safe" },
@@ -357,6 +358,22 @@ function versionPartCount(value: string | null | undefined): number {
   return value ? Array.from(value.matchAll(/\d+/g)).length : 0;
 }
 
+function firstVersionPart(value: string | null | undefined): number | null {
+  const match = value?.match(/\d+/);
+  return match ? Number(match[0]) : null;
+}
+
+/**
+ * GPUs that vendors moved to a separate legacy/maintenance driver branch.
+ * The current mainstream release does not apply to them, so a lower installed
+ * version is not evidence that an update is available.
+ */
+const LEGACY_GPU_BRANCH: Record<string, RegExp> = {
+  nvidia:
+    /\b(?:GTX\s?(?:[4-9]\d{2}|10\d{2})|GT\s?\d{3,4}|MX\s?[1-3]\d0|TITAN\s?(?:X|Xp|V|Black|Z)|Quadro\s?[KMP]\d)/i,
+  amd: /\b(?:RX\s?[45]\d0X?\b|RX\s?Vega|Vega\s?\d|Radeon\s?VII|R[579]\s|HD\s?\d{4})/i,
+};
+
 /** Only compare numeric versions known to share a vendor version namespace. */
 function usesComparableVersionNamespace(
   component: DriverComponent,
@@ -365,19 +382,45 @@ function usesComparableVersionNamespace(
   if (!component.latest) return false;
   const currentParts = versionPartCount(current);
   const latestParts = versionPartCount(component.latest);
+  const vendor = component.vendorKey ?? "";
 
-  if (component.kind !== "gpu") return false;
-  if (component.vendorKey === "nvidia") return currentParts === 2 && latestParts === 2;
-  if (component.vendorKey === "intel") return currentParts === 4 && latestParts === 4;
-  if (component.vendorKey === "amd") return currentParts === 3 && latestParts === 3;
+  if (component.kind === "gpu") {
+    if (LEGACY_GPU_BRANCH[vendor]?.test(component.device)) return false;
+    if (vendor === "nvidia") return currentParts === 2 && latestParts === 2;
+    if (vendor === "intel") {
+      // 31.0.101.x is Intel's legacy (6th–10th gen) branch; only the same
+      // major branch as the published release is comparable.
+      return (
+        currentParts === 4 &&
+        latestParts === 4 &&
+        firstVersionPart(current) === firstVersionPart(component.latest)
+      );
+    }
+    if (vendor === "amd") return currentParts === 3 && latestParts === 3;
+    return false;
+  }
+  if (component.kind === "chipset") {
+    // Only the installed chipset *package* version is passed here; device
+    // driver versions use another scheme and are never compared.
+    if (vendor === "amd") return currentParts === 4 && latestParts === 4;
+    if (vendor === "intel") {
+      return (
+        currentParts === 4 &&
+        latestParts === 4 &&
+        firstVersionPart(current) === firstVersionPart(component.latest)
+      );
+    }
+  }
   return false;
 }
 
 export function applyInstalledVersion(
   component: DriverComponent,
   current: string,
+  options: { comparable?: boolean } = {},
 ): DriverComponent {
-  const comparable = usesComparableVersionNamespace(component, current);
+  const comparable =
+    options.comparable !== false && usesComparableVersionNamespace(component, current);
   const entry = component.latest
     ? {
         latest: component.latest,
@@ -415,6 +458,7 @@ export function applyInstalledVersion(
 
 const HEALTH_POINTS: Record<ComponentHealth, number> = {
   healthy: 100,
+  working: 100,
   newer: 100,
   unknown: 75,
   outdated: 55,
@@ -548,10 +592,11 @@ export const HEALTH_META: Record<
   { label: string; color: string; glow: string }
 > = {
   healthy: { label: "Up to date", color: "#34d399", glow: "rgba(52,211,153,0.45)" },
+  working: { label: "Working", color: "#34d399", glow: "rgba(52,211,153,0.45)" },
   newer: { label: "Newer than database", color: "#22d3ee", glow: "rgba(34,211,238,0.45)" },
   outdated: { label: "Update available", color: "#fbbf24", glow: "rgba(251,191,36,0.45)" },
   critical: { label: "Action needed", color: "#f87171", glow: "rgba(248,113,113,0.5)" },
-  unknown: { label: "Not detected", color: "#94a3b8", glow: "rgba(148,163,184,0.3)" },
+  unknown: { label: "Not verified", color: "#94a3b8", glow: "rgba(148,163,184,0.3)" },
   scanning: { label: "Scanning…", color: "#00D4FF", glow: "rgba(0,212,255,0.5)" },
 };
 
@@ -576,8 +621,147 @@ export const KIND_TITLES: Record<ComponentKind, string> = {
   monitor: "Display",
 };
 
+export function countUnverified(components: DriverComponent[]): number {
+  return components.filter((component) => component.health === "unknown").length;
+}
+
 export function countActionable(components: DriverComponent[]): number {
   return components.filter(
     (component) => component.health === "outdated" || component.health === "critical",
   ).length;
+}
+
+// ── Installed-driver resolution (Windows probe → component state) ─────────────
+
+/**
+ * Flat payload from the desktop app's installed-driver probe. Version keys
+ * (e.g. `amd_gpu_adrenalin`, `amd_chipset_package`) hold installed versions;
+ * `status_<slot>` is "ok" | "problem" | "absent" from Windows Device Manager
+ * (or the storage stack), with `detail_<slot>` naming the device.
+ */
+export type InstalledDriverProbe = Record<string, string | undefined>;
+
+type DeviceState = { state: "ok" | "problem" | "absent" | null; detail: string | null };
+
+const VERIFIED_COMPARISON: ComponentHealth[] = ["healthy", "newer", "outdated", "critical"];
+
+function gpuVendorSlot(vendorKey: string | null): "amd" | "nvidia" | "intel" | null {
+  const vendor = (vendorKey ?? "").toLowerCase();
+  if (vendor.includes("amd") || vendor.includes("radeon")) return "amd";
+  if (vendor.includes("nvidia")) return "nvidia";
+  if (vendor.includes("intel")) return "intel";
+  return null;
+}
+
+/** Installed version for a component, and whether it is a comparable package version. */
+export function getInstalledVersion(
+  kind: ComponentKind,
+  vendorKey: string | null,
+  probe: InstalledDriverProbe,
+): { version: string; comparable: boolean } | null {
+  const pick = (value: string | undefined, comparable: boolean) =>
+    value ? { version: value, comparable } : null;
+  if (kind === "gpu") {
+    const slot = gpuVendorSlot(vendorKey);
+    if (slot === "amd") {
+      return pick(probe.amd_gpu_adrenalin, true) ?? pick(probe.amd_gpu, false);
+    }
+    if (slot === "nvidia") return pick(probe.nvidia_gpu, true);
+    if (slot === "intel") return pick(probe.intel_gpu, true);
+    return null;
+  }
+  if (kind === "chipset") {
+    const vendor = (vendorKey ?? "").toLowerCase();
+    if (vendor === "amd") {
+      return pick(probe.amd_chipset_package, true) ?? pick(probe.amd_chipset, false);
+    }
+    if (vendor === "intel") {
+      return pick(probe.intel_chipset_package, true) ?? pick(probe.intel_chipset, false);
+    }
+    return null;
+  }
+  if (kind === "network") return pick(probe.wifi ?? probe.ethernet, false);
+  if (kind === "bluetooth") return pick(probe.bluetooth, false);
+  if (kind === "audio") return pick(probe.audio, false);
+  if (kind === "ssd") return pick(probe.storage, false);
+  return null;
+}
+
+function getDeviceState(
+  kind: ComponentKind,
+  vendorKey: string | null,
+  probe: InstalledDriverProbe,
+): DeviceState {
+  const slot =
+    kind === "gpu"
+      ? gpuVendorSlot(vendorKey)
+        ? `gpu_${gpuVendorSlot(vendorKey)}`
+        : null
+      : kind === "ssd"
+        ? "storage"
+        : kind === "chipset" || kind === "network" || kind === "audio" || kind === "bluetooth"
+          ? kind
+          : null;
+  if (!slot) return { state: null, detail: null };
+  const raw = probe[`status_${slot}`];
+  const state = raw === "ok" || raw === "problem" || raw === "absent" ? raw : null;
+  return { state, detail: probe[`detail_${slot}`] ?? null };
+}
+
+function workingRationale(component: DriverComponent, version: string | null): string {
+  const installed = version ? ` (installed version ${version})` : "";
+  switch (component.kind) {
+    case "gpu":
+      return component.latest && version
+        ? `Windows reports the graphics driver${installed} is installed and working. This installed version can't be matched to the published ${component.latest} release, so SwitchControl won't guess whether it's older or newer.`
+        : `Windows reports the graphics driver${installed} is installed and working.`;
+    case "chipset":
+      return `Windows reports the chipset devices are working with their installed drivers${installed}. The chipset package version wasn't found, so it isn't compared with the latest release.`;
+    case "ssd":
+      return `Windows reports this drive as healthy${version ? ` (firmware ${version})` : ""}. SSD firmware is model-specific — the manufacturer's utility lists any update for your exact drive.`;
+    default:
+      return `Windows reports this device is working with its installed driver${installed}. Vendors publish different driver versions per device model, so SwitchControl doesn't rank them.`;
+  }
+}
+
+/**
+ * Resolve a component against the installed-driver probe.
+ *
+ * Order of evidence:
+ *  1. A comparable installed package version → Up to date / Newer / Update available.
+ *  2. Windows reports a device error → Action needed (official page offered).
+ *  3. Windows reports the device working → Working.
+ *  4. Otherwise the component stays "Not verified".
+ */
+export function resolveInstalledComponent(
+  component: DriverComponent,
+  probe: InstalledDriverProbe,
+): DriverComponent {
+  const installed =
+    component.current === null ? getInstalledVersion(component.kind, component.vendorKey, probe) : null;
+  const resolved = installed
+    ? applyInstalledVersion(component, installed.version, { comparable: installed.comparable })
+    : component;
+
+  const device = getDeviceState(component.kind, component.vendorKey, probe);
+  if (device.state === "problem") {
+    return {
+      ...resolved,
+      health: "critical",
+      action: component.action ?? component.candidateAction ?? null,
+      rationale: `Windows reports a problem with ${device.detail ?? "this device"}. Reinstalling the driver from the official vendor page usually resolves it.`,
+    };
+  }
+
+  if (VERIFIED_COMPARISON.includes(resolved.health)) return resolved;
+
+  if (device.state === "ok") {
+    return {
+      ...resolved,
+      health: "working",
+      action: null,
+      rationale: workingRationale(resolved, resolved.current),
+    };
+  }
+  return resolved;
 }

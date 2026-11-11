@@ -125,6 +125,7 @@
   const criticalLogger = require('./critical-logger');
   const { createFactoryResetHandler } = require('./factory-reset');
   const { APPDATA_DIR, TWEAK_STATE_FILE, CONFIG_FILE, DEVICE_ID_FILE, SPECS_CACHE_FILE, DEVICE_SIGNATURE_FILE } = require('./user-data-paths');
+  const { parseDriverProbeOutput } = require('./driver-probe-output');
   const processControl = lazyModule('./process-control');
   const { selectProcessCount } = require('./process-count');
 
@@ -2696,6 +2697,8 @@ function Write-SwitchControlProbe($status, $data, $message) {
     // some PS versions.  Bracket notation ($result['key']) is used throughout
     // because it is more reliable than dot notation inside pipeline blocks.
     const ps = `
+$WarningPreference = 'SilentlyContinue'
+$ProgressPreference = 'SilentlyContinue'
 $result = @{}
 
 function Read-DeviceClass($classPath) {
@@ -2706,7 +2709,7 @@ function Read-DeviceClass($classPath) {
       try {
         $v = (Get-ItemProperty $_.PSPath -Name DriverVersion -EA Stop).DriverVersion
         $n = (Get-ItemProperty $_.PSPath -Name DriverDesc    -EA SilentlyContinue).DriverDesc
-        if ($v -and $n) { [PSCustomObject]@{ Version=$v; Desc=$n.ToLower() } }
+        if ($v -and $n) { [PSCustomObject]@{ Version=$v; Desc=$n.ToLower(); Path=$_.PSPath } }
       } catch {}
     }
 }
@@ -2715,7 +2718,16 @@ function Read-DeviceClass($classPath) {
 $gcGpu = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}'
 Read-DeviceClass $gcGpu | ForEach-Object {
   $d = $_.Desc; $v = $_.Version
-  if     ($d -match 'amd|radeon')                                        { if (-not $result['amd_gpu'])   { $result['amd_gpu']   = $v } }
+  if     ($d -match 'amd|radeon')                                        {
+      if (-not $result['amd_gpu'])   { $result['amd_gpu']   = $v }
+      # AMD writes the Adrenalin package version (e.g. 26.10.2) next to the
+      # Windows display-driver build. Only this value is comparable with
+      # AMD's published Adrenalin releases.
+      if (-not $result['amd_gpu_adrenalin']) {
+        $rsv = [string](Get-ItemProperty $_.Path -Name RadeonSoftwareVersion -EA SilentlyContinue).RadeonSoftwareVersion
+        if ($rsv -match '^\\d{2}\\.\\d{1,2}\\.\\d{1,2}') { $result['amd_gpu_adrenalin'] = $Matches[0] }
+      }
+  }
   elseif ($d -match 'nvidia|geforce')                                    { if (-not $result['nvidia_gpu'])  {
       $ver = $v -replace '.*\\.', ''
       $result['nvidia_gpu'] = if ($ver.Length -ge 5) { $ver.Substring(0,$ver.Length-2)+'.'+$ver.Substring($ver.Length-2) } else { $v }
@@ -2812,25 +2824,112 @@ if (-not $result['storage']) {
   } catch {}
 }
 
+# ── Chipset packages (vendor package version, comparable with releases) ─────
+# Device-level chipset driver versions use a different numbering scheme from
+# the downloadable package, so read the installed package's own version.
+try {
+  Get-ItemProperty @(
+    'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
+    'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*'
+  ) -EA SilentlyContinue | ForEach-Object {
+    $n = [string]$_.DisplayName; $v = [string]$_.DisplayVersion
+    if (-not $n -or -not $v) { return }
+    if ($n -match '^AMD Chipset (Software|Drivers)') {
+      if (-not $result['amd_chipset_package']) { $result['amd_chipset_package'] = $v }
+    } elseif ($n -match '^Intel\\(R\\) Chipset Device Software') {
+      if (-not $result['intel_chipset_package']) { $result['intel_chipset_package'] = $v }
+    }
+  }
+} catch {}
+
+# ── Windows device status (Device Manager state) ─────────────────────────────
+# "ok" means Windows reports the present device as working with its driver;
+# "problem" means Device Manager has an error on it. User-disabled devices
+# (problem code 22) are not treated as faults.
+function Set-DeviceStatus($key, $devices) {
+  $devs = @($devices)
+  if ($devs.Count -eq 0) { $result["status_$key"] = 'absent'; return }
+  $bad = @($devs | Where-Object {
+    $code = [string]$_.ConfigManagerErrorCode
+    ($_.Status -eq 'Error' -or $_.Status -eq 'Degraded') -and $code -ne '22' -and $code -notmatch 'DISABLED'
+  })
+  if ($bad.Count -gt 0) {
+    $result["status_$key"] = 'problem'
+    $result["detail_$key"] = ([string]$bad[0].FriendlyName) + ' (' + ([string]$bad[0].ConfigManagerErrorCode) + ')'
+    return
+  }
+  $ok = @($devs | Where-Object { $_.Status -eq 'OK' })
+  if ($ok.Count -gt 0) {
+    $result["status_$key"] = 'ok'
+    $result["detail_$key"] = [string]$ok[0].FriendlyName
+  } else {
+    $result["status_$key"] = 'absent'
+  }
+}
+
+if (Get-Command Get-PnpDevice -EA SilentlyContinue) {
+  try {
+    $display = @(Get-PnpDevice -Class Display -PresentOnly -EA SilentlyContinue)
+    Set-DeviceStatus 'gpu_amd'    ($display | Where-Object { $_.InstanceId -match 'VEN_1002' })
+    Set-DeviceStatus 'gpu_nvidia' ($display | Where-Object { $_.InstanceId -match 'VEN_10DE' })
+    Set-DeviceStatus 'gpu_intel'  ($display | Where-Object { $_.InstanceId -match 'VEN_8086' })
+  } catch {}
+  try {
+    Set-DeviceStatus 'chipset' (Get-PnpDevice -Class System -PresentOnly -EA SilentlyContinue |
+      Where-Object { $_.InstanceId -match '^PCI\\\\VEN_(1022|8086)' })
+  } catch {}
+  try {
+    Set-DeviceStatus 'network' (Get-PnpDevice -Class Net -PresentOnly -EA SilentlyContinue |
+      Where-Object { $_.InstanceId -match '^(PCI|USB)\\\\' })
+  } catch {}
+  try {
+    Set-DeviceStatus 'audio' (Get-PnpDevice -Class MEDIA -PresentOnly -EA SilentlyContinue |
+      Where-Object { $_.InstanceId -notmatch '^ROOT\\\\' })
+  } catch {}
+  try {
+    Set-DeviceStatus 'bluetooth' (Get-PnpDevice -Class Bluetooth -PresentOnly -EA SilentlyContinue |
+      Where-Object { $_.InstanceId -match '^(PCI|USB)\\\\' })
+  } catch {}
+}
+
+# Storage health comes from the Windows storage stack, not Device Manager.
+try {
+  $disks = @(Get-PhysicalDisk -EA SilentlyContinue)
+  if ($disks.Count -gt 0) {
+    $unhealthy = @($disks | Where-Object { [string]$_.HealthStatus -ne 'Healthy' })
+    if ($unhealthy.Count -gt 0) {
+      $result['status_storage'] = 'problem'
+      $result['detail_storage'] = ([string]$unhealthy[0].FriendlyName) + ' (' + ([string]$unhealthy[0].HealthStatus) + ')'
+    } else {
+      $result['status_storage'] = 'ok'
+      $result['detail_storage'] = [string]$disks[0].FriendlyName
+    }
+  }
+} catch {}
+
 # ── NVIDIA canonical version via nvidia-smi (overrides WHQL registry string) ─
 try {
   $smi = & 'nvidia-smi' --query-gpu=driver_version --format=csv,noheader 2>$null
   if ($smi -and $smi.Trim()) { $result['nvidia_gpu'] = $smi.Trim() }
 } catch {}
 
-ConvertTo-Json -InputObject $result -Compress -Depth 2
+# Marker line: Windows PowerShell can write warnings/host text to stdout, so
+# the caller extracts this exact line instead of parsing all output as JSON.
+Write-Output ('SCDRV:' + (ConvertTo-Json -InputObject $result -Compress -Depth 2))
 `.trim();
 
     // Retry up to 3× with 2 s delay — psLimiter slots may all be occupied by
     // startup WMI queries on AMD/heavy-WMI systems.
     for (let attempt = 0; attempt < 3; attempt++) {
       if (attempt > 0) await new Promise(r => setTimeout(r, 2000));
-      const raw = await runMainPs(ps, { timeout: 15_000, label: 'driverIntel:getInstalledVersions' });
+      const raw = await runMainPs(ps, { timeout: 25_000, label: 'driverIntel:getInstalledVersions' });
       if (raw) {
-        try { return JSON.parse(raw); }
-        catch { return {}; }
+        const parsed = parseDriverProbeOutput(raw);
+        console.log(`[DriverIntel] installed probe ok=${parsed.ok} keys=${Object.keys(parsed.data).sort().join(',') || 'none'}`);
+        return parsed.data;
       }
     }
+    console.log('[DriverIntel] installed probe returned no output');
     return {};
   });
 
