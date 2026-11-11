@@ -1,6 +1,5 @@
-import { Router, type Request } from "express";
-import { getCachedSnapshot, getSnapshot, type TelemetrySnapshot } from "../lib/telemetry";
-import { buildLatencyEstimate } from "../lib/latencyEstimate";
+import { Router } from "express";
+import { getCachedSnapshot, getSnapshot } from "../lib/telemetry";
 import si from "systeminformation";
 import { execFile } from "child_process";
 import { promisify } from "util";
@@ -896,94 +895,6 @@ router.get("/active-problems", (_req, res) => {
     });
   } catch (e: any) {
     res.status(500).json({ error: "Failed to detect problems" });
-  }
-});
-
-// ── System responsiveness estimate ────────────────────────────────────────────
-
-/**
- * In Electron, native telemetry is owned by the renderer/main-process IPC
- * loop. The embedded backend intentionally has no second polling loop, so
- * accept the small estimator signal subset from that renderer when the server
- * cache has not become ready yet or is ready without its expensive process
- * count. Web requests continue using the server cache.
- */
-function getLatencySnapshotForRequest(
-  req: Request,
-  serverSnapshot: TelemetrySnapshot,
-  serverWasReady: boolean,
-): TelemetrySnapshot {
-  const q = req.query;
-  const cpuLoad = Number(q.cpuLoad);
-  const cpuCores = Number(q.cpuCores);
-  const ramTotalGB = Number(q.ramTotalGB);
-  const memPct = Number(q.memPct);
-  const networkKbs = Number(q.networkKbs);
-  const processCount = Number(q.processCount);
-  const serverHasProcessCount =
-    Number.isFinite(serverSnapshot.processes.total) &&
-    serverSnapshot.processes.total > 0;
-
-  // The embedded Electron backend may have a ready CPU/RAM cache while its
-  // own expensive process probe is still empty. The renderer already owns a
-  // valid process count from the shared main-process telemetry bridge, so use
-  // it to complete the estimate instead of discarding it merely because the
-  // backend status is "ready".
-  if (serverWasReady && serverHasProcessCount) return serverSnapshot;
-
-  const hasClientTelemetry =
-    Number.isFinite(cpuLoad) &&
-    Number.isFinite(cpuCores) &&
-    cpuCores > 0 &&
-    Number.isFinite(ramTotalGB) &&
-    ramTotalGB > 0 &&
-    Number.isFinite(memPct) &&
-    Number.isFinite(networkKbs);
-
-  if (!hasClientTelemetry) return serverSnapshot;
-
-  return {
-    ...serverSnapshot,
-    status: "ready",
-    ts: Date.now(),
-    cpu: { ...serverSnapshot.cpu, load: Math.max(0, cpuLoad), cores: cpuCores },
-    ram: {
-      ...serverSnapshot.ram,
-      totalGB: ramTotalGB,
-      usedPercent: Math.max(0, Math.min(100, memPct)),
-    },
-    network: {
-      ...serverSnapshot.network,
-      rx_sec: Math.max(0, networkKbs * 1024),
-      tx_sec: 0,
-    },
-    // Process telemetry is optional in the IPC payload. Preserve a real
-    // server-side count when one exists; never turn an unknown value into 0
-    // and call the estimate complete.
-    processes: Number.isFinite(processCount) && processCount > 0
-      ? { ...serverSnapshot.processes, total: processCount }
-      : serverSnapshot.processes,
-  };
-}
-
-router.get("/latency-estimate", async (req, res) => {
-  try {
-    const cachedBeforeRefresh = getCachedSnapshot();
-    const snap = getLatencySnapshotForRequest(
-      req,
-      await getSnapshot(),
-      cachedBeforeRefresh.status === "ready",
-    );
-    const result = buildLatencyEstimate(snap);
-    if (!result.ready) {
-      console.info(
-        `[LatencyEstimate] waiting for complete telemetry sample ` +
-        `(status=${snap.status}, cores=${snap.cpu.cores}, ramGB=${snap.ram.totalGB}, processes=${snap.processes.total})`,
-      );
-    }
-    return res.json(result);
-  } catch (e: any) {
-    res.status(500).json({ error: "Failed to estimate latency" });
   }
 });
 

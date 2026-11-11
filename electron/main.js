@@ -1081,7 +1081,14 @@ function Write-SwitchControlProbe($status, $data, $message) {
         ? diskIO
         : (liveTelemetryCache?.diskIO ?? diskIO);
   
-      liveTelemetryCache = { load, mem, temps: _temps, fsData: _fsSizeCache || [], netStats: netStats || [], diskIO: _diskResult, timestamp: Date.now() };
+      const sampleCompletedAt = Date.now();
+      liveTelemetryCache = {
+        load, mem, temps: _temps, fsData: _fsSizeCache || [], netStats: netStats || [], diskIO: _diskResult,
+        timestamp: sampleCompletedAt,
+        cpuSampledAt: sampleCompletedAt,
+        ramSampledAt: sampleCompletedAt,
+        collectionState: Number.isFinite(load?.currentLoad) && (load?.cpus?.length || 0) > 0 ? 'ready' : 'unavailable',
+      };
   
       // ── 7. Performance governor ───────────────────────────────────────────────
       // Engage slow mode when CPU is high OR we are in low-end mode.
@@ -1278,6 +1285,9 @@ function Write-SwitchControlProbe($status, $data, $message) {
         netStats: [],
         diskIO: { available: false, source: 'warming' },
         timestamp: Date.now(),
+        cpuSampledAt: null,
+        ramSampledAt: null,
+        collectionState: 'warming',
       };
       verboseLog('[telemetry:poll] cache pre-seeded with CPU+RAM — getLive will not return zeros');
     }
@@ -2402,6 +2412,7 @@ function Write-SwitchControlProbe($status, $data, $message) {
               ...liveTelemetryCache,
               mem: { total: os.totalmem(), available: os.freemem() },
               timestamp: Date.now(),
+              ramSampledAt: Date.now(),
             };
           }
           console.log(`[Memory] ${mode} mode: scanned=${result.processes_scanned} trimmed=${result.processes_trimmed} freed=${result.estimated_mb_freed}MB`);
@@ -4463,6 +4474,12 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
         console.warn('[telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.');
         return {
           timestamp: Date.now(),
+          sampledAt: null,
+          cpuRamSampledAt: null,
+          processesSampledAt: liveProcessCountAt || null,
+          collectionState: 'warming',
+          demandMode: _telemetryDemandMode,
+          collectionPaused: _telemetryLoopPaused || _telemetryDemandPaused,
           cpu:     { usagePct: 0, tempC: null, coreCount: 0 },
           ram:     { usedGb: 0, totalGb: 0, usagePct: 0 },
           gpu:     { available: gpuExistsOnHardware, model: null, usagePct: null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },
@@ -4474,7 +4491,9 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
       }
   
       const { load, mem, temps, fsData, netStats, diskIO } = liveTelemetryCache;
-      const processes = await getLiveProcessCount();
+      const processes = (_telemetryLoopPaused || _telemetryDemandPaused)
+        ? liveProcessCount
+        : await getLiveProcessCount();
   
       const cpuLoad = safeNum(load.currentLoad || 0);
       const cpuTemp = safeNum(temps.main || 0);
@@ -4540,6 +4559,12 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
   
       const result = {
         timestamp: Date.now(),
+        sampledAt: Math.min(liveTelemetryCache.cpuSampledAt || 0, liveTelemetryCache.ramSampledAt || 0) || null,
+        cpuRamSampledAt: Math.min(liveTelemetryCache.cpuSampledAt || 0, liveTelemetryCache.ramSampledAt || 0) || null,
+        processesSampledAt: liveProcessCountAt || null,
+        collectionState: liveTelemetryCache.collectionState || 'unavailable',
+        demandMode: _telemetryDemandMode,
+        collectionPaused: _telemetryLoopPaused || _telemetryDemandPaused,
         cpu: {
           usagePct:  cpuLoad,
           tempC:     cpuTemp > 0 ? cpuTemp : null,
@@ -4597,6 +4622,12 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
       console.error('[telemetry:getLive] error:', e.message);
       return {
         timestamp: Date.now(),
+        sampledAt: null,
+        cpuRamSampledAt: null,
+        processesSampledAt: liveProcessCountAt || null,
+        collectionState: 'unavailable',
+        demandMode: _telemetryDemandMode,
+        collectionPaused: _telemetryLoopPaused || _telemetryDemandPaused,
         cpu:     { usagePct: 0, tempC: null, coreCount: 0 },
         ram:     { usedGb: 0, totalGb: 0, usagePct: 0 },
         gpu:     { available: false, model: null, usagePct: null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },

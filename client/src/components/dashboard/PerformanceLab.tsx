@@ -20,7 +20,6 @@ import {
   useDashboardIntelligence,
   type InstabilityData,
   type ActiveProblemsData,
-  type SystemLoadMeasurement,
   type ActiveProblem,
 } from "@/hooks/useDashboardIntelligence";
 import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
@@ -29,11 +28,11 @@ import {
   CheckCircle,
   ChevronRight,
   Cpu,
-  Gauge,
   RefreshCw,
   Shield,
 } from "lucide-react";
 import { SystemLoadPanel } from "@/components/SystemLoadPanel";
+import type { SystemLoadMeasurement } from "@/lib/responsivenessMetrics";
 
 // ── Utility helpers ────────────────────────────────────────────────────────────
 

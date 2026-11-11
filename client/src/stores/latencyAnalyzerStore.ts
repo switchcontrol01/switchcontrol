@@ -10,10 +10,19 @@ import { create } from "zustand";
 import {
   MAX_CHART_SAMPLES,
   LA_BASELINE_KEY,
-  computeOverallScore,
-  scoreToStatus,
-  type LatencyStatus,
 } from "@/lib/latency-analyzer-config";
+import {
+  createMeasuredCapture,
+  isAudioDeviceInventory,
+  isDriverInventoryRow,
+  summarizeCounterSamples,
+  validateCounterSample,
+  validateStoredCapture,
+  type AudioDeviceInventory,
+  type DriverInventoryRow,
+  type MeasuredCapture,
+  type NativeCounterSample,
+} from "@/lib/responsivenessMetrics";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -25,44 +34,9 @@ export interface ChartSample {
   pageFaultsSec: number;
 }
 
-export interface DriverRow {
-  name: string;
-  description: string;
-  type: string;
-  state: string;
-  // extended (may be null when not determinable in user mode)
-  dpcCount: null;
-  isrCount: null;
-  highestExec: null;
-  totalExec: null;
-  impact: "Low" | "Medium" | "High" | "Unknown";
-  suggestedAction: string;
-}
-
-export interface AudioDevice {
-  name: string;
-  manufacturer: string;
-  status: string;
-}
-
-export interface AnalysisResult {
-  id: string;
-  label: string;
-  timestamp: number;
-  durationSec: number;
-  sampleCount: number;
-  avgDpcPct: number;
-  avgIntrPct: number;
-  peakDpcPct: number;
-  peakIntrPct: number;
-  avgPageFaultsSec: number;
-  peakPageFaultsSec: number;
-  overallScore: number;
-  status: LatencyStatus;
-  drivers: DriverRow[];
-  audioDevices: AudioDevice[];
-  isAdmin: boolean;
-}
+export type DriverRow = DriverInventoryRow;
+export type AudioDevice = AudioDeviceInventory;
+export type AnalysisResult = MeasuredCapture;
 
 export type SessionStatus =
   | "idle"
@@ -80,6 +54,10 @@ interface LatencyAnalyzerState {
   elapsedSec: number;
   sampleCount: number;
   durationSec: number; // user-chosen analysis duration (0 = unlimited)
+  lastSampleAt: number | null;
+  lastSampleError: string | null;
+  rejectedSampleCount: number;
+  counterSamples: NativeCounterSample[];
 
   // live values
   liveDpcPct: number | null;
@@ -99,8 +77,6 @@ interface LatencyAnalyzerState {
   peakDpcPct: number;
   peakIntrPct: number;
   peakPageFaultsSec: number;
-  overallScore: number;
-  status: LatencyStatus;
 
   // drivers & audio
   drivers: DriverRow[];
@@ -110,6 +86,7 @@ interface LatencyAnalyzerState {
 
   // baseline comparison
   baseline: AnalysisResult | null;
+  baselineError: string | null;
   currentResult: AnalysisResult | null;
 
   // notes for current test
@@ -120,14 +97,14 @@ interface LatencyAnalyzerState {
   setSessionStatus: (s: SessionStatus, err?: string) => void;
   setStartedAt: (ts: number) => void;
   tick: () => void;
-  pushSample: (s: { dpcPct: number; intrPct: number; pageFaultsSec: number }) => void;
+  pushSample: (s: unknown) => boolean;
   setDrivers: (d: DriverRow[]) => void;
   setDriversScanned: (v: boolean) => void;
   setAudioDevices: (d: AudioDevice[]) => void;
   setIsAdmin: (v: boolean) => void;
   setTestLabel: (l: string) => void;
-  finalize: () => AnalysisResult;
-  saveBaseline: () => void;
+  finalize: (completion?: MeasuredCapture["completion"]) => AnalysisResult | null;
+  saveBaseline: () => boolean;
   loadBaseline: () => void;
   clearBaseline: () => void;
   reset: () => void;
@@ -145,10 +122,6 @@ function peak(arr: number[]): number {
   return Math.max(...arr);
 }
 
-function makeId(): string {
-  return `la-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-}
-
 // ── Store ─────────────────────────────────────────────────────────────────────
 
 export const useLatencyAnalyzerStore = create<LatencyAnalyzerState>((set, get) => ({
@@ -158,6 +131,10 @@ export const useLatencyAnalyzerStore = create<LatencyAnalyzerState>((set, get) =
   elapsedSec: 0,
   sampleCount: 0,
   durationSec: 60,
+  lastSampleAt: null,
+  lastSampleError: null,
+  rejectedSampleCount: 0,
+  counterSamples: [],
 
   liveDpcPct: null,
   liveIntrPct: null,
@@ -174,8 +151,6 @@ export const useLatencyAnalyzerStore = create<LatencyAnalyzerState>((set, get) =
   peakDpcPct: 0,
   peakIntrPct: 0,
   peakPageFaultsSec: 0,
-  overallScore: 0,
-  status: "Not enough data",
 
   drivers: [],
   driversScanned: false,
@@ -183,6 +158,7 @@ export const useLatencyAnalyzerStore = create<LatencyAnalyzerState>((set, get) =
   isAdmin: false,
 
   baseline: null,
+  baselineError: null,
   currentResult: null,
   testLabel: "",
 
@@ -199,96 +175,110 @@ export const useLatencyAnalyzerStore = create<LatencyAnalyzerState>((set, get) =
     set({ elapsedSec: Math.floor((Date.now() - startedAt) / 1000) });
   },
 
-  pushSample: ({ dpcPct, intrPct, pageFaultsSec }) =>
-    set((st) => {
-      const dpcH   = [...st.dpcPctHistory, dpcPct];
-      const intrH  = [...st.intrPctHistory, intrPct];
-      const pfH    = [...st.pageFaultsHistory, pageFaultsSec];
-      const n      = dpcH.length;
+  pushSample: (raw) => {
+    const parsed = validateCounterSample(raw);
+    const st = get();
+    if (!parsed.valid || !parsed.sample || (st.lastSampleAt != null && parsed.sample.sampledAt <= st.lastSampleAt)) {
+      set({
+        lastSampleError: parsed.reason ?? "A duplicate or out-of-order native sample was rejected.",
+        rejectedSampleCount: st.rejectedSampleCount + 1,
+      });
+      return false;
+    }
+    const sample = parsed.sample;
+    const samples = [...st.counterSamples, sample];
+    const summary = summarizeCounterSamples(samples)!;
+    const dpcH = [...st.dpcPctHistory, sample.dpcPct];
+    const intrH = [...st.intrPctHistory, sample.interruptPct];
+    const pfH = [...st.pageFaultsHistory, sample.pageFaultsPerSec];
+    const chartSample: ChartSample = {
+      ts: sample.sampledAt,
+      elapsed: Math.max(0, (sample.sampledAt - (st.startedAt ?? sample.sampledAt)) / 1000),
+      dpcPct: sample.dpcPct,
+      intrPct: sample.interruptPct,
+      pageFaultsSec: sample.pageFaultsPerSec,
+    };
+    set({
+      counterSamples: samples,
+      lastSampleAt: sample.sampledAt,
+      lastSampleError: null,
+      liveDpcPct: sample.dpcPct,
+      liveIntrPct: sample.interruptPct,
+      livePageFaultsSec: sample.pageFaultsPerSec,
+      dpcPctHistory: dpcH,
+      intrPctHistory: intrH,
+      pageFaultsHistory: pfH,
+      chartSamples: [...st.chartSamples, chartSample].slice(-MAX_CHART_SAMPLES),
+      sampleCount: summary.sampleCount,
+      avgDpcPct: summary.meanDpcPct,
+      avgIntrPct: summary.meanInterruptPct,
+      avgPageFaultsSec: summary.meanPageFaultsPerSec,
+      peakDpcPct: summary.peakDpcPct,
+      peakIntrPct: summary.peakInterruptPct,
+      peakPageFaultsSec: summary.peakPageFaultsPerSec,
+    });
+    return true;
+  },
 
-      const avgDpc = avg(dpcH);
-      const avgInt = avg(intrH);
-      const avgPf  = avg(pfH);
-      const score  = computeOverallScore(avgDpc, avgInt, avgPf);
-      const elapsed = st.startedAt ? Math.floor((Date.now() - st.startedAt) / 1000) : 0;
-
-      const newSample: ChartSample = {
-        ts: Date.now(),
-        elapsed,
-        dpcPct,
-        intrPct,
-        pageFaultsSec,
-      };
-
-      const chart = [...st.chartSamples, newSample].slice(-MAX_CHART_SAMPLES);
-
-      return {
-        liveDpcPct: dpcPct,
-        liveIntrPct: intrPct,
-        livePageFaultsSec: pageFaultsSec,
-        dpcPctHistory: dpcH,
-        intrPctHistory: intrH,
-        pageFaultsHistory: pfH,
-        chartSamples: chart,
-        sampleCount: n,
-        avgDpcPct: avgDpc,
-        avgIntrPct: avgInt,
-        avgPageFaultsSec: avgPf,
-        peakDpcPct: peak(dpcH),
-        peakIntrPct: peak(intrH),
-        peakPageFaultsSec: peak(pfH),
-        overallScore: score,
-        status: scoreToStatus(score, n, elapsed),
-      };
-    }),
-
-  setDrivers: (d) => set({ drivers: d }),
+  setDrivers: (d) => set({ drivers: d.filter(isDriverInventoryRow).map(({ name, description, type, state }) => ({ name, description, type, state })) }),
   setDriversScanned: (v) => set({ driversScanned: v }),
-  setAudioDevices: (d) => set({ audioDevices: d }),
+  setAudioDevices: (d) => set({ audioDevices: d.filter(isAudioDeviceInventory) }),
   setIsAdmin: (v) => set({ isAdmin: v }),
   setTestLabel: (l) => set({ testLabel: l }),
 
-  finalize: () => {
+  finalize: (completion = "completed") => {
     const st = get();
-    const result: AnalysisResult = {
-      id: makeId(),
-      label: st.testLabel || "Test Result",
-      timestamp: Date.now(),
-      durationSec: st.elapsedSec,
-      sampleCount: st.sampleCount,
-      avgDpcPct: st.avgDpcPct,
-      avgIntrPct: st.avgIntrPct,
-      peakDpcPct: st.peakDpcPct,
-      peakIntrPct: st.peakIntrPct,
-      avgPageFaultsSec: st.avgPageFaultsSec,
-      peakPageFaultsSec: st.peakPageFaultsSec,
-      overallScore: st.overallScore,
-      status: st.status,
+    const result = createMeasuredCapture(st.counterSamples, {
+      label: st.testLabel,
+      completion,
       drivers: st.drivers,
       audioDevices: st.audioDevices,
       isAdmin: st.isAdmin,
-    };
+    });
     set({ currentResult: result });
     return result;
   },
 
   saveBaseline: () => {
     const { currentResult } = get();
-    if (!currentResult) return;
-    try { localStorage.setItem(LA_BASELINE_KEY, JSON.stringify(currentResult)); } catch {}
-    set({ baseline: currentResult });
+    const valid = validateStoredCapture(currentResult);
+    if (!valid) {
+      set({ baselineError: "A completed capture with at least 8 valid samples is required for a baseline." });
+      return false;
+    }
+    try {
+      localStorage.setItem(LA_BASELINE_KEY, JSON.stringify(valid));
+      set({ baseline: valid, baselineError: null });
+      return true;
+    } catch {
+      set({ baselineError: "The measured baseline could not be saved to local storage." });
+      return false;
+    }
   },
 
   loadBaseline: () => {
     try {
       const raw = localStorage.getItem(LA_BASELINE_KEY);
-      if (raw) set({ baseline: JSON.parse(raw) });
-    } catch {}
+      if (!raw) return;
+      const valid = validateStoredCapture(JSON.parse(raw));
+      if (!valid) {
+        localStorage.removeItem(LA_BASELINE_KEY);
+        set({ baseline: null, baselineError: "An older or invalid baseline was not loaded. Capture a new measured baseline." });
+        return;
+      }
+      set({ baseline: valid, baselineError: null });
+    } catch {
+      set({ baseline: null, baselineError: "The saved baseline could not be read." });
+    }
   },
 
   clearBaseline: () => {
-    try { localStorage.removeItem(LA_BASELINE_KEY); } catch {}
-    set({ baseline: null });
+    try {
+      localStorage.removeItem(LA_BASELINE_KEY);
+      set({ baseline: null, baselineError: null });
+    } catch {
+      set({ baselineError: "The saved baseline could not be removed." });
+    }
   },
 
   reset: () =>
@@ -298,6 +288,10 @@ export const useLatencyAnalyzerStore = create<LatencyAnalyzerState>((set, get) =
       startedAt: null,
       elapsedSec: 0,
       sampleCount: 0,
+      lastSampleAt: null,
+      lastSampleError: null,
+      rejectedSampleCount: 0,
+      counterSamples: [],
       liveDpcPct: null,
       liveIntrPct: null,
       livePageFaultsSec: null,
@@ -311,8 +305,6 @@ export const useLatencyAnalyzerStore = create<LatencyAnalyzerState>((set, get) =
       peakDpcPct: 0,
       peakIntrPct: 0,
       peakPageFaultsSec: 0,
-      overallScore: 0,
-      status: "Not enough data",
       drivers: [],
       driversScanned: false,
       audioDevices: [],

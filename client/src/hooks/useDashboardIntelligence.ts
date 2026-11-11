@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  EMPTY_SYSTEM_LOAD,
-  normalizeSystemLoad,
-  type SystemLoadMeasurement,
-} from "@/lib/responsivenessMetrics";
+import type { SystemLoadMeasurement } from "@/lib/responsivenessMetrics";
+import { useMeasuredSystemLoad } from "@/hooks/useMeasuredSystemLoad";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -76,32 +73,11 @@ async function fetchJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-async function getSystemLoadSnapshot(): Promise<SystemLoadMeasurement> {
-  const electronAPI = (window as any).electronAPI;
-  if (!electronAPI?.isElectron || !electronAPI.telemetry?.getLive) {
-    return {
-      ...EMPTY_SYSTEM_LOAD,
-      state: "unsupported",
-      reason: "System readings are available only from the Windows desktop app.",
-    };
-  }
-  try {
-    return normalizeSystemLoad(await electronAPI.telemetry.getLive());
-  } catch {
-    return {
-      ...EMPTY_SYSTEM_LOAD,
-      state: "unavailable",
-      reason: "Could not read telemetry from this Windows device.",
-    };
-  }
-}
-
 export function useDashboardIntelligence(enabled = true): DashboardIntelligenceState {
   const [instability,   setInstability]   = useState<InstabilityData | null>(null);
   const [problems,      setProblems]      = useState<ActiveProblemsData | null>(null);
-  const [systemLoad, setSystemLoad] = useState<SystemLoadMeasurement>(EMPTY_SYSTEM_LOAD);
+  const { data: systemLoad, refresh: refreshSystemLoad } = useMeasuredSystemLoad(enabled);
   const [loading,       setLoading]       = useState(true);
-  const commitSystemLoad = useCallback((next: SystemLoadMeasurement) => setSystemLoad(next), []);
   const initRef = useRef(false);
   // F-3: AbortController so an unmount mid-fetch cancels the network requests
   // AND prevents the setState() calls from running on an unmounted hook.
@@ -109,32 +85,30 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
 
   const fetchAll = useCallback(async (signal?: AbortSignal) => {
     try {
-      const [inst, probs, load] = await Promise.allSettled([
+      const [inst, probs] = await Promise.allSettled([
         fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability", signal),
         fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems", signal),
-        getSystemLoadSnapshot(),
       ]);
       // F-3: Bail before any setState if the caller has aborted (unmount).
       if (signal?.aborted) return;
       if (inst.status  === "fulfilled") setInstability(inst.value);
       if (probs.status === "fulfilled") setProblems(probs.value);
-      if (load.status  === "fulfilled") commitSystemLoad(load.value);
     } catch (_) {}
     if (signal?.aborted) return;
     setLoading(false);
-  }, [commitSystemLoad]);
+  }, []);
 
   const refresh = useCallback(() => {
     setLoading(true);
     fetchAll();
-  }, [fetchAll]);
+    refreshSystemLoad();
+  }, [fetchAll, refreshSystemLoad]);
 
   const runningRef = useRef(false);
   const inFlightRef = useRef(false);
   const lastRunRef = useRef({
     instability: 0,
     problems: 0,
-    systemLoad: 0,
   });
 
   useEffect(() => {
@@ -147,7 +121,6 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
     abortRef.current = ac;
 
     const TTL = {
-      systemLoad: 8000,
       instability: 15000,
       problems: 30000,
     };
@@ -170,15 +143,6 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
       try {
         const now = Date.now();
         const tasks: Promise<void>[] = [];
-
-        if (now - lastRunRef.current.systemLoad >= TTL.systemLoad) {
-          lastRunRef.current.systemLoad = now;
-          tasks.push(
-            getSystemLoadSnapshot()
-              .then(guarded(commitSystemLoad))
-              .catch(() => {})
-          );
-        }
 
         if (now - lastRunRef.current.instability >= TTL.instability) {
           lastRunRef.current.instability = now;
@@ -221,7 +185,6 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
         lastRunRef.current = {
           instability: now,
           problems: now,
-          systemLoad: now,
         };
         setLoading(false);
       }
@@ -252,7 +215,7 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
       document.removeEventListener("visibilitychange", handleVisibility);
       initRef.current = false;
     };
-  }, [enabled, fetchAll, commitSystemLoad]);
+  }, [enabled, fetchAll]);
 
   return { instability, problems, systemLoad, loading, refresh };
 }

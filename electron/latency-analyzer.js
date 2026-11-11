@@ -4,15 +4,12 @@
  *
  * SwitchControl Latency Analyzer — Windows user-mode backend.
  *
- * Collects system-wide DPC%, Interrupt%, and Hard Page Fault activity using
+ * Collects system-wide DPC CPU-time %, interrupt CPU-time %, and total page faults/sec using
  * Windows' locale-independent formatted performance-data CIM classes.
- * Get-Counter remains as a fallback for older Windows installations.
  * Also scans installed drivers (driverquery) and audio devices (WMI).
  *
- * IMPORTANT: Per-driver DPC/ISR microsecond timings require a kernel-mode ETW
- * session (NtSetSystemInformation with SystemPerformanceTraceInformation), which
- * is not available in user mode without a kernel driver. Those metrics are
- * therefore labeled "Limited in user mode" in the UI rather than fabricated.
+ * Per-driver execution timing, scheduler delay, audio dropout risk, and input
+ * latency are not collected by this analyzer.
  *
  * Security:
  *  - All PowerShell commands use fixed argument arrays; no renderer input is
@@ -41,6 +38,7 @@ let _startedAt        = 0;
 let _sampleCount      = 0;
 let _lastError        = null;
 let _consecutiveFailures = 0;
+let _generation = 0;
 const _lifecycleLog = (event, fields = {}) => console.info('[LatencyAnalyzer]', JSON.stringify({ event, ts: new Date().toISOString(), ...fields }));
 
 // ── PowerShell runner ──────────────────────────────────────────────────────────
@@ -62,7 +60,7 @@ function runPS(script, timeoutMs = PS_TIMEOUT_MS, opts = {}) {
       ],
       { timeout: timeoutMs, windowsHide: true, encoding: 'utf8' },
       (err, stdout, stderr) => {
-        if (opts.trackAs === 'sample') _sampleProcess = null;
+        if (opts.trackAs === 'sample' && _sampleProcess === child) _sampleProcess = null;
         if (err) return reject(err);
         resolve((stdout || '').trim());
       }
@@ -88,10 +86,24 @@ function parseCSVLine(line) {
 
 // ── Performance counter poll ───────────────────────────────────────────────────
 
-/**
- * Collect one snapshot of system-wide performance counters.
- * Returns { dpcPct, intrPct, pageFaultsSec } or null on failure.
- */
+function parseCounterOutput(output, now = Date.now()) {
+  const value = JSON.parse(output);
+  const finite = (n, min, max) => typeof n === 'number' && Number.isFinite(n) && n >= min && n <= max;
+  if (!value || value.source !== 'Windows PerfOS' ||
+      !finite(value.sampledAt, 1, now + 5000) || now - value.sampledAt > 10000 ||
+      !finite(value.dpcPct, 0, 100) || !finite(value.interruptPct, 0, 100) ||
+      !finite(value.pageFaultsPerSec, 0, 10000000)) {
+    throw new Error('Windows returned missing, stale, or out-of-range performance counters.');
+  }
+  return {
+    sampledAt: value.sampledAt,
+    source: value.source,
+    dpcPct: value.dpcPct,
+    interruptPct: value.interruptPct,
+    pageFaultsPerSec: value.pageFaultsPerSec,
+  };
+}
+
 async function collectSample() {
   // The formatted CIM classes expose stable property names regardless of the
   // display language. Get-Counter paths such as "% DPC Time" are localized on
@@ -102,32 +114,26 @@ try {
   $p = Get-CimInstance -ClassName Win32_PerfFormattedData_PerfOS_Processor -Filter "Name='_Total'" -ErrorAction Stop
   $m = Get-CimInstance -ClassName Win32_PerfFormattedData_PerfOS_Memory -ErrorAction Stop
   if ($null -eq $p -or $null -eq $m) { throw 'Windows returned no formatted performance data.' }
-  $culture = [Globalization.CultureInfo]::InvariantCulture
+   if ($null -eq $p.PercentDPCTime -or $null -eq $p.PercentInterruptTime -or $null -eq $m.PageFaultsPerSec) {
+     throw 'One or more Windows performance counter properties are missing.'
+   }
   $dpc = [double]$p.PercentDPCTime
   $intr = [double]$p.PercentInterruptTime
   $faults = [double]$m.PageFaultsPerSec
-  if ([double]::IsNaN($dpc) -or [double]::IsNaN($intr) -or [double]::IsNaN($faults)) {
-    throw 'Windows returned non-numeric performance data.'
+   if ([double]::IsNaN($dpc) -or [double]::IsInfinity($dpc) -or $dpc -lt 0 -or $dpc -gt 100 -or
+       [double]::IsNaN($intr) -or [double]::IsInfinity($intr) -or $intr -lt 0 -or $intr -gt 100 -or
+       [double]::IsNaN($faults) -or [double]::IsInfinity($faults) -or $faults -lt 0) {
+     throw 'Windows returned out-of-range performance data.'
   }
-  @(
-    $dpc.ToString('0.###', $culture)
-    $intr.ToString('0.###', $culture)
-    $faults.ToString('0.###', $culture)
-  ) -join ','
+   [PSCustomObject]@{
+     source = 'Windows PerfOS'
+     sampledAt = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+     dpcPct = $dpc
+     interruptPct = $intr
+     pageFaultsPerSec = $faults
+   } | ConvertTo-Json -Compress
 } catch {
-  try {
-    $c = Get-Counter -Counter @(
-      '\\Processor(_Total)\\% DPC Time',
-      '\\Processor(_Total)\\% Interrupt Time',
-      '\\Memory\\Page Faults/sec'
-    ) -SampleInterval 1 -MaxSamples 1 -ErrorAction Stop
-    $vals = $c.CounterSamples | ForEach-Object { $_.CookedValue }
-    [Math]::Round($vals[0],3).ToString([Globalization.CultureInfo]::InvariantCulture) + ',' +
-      [Math]::Round($vals[1],3).ToString([Globalization.CultureInfo]::InvariantCulture) + ',' +
-      [Math]::Round($vals[2],1).ToString([Globalization.CultureInfo]::InvariantCulture)
-  } catch {
-    Write-Output ('ERROR:' + $_.Exception.Message)
-  }
+   Write-Output ('ERROR:' + $_.Exception.Message)
 }
 `.trim();
 
@@ -137,15 +143,7 @@ try {
     if (out.startsWith('ERROR')) {
       throw new Error(out.slice('ERROR:'.length).trim() || 'Performance counter query failed.');
     }
-    const parts = out.split(',');
-    if (parts.length < 3) throw new Error(`Performance counter response was malformed: ${out}`);
-    const dpcPct        = parseFloat(parts[0]);
-    const intrPct       = parseFloat(parts[1]);
-    const pageFaultsSec = parseFloat(parts[2]);
-    if (isNaN(dpcPct) || isNaN(intrPct) || isNaN(pageFaultsSec)) {
-      throw new Error(`Performance counter values were not numeric: ${out}`);
-    }
-    return { dpcPct, intrPct, pageFaultsSec };
+    return parseCounterOutput(out);
   } catch (err) {
     const detail = err && err.message ? err.message : String(err);
     const wrapped = new Error(`Unable to collect Windows performance counters: ${detail}`);
@@ -155,45 +153,6 @@ try {
 }
 
 // ── Driver scan ────────────────────────────────────────────────────────────────
-
-/**
- * Well-known driver descriptions and suggested actions.
- * Only used for display — never modifies anything.
- */
-const KNOWN_DRIVERS = {
-  'nvlddmkm.sys':   { desc: 'NVIDIA Display Driver',         action: 'Check for the latest stable NVIDIA driver via NVIDIA App or nvidia.com' },
-  'nvlddmkm':       { desc: 'NVIDIA Display Driver',         action: 'Check for the latest stable NVIDIA driver via NVIDIA App or nvidia.com' },
-  'dxgkrnl.sys':    { desc: 'DirectX Graphics Kernel',       action: 'Part of Windows — keep Windows up to date' },
-  'dxgkrnl':        { desc: 'DirectX Graphics Kernel',       action: 'Part of Windows — keep Windows up to date' },
-  'ndis.sys':       { desc: 'Network Driver Interface (NDIS)',action: 'Review NIC power management settings in Device Manager' },
-  'ndis':           { desc: 'Network Driver Interface (NDIS)',action: 'Review NIC power management settings in Device Manager' },
-  'storport.sys':   { desc: 'Microsoft Storage Port Driver', action: 'Ensure chipset and storage controller drivers are up to date' },
-  'storport':       { desc: 'Microsoft Storage Port Driver', action: 'Ensure chipset and storage controller drivers are up to date' },
-  'Wdf01000.sys':   { desc: 'Windows Driver Framework',      action: 'Part of Windows — keep Windows up to date' },
-  'Wdf01000':       { desc: 'Windows Driver Framework',      action: 'Part of Windows — keep Windows up to date' },
-  'ACPI.sys':       { desc: 'ACPI Driver (power/hardware)',  action: 'Ensure BIOS is up to date; ACPI driver is part of Windows' },
-  'ACPI':           { desc: 'ACPI Driver (power/hardware)',  action: 'Ensure BIOS is up to date; ACPI driver is part of Windows' },
-  'usbhub.sys':     { desc: 'USB Hub Driver',               action: 'Review USB power management; consider a powered hub for many devices' },
-  'usbhub':         { desc: 'USB Hub Driver',               action: 'Review USB power management; consider a powered hub for many devices' },
-  'usbxhci.sys':    { desc: 'USB xHCI Host Controller',     action: 'Ensure chipset drivers are up to date' },
-  'usbxhci':        { desc: 'USB xHCI Host Controller',     action: 'Ensure chipset drivers are up to date' },
-  'HDAudBus.sys':   { desc: 'High Definition Audio Bus',    action: 'Check for chipset/audio driver updates from your motherboard vendor' },
-  'HDAudBus':       { desc: 'High Definition Audio Bus',    action: 'Check for chipset/audio driver updates from your motherboard vendor' },
-  'portcls.sys':    { desc: 'Audio Port Class (portcls)',   action: 'Part of Windows — audio driver related; check for Windows updates' },
-  'portcls':        { desc: 'Audio Port Class (portcls)',   action: 'Part of Windows — audio driver related; check for Windows updates' },
-  'ataport.sys':    { desc: 'SATA/IDE Port Driver',         action: 'Ensure storage controller drivers are current' },
-  'ataport':        { desc: 'SATA/IDE Port Driver',         action: 'Ensure storage controller drivers are current' },
-  'tcpip.sys':      { desc: 'TCP/IP Network Stack',         action: 'Part of Windows — keep Windows up to date; review network adapter settings' },
-  'tcpip':          { desc: 'TCP/IP Network Stack',         action: 'Part of Windows — keep Windows up to date; review network adapter settings' },
-  'ntoskrnl.exe':   { desc: 'Windows Kernel (ntoskrnl)',    action: 'Part of Windows — keep Windows updated' },
-  'ntoskrnl':       { desc: 'Windows Kernel (ntoskrnl)',    action: 'Part of Windows — keep Windows updated' },
-};
-
-function getKnownDriver(name) {
-  const lower = (name || '').toLowerCase();
-  const key = Object.keys(KNOWN_DRIVERS).find(k => lower.includes(k.toLowerCase()));
-  return key ? KNOWN_DRIVERS[key] : null;
-}
 
 /**
  * Scan installed drivers using driverquery (no admin required).
@@ -240,30 +199,11 @@ try {
       const state = (item.State || '').trim();
       if (!name) continue;
 
-      const known = getKnownDriver(name);
-      const finalDesc = (desc && desc !== name) ? desc : (known?.desc || 'System Driver');
-      const action    = known?.action || 'Investigate only if latency remains consistently high';
-
-      let impact = 'Low';
-      const lName = name.toLowerCase();
-      if (
-        lName.includes('nv') || lName.includes('amd') || lName.includes('ati') ||
-        lName.includes('ndis') || lName.includes('tcpip') || lName.includes('storport') ||
-        lName.includes('acpi') || lName.includes('usb')
-      ) impact = 'Medium';
-      if (lName.includes('nvlddmkm') || lName.includes('ndis') || lName.includes('storport')) impact = 'High';
-
       rows.push({
         name,
-        description: finalDesc,
+        description: desc || 'System driver',
         type,
         state,
-        dpcCount: null,
-        isrCount: null,
-        highestExec: null,
-        totalExec: null,
-        impact,
-        suggestedAction: action,
       });
     }
 
@@ -338,10 +278,11 @@ async function startAnalysis(onSample, onError) {
   _sampleCount    = 0;
   _lastError      = null;
   _consecutiveFailures = 0;
+  const generation = ++_generation;
   _lifecycleLog('analysis_started', { sampleIntervalMs: SAMPLE_INTERVAL_MS });
 
   async function poll() {
-    if (!_sessionActive) return;
+    if (!_sessionActive || generation !== _generation) return;
     // Guard: previous PS process still running — skip this tick to avoid overlap
     if (_sampleProcess) {
       _intervalHandle = setTimeout(poll, SAMPLE_INTERVAL_MS);
@@ -349,7 +290,7 @@ async function startAnalysis(onSample, onError) {
     }
     try {
       const sample = await collectSample();
-      if (_sessionActive && sample) {
+      if (_sessionActive && generation === _generation && sample) {
         _sampleCount++;
         _lastError = null;
         _consecutiveFailures = 0;
@@ -357,6 +298,7 @@ async function startAnalysis(onSample, onError) {
         if (_sampleCallback) _sampleCallback(sample);
       }
     } catch (err) {
+      if (!_sessionActive || generation !== _generation) return;
       _lastError = err.message || String(err);
       _consecutiveFailures++;
       _lifecycleLog('counter_failure', { sampleCount: _sampleCount, error: _lastError });
@@ -374,7 +316,7 @@ async function startAnalysis(onSample, onError) {
         });
       }
     }
-    if (_sessionActive) {
+    if (_sessionActive && generation === _generation) {
       _intervalHandle = setTimeout(poll, SAMPLE_INTERVAL_MS);
     }
   }
@@ -389,6 +331,7 @@ async function startAnalysis(onSample, onError) {
 function stopAnalysis() {
   if (_sessionActive) _lifecycleLog('analysis_stopped', { sampleCount: _sampleCount });
   _sessionActive = false;
+  _generation++;
   _sampleCallback = null;
   _lastError = null;
   if (_intervalHandle) {
@@ -427,4 +370,5 @@ module.exports = {
   scanAudioDevices,
   isActive,
   getStatus,
+  parseCounterOutput,
 };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, CircleAlert, Clock3, Cpu, MemoryStick, Pause, Radio, ShieldCheck } from "lucide-react";
+import { Activity, CircleAlert, Clock3, Cpu, MemoryStick, Pause, Radio, ShieldCheck, type LucideIcon } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { cn } from "@/lib/utils";
 import type { SystemLoadMeasurement, SystemLoadState } from "@/lib/responsivenessMetrics";
@@ -73,8 +73,8 @@ export function SystemLoadPanel({
       {hasMeasurements ? (
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Metric icon={Cpu} label="CPU utilization" value={`${data.cpuUsagePct!.toFixed(1)}%`} note={`${data.cpuCoreCount} logical cores`} />
-          <Metric icon={MemoryStick} label="RAM in use" value={`${data.ramUsedGb!.toFixed(1)} / ${data.ramTotalGb!.toFixed(1)} GB`} note={`${data.ramUsagePct!.toFixed(1)}% used`} />
-          <Metric icon={Activity} label="Running processes" value={Math.round(data.processCount!).toLocaleString()} note="system-wide count" />
+          <Metric icon={MemoryStick} label="RAM in use" value={`${data.ramUsedGb!.toFixed(1)} / ${data.ramTotalGb!.toFixed(1)} GiB`} note={`${data.ramUsagePct!.toFixed(1)}% used`} />
+          <Metric icon={Activity} label="Process count" value={Math.round(data.processCount!).toLocaleString()} note="system-wide count" />
         </div>
       ) : (
         <div className="mt-5 rounded-lg border border-white/[0.06] bg-[#111820]/70 px-3 py-4 text-xs text-[#8792A0]" data-testid="text-system-load-empty">
@@ -104,7 +104,7 @@ function Metric({
   value,
   note,
 }: {
-  icon: typeof Cpu;
+  icon: LucideIcon;
   label: string;
   value: string;
   note: string;

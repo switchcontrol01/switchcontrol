@@ -91,7 +91,7 @@ export function normalizeSystemLoad(
   if (!valuesValid) {
     return {
       ...EMPTY_SYSTEM_LOAD,
-      state: raw.demandMode === "paused" ? "paused" : "unavailable",
+      state: raw.demandMode === "paused" || raw.collectionPaused === true ? "paused" : "unavailable",
       reason: "One or more local Windows readings are missing or invalid.",
     };
   }
@@ -108,7 +108,7 @@ export function normalizeSystemLoad(
     now - cpuRamSampledAt > CPU_RAM_MAX_AGE_MS ||
     now - processesSampledAt > PROCESS_MAX_AGE_MS;
   const state: SystemLoadState =
-    raw.demandMode === "paused" ? "paused" : stale ? "stale" : "live";
+    raw.demandMode === "paused" || raw.collectionPaused === true ? "paused" : stale ? "stale" : "live";
 
   return {
     state,
@@ -182,4 +182,229 @@ export function summarizeCounterSamples(samples: NativeCounterSample[]) {
     meanPageFaultsPerSec: mean(samples.map((sample) => sample.pageFaultsPerSec)),
     peakPageFaultsPerSec: Math.max(...samples.map((sample) => sample.pageFaultsPerSec)),
   };
+}
+
+export interface DriverInventoryRow {
+  name: string;
+  description: string;
+  type: string;
+  state: string;
+}
+
+export interface AudioDeviceInventory {
+  name: string;
+  manufacturer: string;
+  status: string;
+}
+
+export interface MeasuredCapture {
+  schemaVersion: 2;
+  id: string;
+  label: string;
+  timestamp: number;
+  startedAt: number;
+  endedAt: number;
+  durationSec: number;
+  sampleCount: number;
+  completion: "completed" | "in_progress" | "failed" | "cancelled";
+  source: "Windows PerfOS";
+  scope: "system-wide";
+  avgDpcPct: number;
+  avgIntrPct: number;
+  peakDpcPct: number;
+  peakIntrPct: number;
+  avgPageFaultsSec: number;
+  peakPageFaultsSec: number;
+  samples: NativeCounterSample[];
+  drivers: DriverInventoryRow[];
+  audioDevices: AudioDeviceInventory[];
+  isAdmin: boolean;
+}
+
+export const MIN_COMPARISON_SAMPLES = 8;
+
+export function createMeasuredCapture(
+  samples: NativeCounterSample[],
+  metadata: {
+    label?: string;
+    completion?: MeasuredCapture["completion"];
+    drivers?: DriverInventoryRow[];
+    audioDevices?: AudioDeviceInventory[];
+    isAdmin?: boolean;
+  } = {},
+): MeasuredCapture | null {
+  if (!Array.isArray(samples)) return null;
+  for (let index = 0; index < samples.length; index++) {
+    const parsed = validateCounterSample(samples[index], Date.now(), Infinity);
+    if (!parsed.valid || (index > 0 && samples[index].sampledAt <= samples[index - 1].sampledAt)) return null;
+  }
+  const summary = summarizeCounterSamples(samples);
+  if (!summary) return null;
+  return {
+    schemaVersion: 2,
+    id: `capture-${summary.startedAt}-${summary.sampleCount}`,
+    label: metadata.label?.trim() || "Measured capture",
+    timestamp: summary.endedAt,
+    startedAt: summary.startedAt,
+    endedAt: summary.endedAt,
+    durationSec: (summary.endedAt - summary.startedAt) / 1000,
+    sampleCount: summary.sampleCount,
+    completion: metadata.completion ?? "in_progress",
+    source: "Windows PerfOS",
+    scope: "system-wide",
+    avgDpcPct: summary.meanDpcPct,
+    avgIntrPct: summary.meanInterruptPct,
+    peakDpcPct: summary.peakDpcPct,
+    peakIntrPct: summary.peakInterruptPct,
+    avgPageFaultsSec: summary.meanPageFaultsPerSec,
+    peakPageFaultsSec: summary.peakPageFaultsPerSec,
+    samples: samples.map((sample) => ({ ...sample })),
+    drivers: (metadata.drivers ?? []).map(({ name, description, type, state }) => ({ name, description, type, state })),
+    audioDevices: (metadata.audioDevices ?? []).map(({ name, manufacturer, status }) => ({ name, manufacturer, status })),
+    isAdmin: metadata.isAdmin === true,
+  };
+}
+
+export function validateStoredCapture(value: any): MeasuredCapture | null {
+  if (
+    !value || value.schemaVersion !== 2 ||
+    value.source !== "Windows PerfOS" || value.scope !== "system-wide" ||
+    value.completion !== "completed" || !Array.isArray(value.samples) ||
+    value.samples.length < MIN_COMPARISON_SAMPLES ||
+    value.samples.length !== value.sampleCount ||
+    !finiteInRange(value.endedAt, 1, Date.now() + 5_000)
+  ) return null;
+
+  const samples: NativeCounterSample[] = [];
+  for (const raw of value.samples) {
+    const parsed = validateCounterSample(raw, value.endedAt, Infinity);
+    if (!parsed.valid || !parsed.sample) return null;
+    if (samples.length && parsed.sample.sampledAt <= samples[samples.length - 1].sampledAt) return null;
+    samples.push(parsed.sample);
+  }
+  const capture = createMeasuredCapture(samples, {
+    label: typeof value.label === "string" ? value.label.slice(0, 60) : undefined,
+    completion: "completed",
+    drivers: Array.isArray(value.drivers) ? value.drivers.filter(isDriverInventoryRow) : [],
+    audioDevices: Array.isArray(value.audioDevices) ? value.audioDevices.filter(isAudioDeviceInventory) : [],
+    isAdmin: value.isAdmin === true,
+  });
+  if (!capture) return null;
+  const fields = ["startedAt", "endedAt", "durationSec", "sampleCount", "avgDpcPct", "avgIntrPct", "peakDpcPct", "peakIntrPct", "avgPageFaultsSec", "peakPageFaultsSec"] as const;
+  if (fields.some((field) => typeof value[field] !== "number" || Math.abs(value[field] - capture[field]) > 0.000001)) return null;
+  return capture;
+}
+
+export function isDriverInventoryRow(value: any): value is DriverInventoryRow {
+  return !!value && ["name", "description", "type", "state"].every((key) => typeof value[key] === "string");
+}
+
+export function isAudioDeviceInventory(value: any): value is AudioDeviceInventory {
+  return !!value && ["name", "manufacturer", "status"].every((key) => typeof value[key] === "string");
+}
+
+export function createMeasurementReport(capture: MeasuredCapture | null) {
+  if (!capture || capture.sampleCount === 0 || capture.samples.length !== capture.sampleCount) return null;
+  capture = createMeasuredCapture(capture.samples, {
+    label: capture.label,
+    completion: capture.completion,
+    drivers: capture.drivers,
+    audioDevices: capture.audioDevices,
+    isAdmin: capture.isAdmin,
+  });
+  if (!capture) return null;
+  return {
+    tool: "SwitchControl Latency Analyzer",
+    schemaVersion: 2,
+    scope: capture.scope,
+    source: capture.source,
+    completion: capture.completion,
+    testLabel: capture.label,
+    startedAt: new Date(capture.startedAt).toISOString(),
+    endedAt: new Date(capture.endedAt).toISOString(),
+    collectionSpanSec: capture.durationSec,
+    sampleCount: capture.sampleCount,
+    units: { dpc: "% CPU time", interrupt: "% CPU time", pageFaults: "total faults/sec" },
+    summary: {
+      meanDpcPct: capture.avgDpcPct,
+      peakDpcPct: capture.peakDpcPct,
+      meanInterruptPct: capture.avgIntrPct,
+      peakInterruptPct: capture.peakIntrPct,
+      meanPageFaultsPerSec: capture.avgPageFaultsSec,
+      peakPageFaultsPerSec: capture.peakPageFaultsSec,
+    },
+    samples: capture.samples,
+    inventory: { drivers: capture.drivers, audioDevices: capture.audioDevices },
+    limitations: [
+      "Page faults/sec includes soft and hard faults; it does not measure disk paging delay.",
+      "System-wide counters do not identify a responsible driver.",
+      "Scheduler dispatch delay, per-driver execution times, audio dropout risk, gaming performance, and input-to-display latency are not measured.",
+    ],
+  };
+}
+
+export type MeasurementReport = NonNullable<ReturnType<typeof createMeasurementReport>>;
+
+function csvCell(value: unknown): string {
+  const text = String(value ?? "");
+  const safe = /^[=+@-]/.test(text) ? `'${text}` : text;
+  return `"${safe.replaceAll('"', '""')}"`;
+}
+
+export function measurementReportToCsv(report: MeasurementReport): string {
+  const rows: unknown[][] = [
+    ["section", "metric", "value", "unit", "sampled_at", "source"],
+    ["capture", "label", report.testLabel, "", "", report.source],
+    ["capture", "completion", report.completion, "", "", report.source],
+    ["capture", "scope", report.scope, "", "", report.source],
+    ["capture", "started_at", report.startedAt, "ISO 8601", report.startedAt, report.source],
+    ["capture", "ended_at", report.endedAt, "ISO 8601", report.endedAt, report.source],
+    ["capture", "sample_count", report.sampleCount, "samples", "", report.source],
+  ];
+  for (const [metric, value] of Object.entries(report.summary)) {
+    rows.push(["summary", metric, value, metric.includes("PageFaults") ? "total faults/sec" : "% CPU time", report.endedAt, report.source]);
+  }
+  for (const sample of report.samples) {
+    const at = new Date(sample.sampledAt).toISOString();
+    rows.push(
+      ["sample", "dpc", sample.dpcPct, "% CPU time", at, sample.source],
+      ["sample", "interrupt", sample.interruptPct, "% CPU time", at, sample.source],
+      ["sample", "page_faults", sample.pageFaultsPerSec, "total faults/sec", at, sample.source],
+    );
+  }
+  for (const limitation of report.limitations) rows.push(["unavailable", limitation, "not measured", "", "", report.source]);
+  return rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
+}
+
+export function measurementReportToText(report: MeasurementReport): string {
+  return [
+    "SwitchControl — measured Windows counter capture",
+    `Label: ${report.testLabel}`,
+    `Source: ${report.source}`,
+    `Scope: ${report.scope}`,
+    `Completion: ${report.completion}`,
+    `First sample: ${report.startedAt}`,
+    `Last sample: ${report.endedAt}`,
+    `Collection span: ${report.collectionSpanSec} seconds`,
+    `Valid samples: ${report.sampleCount}`,
+    "",
+    `Mean DPC CPU time: ${report.summary.meanDpcPct}%`,
+    `Peak DPC CPU time: ${report.summary.peakDpcPct}%`,
+    `Mean interrupt CPU time: ${report.summary.meanInterruptPct}%`,
+    `Peak interrupt CPU time: ${report.summary.peakInterruptPct}%`,
+    `Mean total page faults: ${report.summary.meanPageFaultsPerSec} faults/sec`,
+    `Peak total page faults: ${report.summary.peakPageFaultsPerSec} faults/sec`,
+    "",
+    "Native samples",
+    ...report.samples.map((sample) => `${new Date(sample.sampledAt).toISOString()} | DPC ${sample.dpcPct}% CPU time | interrupt ${sample.interruptPct}% CPU time | total page faults ${sample.pageFaultsPerSec}/sec | ${sample.source}`),
+    "",
+    "Not measured",
+    ...report.limitations,
+    "",
+    "Driver inventory (not a latency attribution)",
+    ...report.inventory.drivers.map((driver) => `${driver.name} | ${driver.description} | ${driver.type} | ${driver.state}`),
+    "",
+    "Audio device inventory (no dropout assessment)",
+    ...report.inventory.audioDevices.map((device) => `${device.name} | ${device.manufacturer} | ${device.status}`),
+  ].join("\n");
 }

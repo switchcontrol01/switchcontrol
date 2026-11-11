@@ -1,1886 +1,264 @@
 /**
- * LatencyAnalyzer.tsx
- *
- * SwitchControl Latency Analyzer — user-mode Windows system responsiveness
- * and driver activity analysis. Placed directly under Driver Intel in navigation.
- *
- * Premium-gated (same pattern as DriverIntelligence.tsx).
- *
- * Data sources: Windows Performance Counters (DPC%, Interrupt%, Page Faults/sec)
- * via PowerShell Get-Counter in the Electron main process.
- *
- * Limitation: Per-driver DPC/ISR microsecond timings require kernel-mode ETW
- * instrumentation and are therefore labeled "Limited in user mode" rather than
- * fabricated. This is intentional and honest.
+ * Windows system-wide counter capture. No inferred timings, scores, driver
+ * attribution, or audio/gaming verdicts are produced by this page.
  */
-
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "@/lib/motion";
+import { Activity, AlertTriangle, ChevronDown, ChevronUp, Crown, Info, Layers, Loader2, Music, Play, RotateCcw, Square, Timer } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
+import { SystemLoadPanel } from "@/components/SystemLoadPanel";
+import { CollectionSummary, CoreCounterMetrics, CounterTimeline } from "@/components/latency-analyzer/CounterMetrics";
+import { CaptureComparison, CaptureExport } from "@/components/latency-analyzer/CaptureTools";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
+import { useMeasuredSystemLoad } from "@/hooks/useMeasuredSystemLoad";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
-import { cn } from "@/lib/utils";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  Legend,
-} from "recharts";
-import {
-  Activity,
-  AlertTriangle,
-  CheckCircle,
-  ChevronDown,
-  ChevronRight,
-  ChevronUp,
-  Clock,
-  Crown,
-  Download,
-  Gauge,
-  Info,
-  Layers,
-  Loader2,
-  Minus,
-  Music,
-  Play,
-  RefreshCw,
-  RotateCcw,
-  Save,
-  Shield,
-  ShieldAlert,
-  Square,
-  Timer,
-  TrendingDown,
-  TrendingUp,
-  Zap,
-} from "lucide-react";
-import { useLatencyAnalyzerStore } from "@/stores/latencyAnalyzerStore";
-import type { DriverRow, AnalysisResult } from "@/stores/latencyAnalyzerStore";
-import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
-import {
-  STATUS_META,
-  audioRisk,
-  gamingScore,
-  type LatencyStatus,
-} from "@/lib/latency-analyzer-config";
+import { useLatencyAnalyzerStore, type DriverRow } from "@/stores/latencyAnalyzerStore";
 import { useTranslation } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
-// ── Electron API check ────────────────────────────────────────────────────────
-
-const isElectron =
-  typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
-
-const eApi = () => (window as any).electronAPI as any;
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-function fmt1(n: number | null | undefined): string {
-  if (n == null || !isFinite(n)) return "--";
-  return n.toFixed(1);
-}
-
-function fmtInt(n: number | null | undefined): string {
-  if (n == null || !isFinite(n)) return "--";
-  return Math.round(n).toLocaleString();
-}
-
-function fmtSec(sec: number): string {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
-}
-
-function statusColor(s: LatencyStatus) {
-  return STATUS_META[s] ?? STATUS_META["Not enough data"];
-}
-
-function impactColor(impact: string) {
-  if (impact === "High")    return "text-red-400 border-red-500/25 bg-red-500/[0.06]";
-  if (impact === "Medium")  return "text-amber-400 border-amber-500/25 bg-amber-500/[0.06]";
-  if (impact === "Low")     return "text-emerald-400 border-emerald-500/25 bg-emerald-500/[0.06]";
-  return "text-[#6B7380] border-[#2A313A] bg-[#1A1F26]";
-}
-
-function riskColor(r: "Low" | "Moderate" | "High") {
-  if (r === "Low")      return { text: "text-emerald-400", bg: "bg-emerald-500/[0.06]", border: "border-emerald-500/20" };
-  if (r === "Moderate") return { text: "text-amber-400",   bg: "bg-amber-500/[0.06]",   border: "border-amber-500/20"   };
-  return                       { text: "text-red-400",     bg: "bg-red-500/[0.06]",     border: "border-red-500/20"     };
-}
-
-// ── Metric mini-bar ────────────────────────────────────────────────────────────
-
-function MiniBar({
-  value, max, color, animated = true,
-}: { value: number; max: number; color: string; animated?: boolean }) {
-  const pct = Math.min(100, (value / max) * 100);
-  return (
-    <div className="h-1.5 rounded-full bg-[#1A1F26] overflow-hidden">
-      <motion.div
-        className="h-full rounded-full"
-        style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}66` }}
-        initial={{ width: 0 }}
-        animate={{ width: `${pct}%` }}
-        transition={animated ? { duration: 0.6, ease: [0.22, 1, 0.36, 1] } : { duration: 0 }}
-      />
-    </div>
-  );
-}
-
-// ── Live metric chip ───────────────────────────────────────────────────────────
-
-function MetricChip({
-  label, value, unit = "", color = "text-[#E6EAF0]", sublabel,
-}: {
-  label: string; value: string; unit?: string; color?: string; sublabel?: string;
-}) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] text-[#6B7380] uppercase tracking-wider">{label}</span>
-      <div className="flex items-baseline gap-1">
-        <span className={cn("text-xl font-bold tabular-nums leading-none", color)}>{value}</span>
-        {unit && <span className="text-[11px] text-[#6B7380]">{unit}</span>}
-      </div>
-      {sublabel && <span className="text-[9px] text-[#6B7380]/70">{sublabel}</span>}
-    </div>
-  );
-}
-
-// ── Status badge ───────────────────────────────────────────────────────────────
-
-function StatusBadge({ status }: { status: LatencyStatus }) {
-  const { t } = useTranslation();
-  const meta = statusColor(status);
-  const Icon =
-    status === "Excellent" || status === "Good" ? CheckCircle :
-    status === "Fair"                           ? Activity :
-    status === "Poor" || status === "Critical"  ? ShieldAlert :
-    Timer;
-  return (
-    <motion.div
-      key={status}
-      className={cn(
-        "flex items-center gap-2 px-4 py-2.5 rounded-xl border font-semibold text-sm",
-        meta.bg, meta.border, meta.color
-      )}
-      initial={{ opacity: 0, scale: 0.92 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.25 }}
-    >
-      <Icon className="size-4" />
-      {t(status)}
-    </motion.div>
-  );
-}
-
-// ── 1. Controls card ───────────────────────────────────────────────────────────
-
-const DURATION_OPTIONS = [
-  { label: "30s",      sec: 30   },
-  { label: "1 min",    sec: 60   },
-  { label: "2 min",    sec: 120  },
-  { label: "5 min",    sec: 300  },
-  { label: "Unlimited", sec: 0   },
+const api = () => (window as any).electronAPI;
+const desktopAvailable = () => !!api()?.isElectron && !!api()?.latencyAnalyzer;
+const DURATIONS = [
+  { label: "30s", seconds: 30 },
+  { label: "1 min", seconds: 60 },
+  { label: "2 min", seconds: 120 },
+  { label: "5 min", seconds: 300 },
+  { label: "Unlimited", seconds: 0 },
 ];
 
-function ControlsCard({
-  onStart, onStop, onReset,
-}: {
-  onStart: () => void;
-  onStop: () => void;
-  onReset: () => void;
-}) {
+function Controls({ onStart, onStop, onReset }: { onStart: () => void; onStop: () => void; onReset: () => void }) {
   const { t } = useTranslation();
-  const {
-    sessionStatus, sessionError, elapsedSec, sampleCount,
-    durationSec, setDuration, isAdmin,
-  } = useLatencyAnalyzerStore();
-
-  const isRunning = sessionStatus === "collecting" || sessionStatus === "starting";
-  const isStopping = sessionStatus === "stopping";
-  const hasData = sampleCount > 0;
-  const durationReached = durationSec > 0 && elapsedSec >= durationSec;
-
+  const { sessionStatus, sessionError, durationSec, setDuration, sampleCount, elapsedSec } = useLatencyAnalyzerStore();
+  const active = sessionStatus === "starting" || sessionStatus === "collecting";
+  const stopping = sessionStatus === "stopping";
   return (
-    <GlassCard className="relative overflow-hidden p-5 lg:p-6 border-cyan-500/15 bg-[#151B24]">
-      <div className="pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-cyan-400/[0.06] blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 left-1/3 h-px w-1/3 bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
-      <div className="relative flex flex-wrap items-start gap-5 justify-between">
-        {/* Left: status + timer */}
-        <div className="flex min-w-[220px] flex-1 flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg border border-cyan-400/20 bg-cyan-400/[0.08]">
-              <Activity className="size-4 text-cyan-300" />
-            </span>
-            <div>
-              <h3 className="text-sm font-semibold text-[#E6EAF0]">{t("Live Analysis")}</h3>
-              <p className="text-[9px] uppercase tracking-[0.18em] text-cyan-300/60">{t("System signal monitor")}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "size-2 rounded-full shadow-[0_0_10px_currentColor]",
-              isRunning  ? "bg-cyan-300 text-cyan-300 animate-pulse" :
-              isStopping ? "bg-amber-400 text-amber-400 animate-pulse" :
-              sessionStatus === "stopped" ? "bg-[#6B7380] text-[#6B7380]" :
-              "bg-[#2A313A] text-[#2A313A]"
-            )} />
-            <span className="text-xs font-medium text-[#C8D0DA]">
-              {isRunning  ? `${t("Collecting")} — ${fmtSec(elapsedSec)} ${t("elapsed")}` :
-               isStopping ? t("Stopping…") :
-               sessionStatus === "starting" ? t("Starting…") :
-               sessionStatus === "stopped"  ? `${t("Stopped")} — ${fmtSec(elapsedSec)} ${t("collected")}` :
-               sessionStatus === "error"    ? t("Error — see below") :
-               t("Ready to analyze")}
-            </span>
-          </div>
-
-          {isRunning && (
-            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#7F8997]">
-              {sampleCount} {t(sampleCount === 1 ? "sample collected" : "samples collected")}
-              {durationSec > 0 && ` · ${Math.max(0, durationSec - elapsedSec)}s ${t("remaining")}`}
-            </div>
-          )}
-
-          {!isAdmin && isElectron && (
-            <div className="flex items-start gap-1.5 text-[10px] text-amber-400/80 bg-amber-500/[0.06] border border-amber-500/20 rounded-lg px-2.5 py-2">
-              <AlertTriangle className="size-3 shrink-0 mt-0.5" />
-              <span>{t("Some low-level Windows counters may be unavailable without administrator rights. The analyzer will report a specific collection error if Windows cannot provide the data.")}</span>
-            </div>
-          )}
-
-          {!isElectron && (
-            <div className="flex items-start gap-1.5 text-[10px] text-[#6B7380] bg-[#1A1F26] border border-[#2A313A] rounded-lg px-2.5 py-2">
-              <Info className="size-3 shrink-0 mt-0.5" />
-              <span>{t("Latency Analyzer requires the SwitchControl desktop app to collect hardware metrics.")}</span>
-            </div>
-          )}
+    <GlassCard className="p-5 lg:p-6 border-cyan-500/15 bg-[#151B24]">
+      <div className="flex flex-wrap items-center justify-between gap-5">
+        <div>
+          <h2 className="flex items-center gap-2 text-sm font-semibold"><Activity className="size-4 text-cyan-300" />{t("Windows counter capture")}</h2>
+          <p className="mt-1 text-[10px] text-[#8A95A4]">{elapsedSec}s {t("elapsed")} · {sampleCount} {t("valid samples")}</p>
+          {active && durationSec > 0 && <p className="mt-1 text-[10px] text-[#778292]">{Math.max(0, durationSec - elapsedSec)}s {t("remaining")}</p>}
         </div>
-
-        {/* Center: duration picker */}
-        {!isRunning && !isStopping && (
-          <div className="flex min-w-[250px] flex-col gap-2">
-            <span className="text-[9px] text-[#778292] uppercase tracking-[0.18em]">{t("Capture window")}</span>
-            <div className="flex gap-1.5 flex-wrap">
-              {DURATION_OPTIONS.map((o) => (
-                <button
-                  key={o.sec}
-                  onClick={() => setDuration(o.sec)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50",
-                    durationSec === o.sec
-                      ? "bg-cyan-400/15 border-cyan-300/40 text-cyan-200"
-                      : "bg-[#1A1F26] border-[#2A313A] text-[#A0A8B3] hover:border-[#3A4250]"
-                  )}
-                >
-                  {o.label === "Unlimited" ? t(o.label) : o.label}
-                </button>
-              ))}
-            </div>
+        {!active && !stopping && (
+          <div className="flex flex-wrap gap-1.5" aria-label={t("Capture duration")}>
+            {DURATIONS.map((duration) => <button key={duration.seconds} onClick={() => setDuration(duration.seconds)} className={cn("rounded-lg border px-3 py-1.5 text-[11px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50", durationSec === duration.seconds ? "border-cyan-300/40 bg-cyan-400/15 text-cyan-200" : "border-[#2A313A] bg-[#1A1F26] text-[#A0A8B3]")}>{t(duration.label)}</button>)}
           </div>
         )}
-
-        {/* Right: action buttons */}
-        <div className="flex items-center gap-2 flex-wrap sm:justify-end">
-          {!isRunning && !isStopping && (
-            <Button
-              size="sm"
-              onClick={onStart}
-              disabled={!isElectron || isStopping}
-              className="bg-cyan-400/15 hover:bg-cyan-400/25 text-cyan-200 border border-cyan-300/30 gap-1.5 shadow-[0_0_20px_rgba(34,211,238,0.08)]"
-            >
-              <Play className="size-3.5" />
-              {t("Start Analysis")}
-            </Button>
-          )}
-
-          {(isRunning || isStopping) && (
-            <Button
-              size="sm"
-              onClick={onStop}
-              disabled={isStopping}
-              className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 gap-1.5"
-            >
-              {isStopping
-                ? <Loader2 className="size-3.5 animate-spin" />
-                : <Square className="size-3.5" />}
-              {isStopping ? t("Stopping…") : t("Stop")}
-            </Button>
-          )}
-
-          {hasData && !isRunning && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onReset}
-              className="gap-1.5 text-[#A0A8B3] border-[#2A313A]"
-            >
-              <RotateCcw className="size-3.5" />
-              {t("Reset")}
-            </Button>
-          )}
+        <div className="flex gap-2">
+          {!active && !stopping && <Button size="sm" disabled={!desktopAvailable()} onClick={onStart} className="gap-1.5 border border-cyan-300/30 bg-cyan-400/15 text-cyan-200 hover:bg-cyan-400/25"><Play className="size-3.5" />{t("Start Analysis")}</Button>}
+          {(active || stopping) && <Button size="sm" disabled={stopping} onClick={onStop} className="gap-1.5 border border-red-500/30 bg-red-500/20 text-red-400 hover:bg-red-500/30">{stopping ? <Loader2 className="size-3.5 animate-spin" /> : <Square className="size-3.5" />}{t(stopping ? "Stopping…" : "Stop")}</Button>}
+          {!active && !stopping && (sampleCount > 0 || sessionStatus === "error") && <Button size="sm" variant="outline" onClick={onReset} className="gap-1.5"><RotateCcw className="size-3.5" />{t("Reset")}</Button>}
         </div>
       </div>
-
-      {/* Error */}
-      <AnimatePresence>
-        {sessionStatus === "error" && sessionError && (
-          <motion.div
-            className="mt-3 flex items-start gap-2 text-[11px] text-red-400 bg-red-500/[0.06] border border-red-500/20 rounded-lg px-3 py-2.5"
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-          >
-            <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
-            <span>{sessionError}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {!desktopAvailable() && <p className="mt-3 rounded-lg border border-[#2A313A] bg-[#1A1F26] p-3 text-[11px] text-[#8A95A4]">{t("Windows desktop is required. Browser and cloud-host telemetry are not used as measurements of your computer.")}</p>}
+      {sessionError && <div role="alert" className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/[0.05] p-3 text-[11px] text-amber-300"><AlertTriangle className="mt-0.5 size-3.5 shrink-0" /><span>{sessionError}</span></div>}
     </GlassCard>
   );
 }
 
-// ── 2. Overall status card ─────────────────────────────────────────────────────
-
-function OverallStatusCard() {
-  const { t } = useTranslation();
-  const { status, overallScore, sampleCount, elapsedSec, avgDpcPct, avgIntrPct } = useLatencyAnalyzerStore();
-  const meta = statusColor(status);
-  const ar   = sampleCount > 0 ? audioRisk(avgDpcPct, avgIntrPct) : null;
-  const rc   = ar ? riskColor(ar) : null;
-
-  return (
-    <GlassCard className={cn("relative overflow-hidden p-5 lg:p-6", meta.bg, meta.border, "bg-[#171D27]")}>
-      <div
-        className="pointer-events-none absolute inset-0 rounded-2xl opacity-60"
-        style={{ background: "radial-gradient(circle at 82% 35%, rgba(34,211,238,0.10), transparent 34%), linear-gradient(115deg, transparent 25%, rgba(99,102,241,0.05), transparent 75%)" }}
-      />
-      <div className="relative flex flex-wrap items-center justify-between gap-6">
-        <div className="flex min-w-[240px] flex-1 flex-col gap-3">
-          <div className="flex items-center gap-2 text-[9px] uppercase tracking-[0.18em] text-[#7F8997]">
-            <Gauge className="size-4 text-cyan-300" />
-             {t("Overall system signal")}
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <StatusBadge status={status} />
-            <span className="text-[10px] text-[#7F8997]">
-               {sampleCount >= 8 ? t("Data quality: established") : t("Data quality: collecting")}
-            </span>
-          </div>
-          <p className="max-w-[480px] text-[11px] leading-relaxed text-[#A0A8B3]">
-            {t(meta.description)}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-end gap-4">
-          {/* Score ring */}
-          <div className="relative size-24">
-            <svg viewBox="0 0 64 64" className="h-full w-full" style={{ transform: "rotate(-90deg)", display: "block", background: "transparent", overflow: "visible" }}>
-              <circle cx={32} cy={32} r={26} fill="none" stroke="rgba(42,49,58,0.9)" strokeWidth={5} />
-              <circle
-                cx={32} cy={32} r={26}
-                fill="none"
-                stroke={overallScore >= 70 ? "#34d399" : overallScore >= 50 ? "#fbbf24" : "#f87171"}
-                strokeWidth={5}
-                strokeLinecap="round"
-                strokeDasharray={`${(overallScore / 100) * 163.36} 163.36`}
-                style={{ filter: `drop-shadow(0 0 6px ${overallScore >= 70 ? "#34d399bb" : overallScore >= 50 ? "#fbbf24bb" : "#f87171bb"})` }}
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <span className={cn("block text-2xl font-semibold tabular-nums", meta.color)}>
-                  {sampleCount > 0 ? Math.round(overallScore) : "--"}
-                </span>
-                 <span className="text-[8px] uppercase tracking-widest text-[#7F8997]">{t("score")}</span>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-             <div className="text-[10px] text-[#7F8997]">{t("Analysis window")}</div>
-            <div className="text-sm font-medium tabular-nums text-[#E6EAF0]">{fmtSec(elapsedSec)}</div>
-            <div className="text-[10px] text-[#A0A8B3]">{sampleCount} samples</div>
-          </div>
-          {ar && rc && (
-            <div className={cn("hidden rounded-lg border px-2.5 py-1.5 text-[10px] font-medium md:block", rc.bg, rc.border, rc.text)}>
-               {t("Audio risk")}: {t(ar)}
-            </div>
-          )}
-        </div>
-      </div>
-      {ar && rc && (
-        <div className={cn("relative mt-4 rounded-lg border px-2.5 py-1.5 text-[10px] font-medium md:hidden", rc.bg, rc.border, rc.text)}>
-           {t("Audio risk")}: {t(ar)}
-        </div>
-      )}
-    </GlassCard>
-  );
-}
-
-// ── 3. Core metrics grid ───────────────────────────────────────────────────────
-
-function CoreMetricsGrid() {
-  const { t } = useTranslation();
-  const {
-    sampleCount, avgDpcPct, peakDpcPct, avgIntrPct, peakIntrPct,
-    avgPageFaultsSec, peakPageFaultsSec, liveDpcPct, liveIntrPct,
-    livePageFaultsSec, sessionStatus, elapsedSec,
-  } = useLatencyAnalyzerStore();
-  const hasData = sampleCount > 0;
-  const metrics = [
-    {
-      id: "avg-dpc",
-       label: t("Avg DPC Time"),
-      value: hasData ? `${fmt1(avgDpcPct)}%` : "--",
-      sublabel: t("% CPU in DPCs"),
-      color: avgDpcPct < 3 ? "#34d399" : avgDpcPct < 7 ? "#fbbf24" : "#f87171",
-      barPct: avgDpcPct,
-      barMax: 20,
-      note: null,
-    },
-    {
-      id: "peak-dpc",
-       label: t("Peak DPC Time"),
-      value: hasData ? `${fmt1(peakDpcPct)}%` : "--",
-      sublabel: t("highest single sample"),
-      color: peakDpcPct < 5 ? "#34d399" : peakDpcPct < 12 ? "#fbbf24" : "#f87171",
-      barPct: peakDpcPct,
-      barMax: 25,
-      note: null,
-    },
-    {
-      id: "avg-isr",
-       label: t("Avg Interrupt Time"),
-      value: hasData ? `${fmt1(avgIntrPct)}%` : "--",
-      sublabel: t("% CPU in ISRs"),
-      color: avgIntrPct < 5 ? "#34d399" : avgIntrPct < 10 ? "#fbbf24" : "#f87171",
-      barPct: avgIntrPct,
-      barMax: 30,
-      note: null,
-    },
-    {
-      id: "peak-isr",
-       label: t("Peak Interrupt Time"),
-      value: hasData ? `${fmt1(peakIntrPct)}%` : "--",
-      sublabel: t("highest single sample"),
-      color: peakIntrPct < 7 ? "#34d399" : peakIntrPct < 15 ? "#fbbf24" : "#f87171",
-      barPct: peakIntrPct,
-      barMax: 35,
-      note: null,
-    },
-    {
-      id: "page-faults",
-       label: t("Page Faults/sec"),
-      value: hasData ? fmtInt(avgPageFaultsSec) : "--",
-      sublabel: t("avg per second"),
-      color: avgPageFaultsSec < 100 ? "#34d399" : avgPageFaultsSec < 500 ? "#fbbf24" : "#f87171",
-      barPct: Math.min(avgPageFaultsSec, 5000),
-      barMax: 5000,
-      note: null,
-    },
-    {
-      id: "peak-pf",
-       label: t("Peak Page Faults"),
-      value: hasData ? fmtInt(peakPageFaultsSec) : "--",
-      sublabel: t("/sec highest"),
-      color: peakPageFaultsSec < 200 ? "#34d399" : peakPageFaultsSec < 1000 ? "#fbbf24" : "#f87171",
-      barPct: Math.min(peakPageFaultsSec, 5000),
-      barMax: 5000,
-      note: null,
-    },
-    {
-      id: "intr-activity",
-       label: t("Interrupt Activity"),
-      value: hasData
-         ? avgIntrPct < 5 ? t("Normal") : avgIntrPct < 10 ? t("Elevated") : t("High")
-        : "--",
-       sublabel: t("ISR load assessment"),
-      color: avgIntrPct < 5 ? "#34d399" : avgIntrPct < 10 ? "#fbbf24" : "#f87171",
-      barPct: null,
-      barMax: null,
-      note: null,
-    },
-    {
-      id: "dpc-activity",
-       label: t("DPC Activity"),
-      value: hasData
-         ? avgDpcPct < 3 ? t("Normal") : avgDpcPct < 7 ? t("Elevated") : t("High")
-        : "--",
-       sublabel: t("DPC load assessment"),
-      color: avgDpcPct < 3 ? "#34d399" : avgDpcPct < 7 ? "#fbbf24" : "#f87171",
-      barPct: null,
-      barMax: null,
-      note: null,
-    },
-    {
-      id: "driver-dpc-us",
-       label: t("Per-Driver DPC µs"),
-       value: t("Limited"),
-      sublabel: t("user-mode restriction"),
-      color: "#6B7380",
-      barPct: null,
-      barMax: null,
-      note: "Per-driver DPC/ISR microsecond timings require kernel-level ETW instrumentation, which is unavailable without a kernel-mode driver.",
-    },
-    {
-      id: "driver-isr-us",
-       label: t("Per-Driver ISR µs"),
-       value: t("Limited"),
-      sublabel: t("user-mode restriction"),
-      color: "#6B7380",
-      barPct: null,
-      barMax: null,
-      note: "Per-driver ISR execution times are not accessible from user mode without a kernel driver.",
-    },
-    {
-      id: "samples",
-       label: t("Samples Collected"),
-      value: sampleCount > 0 ? String(sampleCount) : "0",
-      sublabel: t("2s interval"),
-      color: sampleCount >= 8 ? "#34d399" : "#fbbf24",
-      barPct: null,
-      barMax: null,
-      note: null,
-    },
-    {
-      id: "duration",
-       label: t("Collection Duration"),
-      value: elapsedSec > 0 ? fmtSec(elapsedSec) : "--",
-      sublabel: t("elapsed time"),
-      color: "#A0A8B3",
-      barPct: null,
-      barMax: null,
-      note: null,
-    },
-  ];
-
-  return (
-    <div className="flex flex-wrap gap-2.5">
-      {metrics.map((m, i) => (
-        <motion.div
-          key={m.id}
-          className={cn(
-            "min-w-0 flex-[1_1_145px]",
-            ["samples", "duration"].includes(m.id) && "flex-[0.7_1_125px]",
-            ["driver-dpc-us", "driver-isr-us"].includes(m.id) && "flex-[1.2_1_175px]",
-          )}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, delay: i * 0.04 }}
-        >
-          <GlassCard className={cn(
-            "h-full min-h-[108px] flex flex-col gap-2 p-3.5",
-            "border-white/[0.07] bg-[#1A2029]/90",
-            m.note ? "border-[#2A313A]/60" : ""
-          )} variant="secondary">
-            <div className="flex items-start justify-between gap-1">
-              <span className="text-[9px] text-[#7F8997] uppercase tracking-[0.13em] leading-snug">{m.label}</span>
-              {m.note && (
-                <div className="group relative shrink-0">
-                  <Info className="size-3 text-[#6B7380] cursor-help" />
-                  <div className="absolute right-0 top-5 z-10 w-56 hidden group-hover:block bg-[#12161C] border border-[#2A313A] rounded-lg p-2.5 text-[10px] text-[#A0A8B3] leading-snug shadow-xl">
-                    {m.note}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div style={{ color: m.color }} className="text-lg font-semibold tabular-nums leading-none">
-              {m.value}
-            </div>
-            <div className="text-[9px] text-[#7F8997]/80">{m.sublabel}</div>
-            {m.barPct !== null && m.barMax !== null && hasData && (
-              <MiniBar value={m.barPct} max={m.barMax} color={m.color} />
-            )}
-            {m.barPct === null && (
-              <div className="mt-auto flex h-1.5 items-end gap-0.5 opacity-60" aria-hidden="true">
-                {[35, 55, 42, 70, 48, 62, 38].map((h, index) => (
-                  <span key={index} className="w-1 rounded-full" style={{ height: `${h}%`, backgroundColor: m.color }} />
-                ))}
-              </div>
-            )}
-          </GlassCard>
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
-// ── 4. Timeline chart ──────────────────────────────────────────────────────────
-
-function TimelineChart() {
-  const { t } = useTranslation();
-  const { chartSamples } = useLatencyAnalyzerStore();
-  const hasData = chartSamples.length > 0;
-
-  const data = chartSamples.map((s) => ({
-    t: s.elapsed,
-    dpc: parseFloat(s.dpcPct.toFixed(2)),
-    isr: parseFloat(s.intrPct.toFixed(2)),
-    pf: parseFloat((s.pageFaultsSec / 100).toFixed(1)), // scale for display
-  }));
-
-  return (
-    <GlassCard className="relative overflow-hidden p-5 lg:p-6 border-indigo-400/15 bg-[#151B24]">
-      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-indigo-300/40 to-transparent" />
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold flex items-center gap-2">
-          <Activity className="size-4 text-indigo-300" />
-           {t("Live Activity Timeline")}
-        </h3>
-        <div className="flex items-center gap-3 text-[10px]">
-          <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-[#f87171] inline-block" /> {t("DPC%")}</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-[#60a5fa] inline-block" /> {t("ISR%")}</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-[#a78bfa] inline-block" /> {t("PF×100/s")}</span>
-        </div>
-      </div>
-
-      {!hasData ? (
-        <div className="h-40 flex flex-col items-center justify-center gap-2 text-[11px] text-[#6B7380]">
-          <span className="size-2 rounded-full bg-indigo-300/50 shadow-[0_0_14px_rgba(129,140,248,0.6)]" />
-           {t("Start analysis to establish a live signal")}
-        </div>
-      ) : (
-        <div className="h-44">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(42,49,58,0.5)" />
-              <XAxis
-                dataKey="t"
-                tickFormatter={(v) => `${v}s`}
-                tick={{ fontSize: 9, fill: "#6B7380" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 9, fill: "#6B7380" }}
-                axisLine={false}
-                tickLine={false}
-                width={30}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: "#12161C",
-                  border: "1px solid #2A313A",
-                  borderRadius: 8,
-                  fontSize: 10,
-                  color: "#E6EAF0",
-                }}
-                formatter={(val: any, name: string) => {
-                  if (name === "dpc") return [`${val}%`, "DPC"];
-                  if (name === "isr") return [`${val}%`, "ISR"];
-                   return [`${(val * 100).toFixed(0)}/s`, t("Page Faults")];
-                }}
-                 labelFormatter={(v) => `${v}s ${t("elapsed")}`}
-              />
-              <Line type="monotone" dataKey="dpc" stroke="#f87171" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-              <Line type="monotone" dataKey="isr" stroke="#60a5fa" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-              <Line type="monotone" dataKey="pf"  stroke="#a78bfa" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-    </GlassCard>
-  );
-}
-
-// ── 5. Driver table ────────────────────────────────────────────────────────────
-
-function DriverTable({ drivers }: { drivers: DriverRow[] }) {
+function DriverInventory({ drivers }: { drivers: DriverRow[] }) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
-  const visible = expanded ? drivers : drivers.slice(0, 8);
-
-  if (!drivers.length) return null;
-
+  if (drivers.length === 0) return null;
   return (
     <GlassCard className="p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold flex items-center gap-2">
-          <Layers className="size-4 text-primary" />
-          {t("Installed Kernel Drivers")}
-          <span className="text-[10px] text-[#6B7380] font-normal">({drivers.length} {t("running")})</span>
-        </h3>
-      </div>
-
-      <div className="mb-3 flex items-start gap-1.5 text-[10px] text-[#6B7380] bg-[#1A1F26] border border-[#2A313A] rounded-lg px-3 py-2">
-        <Info className="size-3 shrink-0 mt-0.5 text-[#6B7380]" />
-        <span>
-          {t("Per-driver DPC and ISR execution times require kernel-level ETW instrumentation and are unavailable in user mode. Driver table shows running kernel drivers and cautious suggested actions. Do not uninstall or modify drivers from this page.")}
-        </span>
-      </div>
-
-      <div className="overflow-x-auto">
+      <h3 className="flex items-center gap-2 text-sm font-semibold"><Layers className="size-4 text-cyan-300" />{t("System driver inventory")} <span className="text-[10px] font-normal text-[#778292]">({drivers.length})</span></h3>
+      <p className="mt-2 text-[10px] leading-relaxed text-[#778292]">{t("Inventory only. System-wide counters cannot identify a responsible driver; no per-driver timing or impact rank is collected.")}</p>
+      <div className="mt-4 overflow-x-auto">
         <table className="w-full text-[11px]">
-          <thead>
-            <tr className="border-b border-[#2A313A]">
-              {["Driver", "Description", "Type", "Impact", "DPC count", "ISR count", "Suggested Action"].map((h) => (
-                <th key={h} className="text-left text-[9px] uppercase tracking-wider text-[#6B7380] pb-2 pr-4 font-medium">
-                  {t(h)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <AnimatePresence>
-              {visible.map((d, i) => (
-                <motion.tr
-                  key={d.name + i}
-                  className="border-b border-[#2A313A]/40 hover:bg-[#1A1F26]/60 transition-colors"
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.15, delay: i * 0.03 }}
-                >
-                  <td className="py-2 pr-4 font-mono text-[10px] text-[#E6EAF0]">{d.name}</td>
-                  <td className="py-2 pr-4 text-[#A0A8B3] max-w-[160px] truncate" title={d.description}>{d.description}</td>
-                  <td className="py-2 pr-4 text-[#6B7380]">{t(d.type)}</td>
-                  <td className="py-2 pr-4">
-                    <span className={cn("px-1.5 py-0.5 rounded border text-[9px] font-medium", impactColor(d.impact))}>
-                      {t(d.impact)}
-                    </span>
-                  </td>
-                  <td className="py-2 pr-4 text-[#6B7380] italic text-[9px]">{t("Limited")}*</td>
-                  <td className="py-2 pr-4 text-[#6B7380] italic text-[9px]">{t("Limited")}*</td>
-                  <td className="py-2 pr-4 text-[#A0A8B3] max-w-[200px]" title={d.suggestedAction}>
-                    <span className="line-clamp-2">{t(d.suggestedAction)}</span>
-                  </td>
-                </motion.tr>
-              ))}
-            </AnimatePresence>
-          </tbody>
+          <thead><tr className="border-b border-[#2A313A]">{["Driver", "Description", "Type", "State"].map((heading) => <th key={heading} className="pb-2 pr-4 text-left text-[9px] uppercase tracking-wider text-[#778292]">{t(heading)}</th>)}</tr></thead>
+          <tbody>{(expanded ? drivers : drivers.slice(0, 8)).map((driver, index) => <tr key={`${driver.name}-${index}`} className="border-b border-[#2A313A]/40"><td className="py-2 pr-4 font-mono text-[#E6EAF0]">{driver.name}</td><td className="py-2 pr-4 text-[#A0A8B3]">{driver.description}</td><td className="py-2 pr-4 text-[#778292]">{driver.type}</td><td className="py-2 pr-4 text-[#778292]">{driver.state}</td></tr>)}</tbody>
         </table>
       </div>
-
-      <div className="mt-2 text-[9px] text-[#6B7380]/60">
-        {t("* Per-driver DPC/ISR execution times unavailable without kernel-level instrumentation")}
-      </div>
-
-      {drivers.length > 8 && (
-        <button
-          onClick={() => setExpanded((e) => !e)}
-          className="mt-3 flex items-center gap-1.5 text-[11px] text-primary/70 hover:text-primary transition-colors"
-        >
-          {expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
-          {expanded ? t("Show fewer") : `${t("Show all")} ${drivers.length} ${t("drivers")}`}
-        </button>
-      )}
+      {drivers.length > 8 && <button onClick={() => setExpanded(!expanded)} className="mt-3 flex items-center gap-1.5 text-[11px] text-cyan-300">{expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}{t(expanded ? "Show fewer" : "Show all")} ({drivers.length})</button>}
     </GlassCard>
   );
 }
 
-// ── 6. Audio stability card ────────────────────────────────────────────────────
-
-function AudioStabilityCard({
-  audioDevices,
-}: { audioDevices: { name: string; manufacturer: string; status: string }[] }) {
+function AudioInventory() {
   const { t } = useTranslation();
-  const { avgDpcPct, avgIntrPct, peakDpcPct, sampleCount } = useLatencyAnalyzerStore();
-  const hasData = sampleCount > 0;
-  const risk = hasData ? audioRisk(avgDpcPct, avgIntrPct) : null;
-  const rc   = risk ? riskColor(risk) : null;
-
-  const suitability =
-    !hasData        ? "Run analysis first"
-    : risk === "Low"      ? "Suitable for real-time audio"
-    : risk === "Moderate" ? "May cause occasional audio interruptions"
-    :                       "High risk of audio dropouts and glitches";
-
-  const recommendation =
-    !hasData        ? ""
-    : risk === "Low"      ? "No severe scheduling interruptions were detected during this test."
-    : risk === "Moderate" ? "Some DPC or interrupt overhead detected. Audio dropouts are possible under load. Consider closing background applications."
-    :                       "Significant scheduling interruptions detected. Audio dropouts are likely. Review the driver table and consider disabling unused hardware.";
-
-  return (
-    <GlassCard className={cn("p-5", rc?.bg ?? "", rc?.border ?? "")}>
-      <h3 className="text-sm font-semibold flex items-center gap-2 mb-4">
-        <Music className="size-4 text-primary" />
-        Audio Stability Assessment
-      </h3>
-
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-[#1A1F26] rounded-lg p-3 border border-[#2A313A]">
-            <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">{t("Audio Suitability")}</div>
-            <div className={cn("text-[11px] font-semibold", rc?.text ?? "text-[#6B7380]")}>{suitability}</div>
-          </div>
-          <div className="bg-[#1A1F26] rounded-lg p-3 border border-[#2A313A]">
-            <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">{t("Dropout Risk")}</div>
-            <div className={cn("text-[11px] font-semibold", rc?.text ?? "text-[#6B7380]")}>
-              {hasData ? risk : "--"}
-            </div>
-          </div>
-          <div className="bg-[#1A1F26] rounded-lg p-3 border border-[#2A313A]">
-            <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">{t("Peak Scheduling Delay")}</div>
-            <div className="text-[11px] font-semibold text-[#E6EAF0]">
-              {hasData ? `${fmt1(peakDpcPct)}% DPC` : "--"}
-            </div>
-          </div>
-          <div className="bg-[#1A1F26] rounded-lg p-3 border border-[#2A313A]">
-            <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">{t("Buffer Underrun Risk")}</div>
-            <div className={cn("text-[11px] font-semibold", rc?.text ?? "text-[#6B7380]")}>
-              {!hasData ? "--" : risk === "Low" ? "Low" : risk === "Moderate" ? "Moderate" : "High"}
-            </div>
-          </div>
-        </div>
-
-        {audioDevices.length > 0 && (
-          <div>
-            <div className="text-[10px] text-[#6B7380] mb-2 uppercase tracking-wider">{t("Detected Audio Devices")}</div>
-            <div className="space-y-1.5">
-              {audioDevices.map((d, i) => (
-                <div key={i} className="flex items-center justify-between text-[10px] bg-[#1A1F26] rounded-lg px-3 py-2 border border-[#2A313A]">
-                  <span className="text-[#A0A8B3]">{d.name}</span>
-                  <span className={cn(
-                    "px-1.5 py-0.5 rounded text-[9px] font-medium",
-                    d.status === "OK" ? "text-emerald-400 bg-emerald-500/10" : "text-amber-400 bg-amber-500/10"
-                  )}>{d.status || "Unknown"}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {recommendation && (
-          <div className={cn("text-[10px] rounded-lg px-3 py-2.5 border leading-relaxed", rc?.bg ?? "bg-[#1A1F26]", rc?.border ?? "border-[#2A313A]", rc?.text ?? "text-[#A0A8B3]")}>
-            {recommendation}
-          </div>
-        )}
-
-        <div className="text-[9px] text-[#6B7380]/60 leading-snug">
-          DPC latency primarily affects scheduling interruptions, audio dropouts, and real-time timing — not speaker fidelity or sound quality.
-        </div>
-      </div>
-    </GlassCard>
-  );
-}
-
-// ── 7. Gaming responsiveness card ─────────────────────────────────────────────
-
-function GamingResponsivenessCard() {
-  const { t } = useTranslation();
-  const { avgDpcPct, avgIntrPct, avgPageFaultsSec, sampleCount } = useLatencyAnalyzerStore();
-  const hasData = sampleCount > 0;
-  const gScore = hasData ? gamingScore(avgDpcPct, avgIntrPct, avgPageFaultsSec) : null;
-
-  const scoreColor2 =
-    !gScore            ? "text-[#6B7380]"
-    : gScore >= 80     ? "text-emerald-400"
-    : gScore >= 60     ? "text-teal-400"
-    : gScore >= 40     ? "text-amber-400"
-    : gScore >= 20     ? "text-orange-400"
-    :                    "text-red-400";
-
-  const dims = [
-    {
-      label: t("Scheduler Responsiveness"),
-      value: hasData ? (avgDpcPct < 3 ? t("Responsive") : avgDpcPct < 7 ? t("Moderate") : t("Sluggish")) : "--",
-      color: hasData ? (avgDpcPct < 3 ? "#34d399" : avgDpcPct < 7 ? "#fbbf24" : "#f87171") : "#6B7380",
-    },
-    {
-      label: t("Network-Driver Latency Risk"),
-      value: hasData ? (avgIntrPct < 5 ? t("Low") : avgIntrPct < 10 ? t("Moderate") : t("High")) : "--",
-      color: hasData ? (avgIntrPct < 5 ? "#34d399" : avgIntrPct < 10 ? "#fbbf24" : "#f87171") : "#6B7380",
-    },
-    {
-      label: t("GPU-Driver Latency Risk"),
-      value: t("Limited in user mode"),
-      color: "#6B7380",
-    },
-    {
-      label: t("Storage-Driver Latency Risk"),
-      value: hasData ? (avgPageFaultsSec < 100 ? t("Low") : avgPageFaultsSec < 500 ? t("Moderate") : t("Elevated")) : "--",
-      color: hasData ? (avgPageFaultsSec < 100 ? "#34d399" : avgPageFaultsSec < 500 ? "#fbbf24" : "#f87171") : "#6B7380",
-    },
-    {
-      label: t("Background Interruption Risk"),
-      value: hasData ? (avgDpcPct + avgIntrPct < 6 ? t("Low") : avgDpcPct + avgIntrPct < 15 ? t("Moderate") : t("High")) : "--",
-      color: hasData
-        ? (avgDpcPct + avgIntrPct < 6 ? "#34d399" : avgDpcPct + avgIntrPct < 15 ? "#fbbf24" : "#f87171")
-        : "#6B7380",
-    },
-  ];
-
+  const { audioDevices, driversScanned } = useLatencyAnalyzerStore();
   return (
     <GlassCard className="p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold flex items-center gap-2">
-          <Zap className="size-4 text-primary" />
-          {t("Gaming Responsiveness")}
-        </h3>
-        {gScore !== null && (
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[#6B7380]">{t("Score")}</span>
-            <span className={cn("text-xl font-bold tabular-nums", scoreColor2)}>{gScore}</span>
-            <span className="text-[10px] text-[#6B7380]">/ 100</span>
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-2.5 mb-4">
-        {dims.map((d) => (
-          <div key={d.label} className="flex items-center justify-between gap-4 py-2 border-b border-[#2A313A]/40 last:border-0">
-            <span className="text-[11px] text-[#A0A8B3]">{d.label}</span>
-            <span className="text-[11px] font-semibold shrink-0" style={{ color: d.color }}>{d.value}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="text-[9px] text-[#6B7380]/70 leading-snug border-t border-[#2A313A] pt-3">
-        {t("This assessment evaluates Windows scheduling and driver behaviour only. It does not measure network ping, monitor latency, mouse/keyboard latency, in-game FPS, or end-to-end input latency.")}
+      <h3 className="flex items-center gap-2 text-sm font-semibold"><Music className="size-4 text-cyan-300" />{t("Audio device inventory")}</h3>
+      <p className="mt-2 text-[10px] text-[#778292]">{t("Detected devices only. Audio dropouts, buffer underruns, and real-time audio suitability are not measured.")}</p>
+      <div className="mt-3 space-y-2">
+        {audioDevices.map((device, index) => <div key={`${device.name}-${index}`} className="flex flex-wrap justify-between gap-2 rounded-lg border border-[#2A313A] bg-[#131A23] px-3 py-2 text-[11px]"><span className="text-[#A0A8B3]">{device.name}</span><span className="text-[#778292]">{device.manufacturer} · {device.status || t("Unknown")}</span></div>)}
+        {audioDevices.length === 0 && <p className="text-[11px] text-[#778292]">{t(driversScanned ? "No audio inventory data is available." : "Start a capture to request the device inventory.")}</p>}
       </div>
     </GlassCard>
   );
 }
-
-// ── 8. Before / After comparison ──────────────────────────────────────────────
-
-function ComparisonPanel() {
-  const { t } = useTranslation();
-  const { baseline, currentResult, saveBaseline, clearBaseline } = useLatencyAnalyzerStore();
-  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
-
-  if (!baseline && !currentResult) return null;
-
-  function pctChange(before: number, after: number): string {
-    if (!before || before === 0) return "N/A";
-    const diff = ((after - before) / before) * 100;
-    return (diff > 0 ? "+" : "") + diff.toFixed(1) + "%";
-  }
-
-  function diffColor(before: number, after: number, lowerIsBetter = true): string {
-    if (!before) return "text-[#6B7380]";
-    const improved = lowerIsBetter ? after < before : after > before;
-    return improved ? "text-emerald-400" : "text-red-400";
-  }
-
-  const rows = baseline && currentResult ? [
-    {
-      label: t("Avg DPC%"),
-      before: `${fmt1(baseline.avgDpcPct)}%`,
-      after: `${fmt1(currentResult.avgDpcPct)}%`,
-      change: pctChange(baseline.avgDpcPct, currentResult.avgDpcPct),
-      color: diffColor(baseline.avgDpcPct, currentResult.avgDpcPct),
-    },
-    {
-      label: t("Peak DPC%"),
-      before: `${fmt1(baseline.peakDpcPct)}%`,
-      after: `${fmt1(currentResult.peakDpcPct)}%`,
-      change: pctChange(baseline.peakDpcPct, currentResult.peakDpcPct),
-      color: diffColor(baseline.peakDpcPct, currentResult.peakDpcPct),
-    },
-    {
-      label: t("Avg ISR%"),
-      before: `${fmt1(baseline.avgIntrPct)}%`,
-      after: `${fmt1(currentResult.avgIntrPct)}%`,
-      change: pctChange(baseline.avgIntrPct, currentResult.avgIntrPct),
-      color: diffColor(baseline.avgIntrPct, currentResult.avgIntrPct),
-    },
-    {
-      label: t("Page Faults/s"),
-      before: fmtInt(baseline.avgPageFaultsSec),
-      after: fmtInt(currentResult.avgPageFaultsSec),
-      change: pctChange(baseline.avgPageFaultsSec, currentResult.avgPageFaultsSec),
-      color: diffColor(baseline.avgPageFaultsSec, currentResult.avgPageFaultsSec),
-    },
-    {
-      label: t("Overall Score"),
-      before: String(Math.round(baseline.overallScore)),
-      after: String(Math.round(currentResult.overallScore)),
-      change: pctChange(baseline.overallScore, currentResult.overallScore),
-      color: diffColor(baseline.overallScore, currentResult.overallScore, false),
-    },
-  ] : [];
-
-  const durationWarning =
-    baseline && currentResult &&
-    Math.abs(baseline.durationSec - currentResult.durationSec) > 30;
-
-  return (
-    <GlassCard className="p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold flex items-center gap-2">
-          <TrendingDown className="size-4 text-primary" />
-          Before / After Comparison
-        </h3>
-        <div className="flex gap-2">
-          {currentResult && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => { setShowSaveConfirm(true); }}
-              className="gap-1.5 text-[10px] text-[#A0A8B3] border-[#2A313A] h-7"
-            >
-              <Save className="size-3" />
-              Save as Baseline
-            </Button>
-          )}
-          {baseline && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={clearBaseline}
-              className="gap-1.5 text-[10px] text-red-400/70 border-red-500/20 h-7"
-            >
-              Clear Baseline
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <AnimatePresence>
-        {showSaveConfirm && (
-          <motion.div
-            className="mb-3 flex items-center gap-3 bg-amber-500/[0.06] border border-amber-500/20 rounded-lg px-3 py-2.5"
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-          >
-            <span className="text-[11px] text-amber-400 flex-1">{t("Save current result as the \"Before\" baseline?")}</span>
-            <Button size="sm" className="h-6 text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30"
-              onClick={() => { saveBaseline(); setShowSaveConfirm(false); }}>
-              Confirm
-            </Button>
-            <Button size="sm" variant="outline" className="h-6 text-[10px] border-[#2A313A] text-[#A0A8B3]"
-              onClick={() => setShowSaveConfirm(false)}>
-              Cancel
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {!baseline && (
-        <div className="text-[11px] text-[#6B7380] bg-[#1A1F26] rounded-lg p-4 border border-[#2A313A] text-center">
-          Run a test before applying tweaks, then save it as a baseline. Run another test afterwards to compare.
-        </div>
-      )}
-
-      {baseline && (
-        <div className="space-y-3">
-          {durationWarning && (
-            <div className="flex items-start gap-1.5 text-[10px] text-amber-400 bg-amber-500/[0.05] border border-amber-500/20 rounded-lg px-2.5 py-2">
-              <AlertTriangle className="size-3 shrink-0 mt-0.5" />
-              Test durations differ significantly ({fmtSec(baseline.durationSec)} vs {currentResult ? fmtSec(currentResult.durationSec) : "--"}). Results may not be directly comparable.
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-2 text-[10px]">
-            <div className="bg-[#1A1F26] rounded-lg p-3 border border-[#2A313A]">
-              <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">{t("Before")}</div>
-              <div className="font-semibold text-[#A0A8B3]">{baseline.label}</div>
-              <div className="text-[9px] text-[#6B7380] mt-1">
-                {new Date(baseline.timestamp).toLocaleString()} · {fmtSec(baseline.durationSec)}
-              </div>
-            </div>
-            {currentResult && (
-              <div className="bg-[#1A1F26] rounded-lg p-3 border border-[#2A313A]">
-                <div className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-1">{t("After")}</div>
-                <div className="font-semibold text-[#A0A8B3]">{currentResult.label}</div>
-                <div className="text-[9px] text-[#6B7380] mt-1">
-                  {new Date(currentResult.timestamp).toLocaleString()} · {fmtSec(currentResult.durationSec)}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {rows.length > 0 && (
-            <table className="w-full text-[11px]">
-              <thead>
-                <tr className="border-b border-[#2A313A]">
-                  {["Metric", "Before", "After", "Change"].map((h) => (
-                    <th key={h} className="text-left text-[9px] uppercase tracking-wider text-[#6B7380] pb-2 pr-3 font-medium">{t(h)}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.label} className="border-b border-[#2A313A]/40">
-                    <td className="py-2 pr-3 text-[#A0A8B3]">{r.label}</td>
-                    <td className="py-2 pr-3 font-mono text-[#6B7380]">{r.before}</td>
-                    <td className="py-2 pr-3 font-mono text-[#E6EAF0]">{r.after}</td>
-                    <td className={cn("py-2 pr-3 font-semibold", r.color)}>{r.change}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
-    </GlassCard>
-  );
-}
-
-// ── 9. Export + Notes ──────────────────────────────────────────────────────────
-
-function ExportNotesCard() {
-  const { t } = useTranslation();
-  const {
-    currentResult, testLabel, setTestLabel, sampleCount,
-    avgDpcPct, avgIntrPct, peakDpcPct, peakIntrPct,
-    avgPageFaultsSec, peakPageFaultsSec, overallScore, status,
-    elapsedSec, drivers, audioDevices,
-  } = useLatencyAnalyzerStore();
-
-  const hasResult = currentResult != null || sampleCount > 0;
-
-  function buildExportData() {
-    return {
-      tool: "SwitchControl Latency Analyzer",
-      version: "1.0",
-      disclaimer:
-        "SwitchControl Latency Analyzer provides user-mode system responsiveness and driver activity analysis. " +
-        "Some low-level ISR and DPC measurements may require kernel-level instrumentation for full accuracy. " +
-        "Results can vary depending on workload, drivers, power settings, background applications, and test duration.",
-      testDate: new Date().toISOString(),
-      testLabel: testLabel || "Unnamed test",
-      durationSec: elapsedSec,
-      sampleCount,
-      summary: {
-        status,
-        overallScore: Math.round(overallScore),
-        avgDpcPct,
-        avgIntrPct,
-        peakDpcPct,
-        peakIntrPct,
-        avgPageFaultsSec,
-        peakPageFaultsSec,
-      },
-      drivers: drivers.map((d) => ({
-        name: d.name,
-        description: d.description,
-        type: d.type,
-        impact: d.impact,
-        suggestedAction: d.suggestedAction,
-        note: "Per-driver DPC/ISR exec times unavailable without kernel instrumentation",
-      })),
-      audioDevices,
-    };
-  }
-
-  function exportJSON() {
-    const data = buildExportData();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href = url;
-    a.download = `sc-latency-report-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function exportCSV() {
-    const d = buildExportData();
-    const lines = [
-      "Metric,Value",
-      `Test Date,${d.testDate}`,
-      `Label,${d.testLabel}`,
-      `Duration (sec),${d.durationSec}`,
-      `Samples,${d.sampleCount}`,
-      `Status,${d.summary.status}`,
-      `Overall Score,${d.summary.overallScore}`,
-      `Avg DPC%,${d.summary.avgDpcPct.toFixed(2)}`,
-      `Peak DPC%,${d.summary.peakDpcPct.toFixed(2)}`,
-      `Avg ISR%,${d.summary.avgIntrPct.toFixed(2)}`,
-      `Peak ISR%,${d.summary.peakIntrPct.toFixed(2)}`,
-      `Avg PageFaults/s,${d.summary.avgPageFaultsSec.toFixed(0)}`,
-      `Peak PageFaults/s,${d.summary.peakPageFaultsSec.toFixed(0)}`,
-    ];
-    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href = url;
-    a.download = `sc-latency-report-${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function exportText() {
-    const d = buildExportData();
-    const lines = [
-      "SwitchControl Latency Analyzer — System Report",
-      "=".repeat(50),
-      "",
-      `Date:          ${new Date(d.testDate).toLocaleString()}`,
-      `Label:         ${d.testLabel}`,
-      `Duration:      ${fmtSec(d.durationSec)}`,
-      `Samples:       ${d.sampleCount}`,
-      "",
-      "SUMMARY",
-      "-".repeat(30),
-      `Status:        ${d.summary.status}`,
-      `Score:         ${d.summary.overallScore}/100`,
-      `Avg DPC%:      ${d.summary.avgDpcPct.toFixed(2)}%`,
-      `Peak DPC%:     ${d.summary.peakDpcPct.toFixed(2)}%`,
-      `Avg ISR%:      ${d.summary.avgIntrPct.toFixed(2)}%`,
-      `Peak ISR%:     ${d.summary.peakIntrPct.toFixed(2)}%`,
-      `Avg PageFaults/s: ${d.summary.avgPageFaultsSec.toFixed(0)}`,
-      "",
-      "LIMITATIONS",
-      "-".repeat(30),
-      d.disclaimer,
-      "",
-      "DRIVERS (running, user-mode list only)",
-      "-".repeat(30),
-      ...d.drivers.slice(0, 20).map((dr) => `${dr.name.padEnd(25)} ${dr.description}`),
-    ];
-    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href = url;
-    a.download = `sc-latency-report-${Date.now()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  return (
-    <GlassCard className="p-5">
-      <h3 className="text-sm font-semibold flex items-center gap-2 mb-4">
-        <Download className="size-4 text-primary" />
-        {t("Test Notes & Export")}
-      </h3>
-
-      <div className="space-y-3">
-        <div>
-          <label className="text-[10px] text-[#6B7380] uppercase tracking-wider block mb-1.5">{t("Test Label")}</label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={testLabel}
-              onChange={(e) => setTestLabel(e.target.value)}
-              placeholder={t("e.g. Before SwitchControl / After tweaks / Gaming session")}
-              maxLength={60}
-              className="flex-1 bg-[#1A1F26] border border-[#2A313A] rounded-lg px-3 py-2 text-[11px] text-[#E6EAF0] placeholder:text-[#6B7380] focus:outline-none focus:border-primary/50"
-            />
-          </div>
-          <div className="flex gap-1.5 mt-1.5 flex-wrap">
-            {["Windows Default", "Before SwitchControl", "After SwitchControl", "Gaming", "Idle Desktop", "Music Playback"].map((l) => (
-              <button
-                key={l}
-                onClick={() => setTestLabel(l)}
-                className="text-[9px] px-2 py-0.5 rounded border border-[#2A313A] text-[#6B7380] hover:text-[#A0A8B3] hover:border-[#3A4250] transition-colors"
-              >
-                {t(l)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex gap-2 pt-1">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={exportJSON}
-            disabled={!hasResult}
-            className="gap-1.5 text-[11px] border-[#2A313A] text-[#A0A8B3]"
-          >
-            <Download className="size-3.5" />
-            JSON
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={exportCSV}
-            disabled={!hasResult}
-            className="gap-1.5 text-[11px] border-[#2A313A] text-[#A0A8B3]"
-          >
-            <Download className="size-3.5" />
-            CSV
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={exportText}
-            disabled={!hasResult}
-            className="gap-1.5 text-[11px] border-[#2A313A] text-[#A0A8B3]"
-          >
-            <Download className="size-3.5" />
-            Text Report
-          </Button>
-        </div>
-      </div>
-    </GlassCard>
-  );
-}
-
-// ── 10. System Responsiveness Analysis ─────────────────────────────────────────
-
-/** Smoothly animates from the previous value to `target` over ~600 ms. */
-function useAnimatedDelayValue(target: number) {
-  const [val, setVal] = useState(target);
-  const rafRef = useRef<number | null>(null);
-  const prevRef = useRef(target);
-  useEffect(() => {
-    const from = prevRef.current;
-    const to   = target;
-    if (from === to) return;
-    const start = performance.now();
-    const dur   = 600;
-    const tick  = (now: number) => {
-      const p    = Math.min(1, (now - start) / dur);
-      const ease = 1 - Math.pow(1 - p, 3);
-      setVal(from + (to - from) * ease);
-      if (p < 1) rafRef.current = requestAnimationFrame(tick);
-      else { prevRef.current = to; setVal(to); }
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [target]);
-  return val;
-}
-
-function delayQuality(q: string) {
-  if (q === "Excellent") return { text: "text-emerald-400", badge: "bg-emerald-400/10 border-emerald-400/25" };
-  if (q === "Good")      return { text: "text-cyan-400",    badge: "bg-cyan-400/10 border-cyan-400/25" };
-  if (q === "Fair")      return { text: "text-amber-400",   badge: "bg-amber-400/10 border-amber-400/25" };
-  if (q === "Not enough data") return { text: "text-[#6B7380]", badge: "bg-[#6B7380]/10 border-[#6B7380]/25" };
-  return                        { text: "text-red-400",     badge: "bg-red-400/10 border-red-400/25" };
-}
-
-function DelayBar({ ms, max, color }: { ms: number; max: number; color: string }) {
-  const pct = Math.min(100, (ms / Math.max(max, 0.001)) * 100);
-  return (
-    <div className="flex-1 h-1.5 rounded-full bg-[#1C2330]">
-      <motion.div
-        className="h-full rounded-full"
-        style={{ backgroundColor: color, boxShadow: `0 0 7px ${color}55` }}
-        initial={{ width: 0 }}
-        animate={{ width: `${pct}%` }}
-        transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-      />
-    </div>
-  );
-}
-
-const BREAKDOWN_NOTES: Record<string, string> = {
-  "Base OS overhead":  "Kernel + scheduler baseline at current system load",
-  "CPU scheduling":    "Thread dispatch delay — rises with CPU load and process count",
-  "Memory paging":     "RAM access latency from working-set pressure or paging activity",
-  "Process overhead":  "Background process contention and context-switch cost",
-};
-const BAR_COLORS = [
-  "rgba(190,205,220,0.55)",
-  "hsl(338,70%,60%)",
-  "hsl(200,75%,55%)",
-  "hsl(45,80%,55%)",
-];
-
-function InputDelaySection() {
-  const { t } = useTranslation();
-  const intel  = useDashboardIntelligence();
-  const latency = intel.latency;
-  const store      = useLatencyAnalyzerStore();
-  const hasAnalysis = store.sampleCount > 0;
-  const hasEstimate = !!latency?.ready && latency.estimatedMs != null;
-
-  const animMs = useAnimatedDelayValue(hasEstimate ? latency.estimatedMs! : 0);
-
-  // Correlate live-analyzer DPC/ISR data into delay budget when available
-  const dpcMs = hasAnalysis ? +(store.avgDpcPct * 0.08).toFixed(2) : null;
-  const isrMs = hasAnalysis ? +(store.avgIntrPct * 0.04).toFixed(2) : null;
-
-  const ql = latency ? delayQuality(latency.quality) : null;
-
-  const trendIcon = latency?.trend === "rising"
-    ? <TrendingUp  className="size-3 text-red-400" />
-    : latency?.trend === "falling"
-    ? <TrendingDown className="size-3 text-emerald-400" />
-    : <Minus className="size-3 text-[#6B7380]" />;
-
-  const total = latency?.breakdown.reduce((s, b) => s + b.ms, 0) ?? 0;
-
-  return (
-    <div>
-      <h2 className="text-[11px] text-[#6B7380] uppercase tracking-wider mb-3 flex items-center gap-1.5">
-        <Gauge className="size-3.5" /> System Responsiveness Analysis
-      </h2>
-
-      <GlassCard className="p-5 lg:p-6">
-        {/* ── Hero number ─────────────────────────────────────── */}
-        <div className="flex items-start justify-between gap-4 mb-6">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-[10px] font-medium text-[#6B7380] uppercase tracking-wider">
-                DPC, interrupt, and memory-pressure responsiveness
-              </span>
-              <span className="text-[9px] px-1.5 py-0.5 rounded border border-[#2A313A] text-[#5A6270]">
-                Model estimate
-              </span>
-            </div>
-            <div className="flex items-end gap-2">
-              {hasEstimate ? (
-                <>
-                  <span className="text-5xl font-bold tabular-nums leading-none text-[#E6EAF0]">
-                    ~{animMs.toFixed(1)}
-                  </span>
-                  <span className="text-lg text-[#6B7380] mb-1">ms</span>
-                  <div className="flex items-center gap-1.5 mb-1.5 ml-1">
-                    {trendIcon}
-                    <span className={cn("text-sm font-semibold", ql?.text)}>
-                      {t(latency.quality)}
-                    </span>
-                  </div>
-                </>
-              ) : latency ? (
-                <div className="flex items-end gap-2">
-                  <span className="text-4xl font-semibold text-[#6B7380]">—</span>
-                  <span className="text-sm text-[#6B7380] mb-1">{t("Not enough data")}</span>
-                </div>
-              ) : (
-                <div className="h-12 w-40 rounded-lg bg-[#1C2330] animate-pulse" />
-              )}
-            </div>
-            <p className="text-[9px] text-[#4A5260] mt-1.5 leading-relaxed max-w-sm">
-              Derived from live OS metrics — not a hardware measurement. Reflects kernel scheduling and memory pressure.
-            </p>
-          </div>
-
-          {latency && ql && (
-            <div className={cn("shrink-0 rounded-xl border px-4 py-3 text-center min-w-[88px]", ql.badge)}>
-              <div className={cn("text-xs font-bold uppercase tracking-wide", ql.text)}>
-                {t(latency.quality)}
-              </div>
-              <div className="text-[9px] text-[#5A6270] mt-0.5">{t("overall")}</div>
-            </div>
-          )}
-        </div>
-
-        {/* ── OS-derived breakdown ─────────────────────────────── */}
-        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider mb-3">{t("OS delay breakdown")}</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mb-2">
-          {hasEstimate ? (
-            latency.breakdown.map((b, i) => (
-              <div key={b.label} className="space-y-1.5">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <span className="text-xs font-medium text-[#C0C8D4]">{t(b.label)}</span>
-                    <p className="text-[9px] text-[#5A6270] mt-0.5 leading-tight">
-                      {t(BREAKDOWN_NOTES[b.label] ?? b.note)}
-                    </p>
-                  </div>
-                  <span className="text-xs font-mono text-[#A0A8B3] shrink-0 mt-0.5">{b.ms.toFixed(1)}ms</span>
-                </div>
-                <DelayBar ms={b.ms} max={5} color={BAR_COLORS[i] ?? BAR_COLORS[0]} />
-              </div>
-            ))
-          ) : latency ? (
-            <div className="md:col-span-2 rounded-lg border border-[#2A313A] bg-[#141A23] px-3 py-3 text-[10px] text-[#6B7380]">
-              {latency.reason ?? "Waiting for a complete Windows telemetry sample."}
-            </div>
-          ) : (
-            Array.from({ length: 4 }, (_, i) => (
-              <div key={i} className="space-y-1.5">
-                <div className="h-4 w-3/4 rounded bg-[#1C2330] animate-pulse" />
-                <div className="h-1.5 rounded-full bg-[#1C2330] animate-pulse" />
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* ── Analyzer-sourced rows (shown only after a run) ──── */}
-        {hasAnalysis && (dpcMs !== null || isrMs !== null) && (
-          <>
-            <div className="border-t border-[#1C2330] my-5" />
-            <p className="text-[10px] text-[#6B7380] uppercase tracking-wider mb-3">
-              From live analyzer data
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mb-2">
-              {dpcMs !== null && (
-                <div className="space-y-1.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="text-xs font-medium text-[#C0C8D4]">{t("DPC scheduling impact")}</span>
-                      <p className="text-[9px] text-[#5A6270] mt-0.5 leading-tight">
-                        Deferred procedure calls — avg {fmt1(store.avgDpcPct)}% CPU load
-                      </p>
-                    </div>
-                    <span className="text-xs font-mono text-[#A0A8B3] shrink-0 mt-0.5">{dpcMs.toFixed(2)}ms</span>
-                  </div>
-                  <DelayBar ms={dpcMs} max={3} color="hsl(270,60%,65%)" />
-                </div>
-              )}
-              {isrMs !== null && (
-                <div className="space-y-1.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="text-xs font-medium text-[#C0C8D4]">{t("ISR interrupt overhead")}</span>
-                      <p className="text-[9px] text-[#5A6270] mt-0.5 leading-tight">
-                        Hardware interrupt service — avg {fmt1(store.avgIntrPct)}% CPU load
-                      </p>
-                    </div>
-                    <span className="text-xs font-mono text-[#A0A8B3] shrink-0 mt-0.5">{isrMs.toFixed(2)}ms</span>
-                  </div>
-                  <DelayBar ms={isrMs} max={3} color="hsl(165,60%,55%)" />
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* ── Key contributors ranked ──────────────────────────── */}
-        {latency && total > 0 && (
-          <>
-            <div className="border-t border-[#1C2330] my-5" />
-            <p className="text-[10px] text-[#6B7380] uppercase tracking-wider mb-3">{t("Key contributors")}</p>
-            <div className="space-y-1.5">
-              {latency.breakdown
-                .slice()
-                .sort((a, b) => b.ms - a.ms)
-                .map((b, i) => {
-                  const pct   = Math.round((b.ms / total) * 100);
-                  const isTop = i === 0;
-                  return (
-                    <div
-                      key={b.label}
-                      className={cn(
-                        "flex items-center justify-between rounded-lg px-3 py-2",
-                        isTop
-                          ? "bg-[#1A2233] border border-[#2A3545]"
-                          : "bg-[#141A23]",
-                      )}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        {isTop
-                          ? <Zap className="size-3 text-amber-400 shrink-0" />
-                          : <span className="size-3 shrink-0" />
-                        }
-                        <span className="text-[11px] text-[#C0C8D4] truncate">{t(b.label)}</span>
-                      </div>
-                      <div className="flex items-center gap-4 shrink-0">
-                        <span className="text-[10px] text-[#5A6270]">{pct}% of delay</span>
-                        <span className="text-[11px] font-mono text-[#A0A8B3] w-12 text-right">
-                          {b.ms.toFixed(1)}ms
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </>
-        )}
-
-        {/* ── Footnote ─────────────────────────────────────────── */}
-        <p className="text-[9px] text-[#333C4A] mt-5 leading-relaxed">
-          {t("This estimate covers OS-level scheduling and memory overhead only. It does not include hardware polling rate, USB transport delay, monitor response time, network round-trip, or in-game engine latency. Run the Latency Analyzer above to capture DPC and interrupt-level driver data.")}
-        </p>
-      </GlassCard>
-    </div>
-  );
-}
-
-// ── 11. Limitations notice ─────────────────────────────────────────────────────
-
-function LimitationsNotice() {
-  const { t } = useTranslation();
-  return (
-    <GlassCard className="p-4 border-[#2A313A]/60" variant="secondary">
-      <div className="flex items-start gap-2.5">
-        <Info className="size-4 text-[#6B7380] shrink-0 mt-0.5" />
-        <p className="text-[10px] text-[#6B7380] leading-relaxed">
-          {t("SwitchControl Latency Analyzer provides user-mode system responsiveness and driver activity analysis. Some low-level ISR and DPC measurements may require kernel-level instrumentation for full accuracy. Results can vary depending on workload, drivers, power settings, background applications, and test duration. This is an original SwitchControl analysis tool — it is not affiliated with, or derived from, any third-party latency analysis products.")}
-        </p>
-      </div>
-    </GlassCard>
-  );
-}
-
-// ── Locked / premium gate ─────────────────────────────────────────────────────
 
 function LockedState() {
-  const { openUpgradeModal } = useUpgradeModal();
   const { t } = useTranslation();
+  const { openUpgradeModal } = useUpgradeModal();
   return (
     <AppLayout noPageAnimation>
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] gap-6 px-4">
-        <GlassCard className="p-8 max-w-md w-full space-y-5 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
-            <Timer className="size-7 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-[#E6EAF0]">{t("Latency Analyzer")}</h2>
-            <p className="text-[11px] text-[#6B7380] mt-1">
-              {t("Real-time DPC, interrupt, and driver activity analysis — Premium feature.")}
-            </p>
-          </div>
-          <div className="space-y-2 text-left text-[11px] text-[#A0A8B3]">
-            {[
-              "Live DPC% and Interrupt% monitoring",
-              "Driver table with impact assessment",
-              "Audio stability & gaming responsiveness scores",
-              "Before/After baseline comparison",
-              "Export results as JSON, CSV, or text",
-            ].map((f) => (
-              <div key={f} className="flex items-center gap-2">
-                <CheckCircle className="size-3.5 text-emerald-400 shrink-0" />
-                {t(f)}
-              </div>
-            ))}
-          </div>
-          <Button
-            onClick={() => openUpgradeModal()}
-            className="w-full gap-2 bg-primary text-black font-semibold"
-          >
-            <Crown className="size-4" />
-            {t("Unlock Premium")}
-          </Button>
+      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center px-4">
+        <GlassCard className="w-full max-w-md space-y-4 p-8 text-center">
+          <Timer className="mx-auto size-8 text-cyan-300" />
+          <h1 className="text-lg font-semibold">{t("Latency Analyzer")}</h1>
+          <p className="text-xs text-[#8A95A4]">{t("Capture Windows DPC CPU-time %, interrupt CPU-time %, and total page faults/sec, with factual device inventory and timestamped reports.")}</p>
+          <p className="text-[10px] text-[#778292]">{t("Scheduler delay and input-to-display latency are not measured.")}</p>
+          <Button onClick={() => openUpgradeModal()} className="w-full gap-2"><Crown className="size-4" />{t("Unlock Premium")}</Button>
         </GlassCard>
       </div>
     </AppLayout>
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
-
 export default function LatencyAnalyzer() {
   const { t } = useTranslation();
   const { isPremium } = useAuth();
-  const ent = useEntitlementUiState();
-  const isTrial  = ent.status === "trial_active";
-  const locked   = !isPremium && !isTrial;
-
+  const entitlement = useEntitlementUiState();
+  const locked = !isPremium && entitlement.status !== "trial_active";
   const store = useLatencyAnalyzerStore();
-  const tickRef          = useRef<ReturnType<typeof setInterval> | null>(null);
-  const durationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cancelSamplePollRef = useRef<(() => void) | null>(null);
-  // Bug 2 fix: keep a stable ref to handleStop so the duration timer always
-  // calls the *current* version even if the component re-renders between
-  // handleStart and the timeout firing.
-  const handleStopRef = useRef<() => Promise<void>>(async () => {});
-
-  useEffect(() => {
-    console.info("[LatencyAnalyzer]", JSON.stringify({
-      event: "page_open",
-      premium: isPremium,
-      trial: isTrial,
-      entitled: !locked,
-      desktopAvailable: isElectron,
-      ts: new Date().toISOString(),
-    }));
-  }, [isPremium, isTrial, locked]);
-
-  // Load baseline from localStorage on mount
-  useEffect(() => {
-    store.loadBaseline();
+  const { data: systemLoad } = useMeasuredSystemLoad(!locked);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const durationRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelRef = useRef<(() => void) | null>(null);
+  const generationRef = useRef(0);
+  const stopRef = useRef<() => Promise<void>>(async () => {});
+  const clearTimers = useCallback(() => {
+    if (tickRef.current) clearInterval(tickRef.current);
+    if (durationRef.current) clearTimeout(durationRef.current);
+    tickRef.current = null;
+    durationRef.current = null;
+    cancelRef.current?.();
+    cancelRef.current = null;
   }, []);
 
-  // Check admin status
+  useEffect(() => { useLatencyAnalyzerStore.getState().loadBaseline(); }, []);
   useEffect(() => {
-    if (!isElectron || locked) return;
-    eApi()?.isAdmin?.().then((v: boolean) => store.setIsAdmin(v)).catch(() => {});
+    if (locked || !desktopAvailable()) return;
+    api().isAdmin?.().then((value: boolean) => useLatencyAnalyzerStore.getState().setIsAdmin(value)).catch(() => {});
   }, [locked]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (tickRef.current)          clearInterval(tickRef.current);
-      if (durationTimerRef.current) clearTimeout(durationTimerRef.current);
-      cancelSamplePollRef.current?.();
-      if (isElectron) {
-        eApi()?.latencyAnalyzer?.stop?.().catch(() => {});
-      }
-    };
-  }, []);
+  useEffect(() => () => {
+    generationRef.current++;
+    clearTimers();
+    if (desktopAvailable()) api().latencyAnalyzer.stop().catch(() => {});
+    const current = useLatencyAnalyzerStore.getState();
+    if (["starting", "collecting", "stopping"].includes(current.sessionStatus)) {
+      current.finalize("cancelled");
+      current.setSessionStatus("stopped");
+    }
+  }, [clearTimers]);
 
   const handleStop = useCallback(async () => {
-    console.info("[LatencyAnalyzer]", JSON.stringify({ event: "stop_requested", ts: new Date().toISOString() }));
-    store.setSessionStatus("stopping");
-    if (tickRef.current)          { clearInterval(tickRef.current);   tickRef.current = null; }
-    if (durationTimerRef.current) { clearTimeout(durationTimerRef.current); durationTimerRef.current = null; }
-    cancelSamplePollRef.current?.();
-    cancelSamplePollRef.current = null;
+    const current = useLatencyAnalyzerStore.getState();
+    if (!["starting", "collecting", "stopping"].includes(current.sessionStatus)) return;
+    generationRef.current++;
+    current.setSessionStatus("stopping");
+    clearTimers();
     try {
-      if (isElectron) await eApi().latencyAnalyzer.stop();
-    } catch {}
-    store.finalize();
-    store.setSessionStatus("stopped");
-    console.info("[LatencyAnalyzer]", JSON.stringify({ event: "scan_completed", sampleCount: store.sampleCount, ts: new Date().toISOString() }));
-  }, [store]);
-
-  // Keep ref in sync so duration timer always calls the current version
-  handleStopRef.current = handleStop;
+      if (desktopAvailable()) {
+        const pending = await api().latencyAnalyzer.getSample();
+        if (pending) useLatencyAnalyzerStore.getState().pushSample(pending);
+        await api().latencyAnalyzer.stop();
+      }
+      useLatencyAnalyzerStore.getState().finalize("completed");
+      useLatencyAnalyzerStore.getState().setSessionStatus("stopped");
+    } catch (error) {
+      useLatencyAnalyzerStore.getState().finalize("failed");
+      useLatencyAnalyzerStore.getState().setSessionStatus("error", error instanceof Error ? error.message : "The Windows collector could not be stopped.");
+    }
+  }, [clearTimers]);
+  stopRef.current = handleStop;
 
   const handleStart = useCallback(async () => {
-    if (!isElectron) {
-      console.info("[LatencyAnalyzer]", JSON.stringify({ event: "start_blocked", reason: "desktop_unavailable", ts: new Date().toISOString() }));
-      return;
-    }
-    console.info("[LatencyAnalyzer]", JSON.stringify({ event: "start_requested", ts: new Date().toISOString() }));
-    store.setSessionStatus("starting");
-
+    if (!desktopAvailable() || locked) return;
+    const prior = useLatencyAnalyzerStore.getState();
+    const label = prior.testLabel;
+    const duration = prior.durationSec;
+    clearTimers();
+    prior.reset();
+    prior.setTestLabel(label);
+    prior.setSessionStatus("starting");
+    const generation = ++generationRef.current;
     try {
-      const response = await eApi().latencyAnalyzer.start();
-      console.info("[LatencyAnalyzer]", JSON.stringify({ event: "start_response", ok: response?.ok === true, ts: new Date().toISOString() }));
-      if (!response?.ok) {
-        throw new Error(response?.error || "The latency collector could not start");
-      }
-      store.setStartedAt(Date.now());
-      store.setSessionStatus("collecting");
+      const response = await api().latencyAnalyzer.start();
+      if (generation !== generationRef.current) return;
+      if (!response?.ok) throw new Error(response?.error || "The Windows counter collector could not start.");
+      const current = useLatencyAnalyzerStore.getState();
+      current.setStartedAt(Number.isFinite(response.startedAt) ? response.startedAt : Date.now());
+      current.setSessionStatus("collecting");
+      tickRef.current = setInterval(() => useLatencyAnalyzerStore.getState().tick(), 1000);
+      if (duration > 0) durationRef.current = setTimeout(() => { void stopRef.current(); }, duration * 1000);
 
-      // Tick elapsed timer every second
-      tickRef.current = setInterval(() => store.tick(), 1000);
-
-      // Bug 1 fix: use a cancel token instead of reading store.sessionStatus
-      // from a stale closure — the closure captures the token by reference so
-      // it sees the updated value when handleStop/handleReset set it to true.
       let cancelled = false;
-      let scanActive = true;
-      cancelSamplePollRef.current = () => {
-        cancelled = true;
-        scanActive = false;
-      };
-      const pollSamples = async () => {
-        if (cancelled) return;
+      let pollTimer: ReturnType<typeof setTimeout> | null = null;
+      cancelRef.current = () => { cancelled = true; if (pollTimer) clearTimeout(pollTimer); };
+      const poll = async () => {
+        if (cancelled || generation !== generationRef.current) return;
         try {
-          const [sample, status] = await Promise.all([
-            eApi().latencyAnalyzer.getSample(),
-            eApi().latencyAnalyzer.getStatus(),
-          ]);
-          console.info("[LatencyAnalyzer]", JSON.stringify({ event: "sample_response", received: !!sample, sampleCount: status?.sampleCount ?? null, hasError: !!status?.lastError, ts: new Date().toISOString() }));
-          if (!cancelled && sample) store.pushSample(sample);
-          if (!cancelled && status?.lastError && !sample) {
-            store.setSessionStatus("error", status.lastError);
+          const [sample, status] = await Promise.all([api().latencyAnalyzer.getSample(), api().latencyAnalyzer.getStatus()]);
+          if (cancelled || generation !== generationRef.current) return;
+          const live = useLatencyAnalyzerStore.getState();
+          if (sample && live.pushSample(sample)) live.setSessionStatus("collecting");
+          if (status?.lastError && !sample) {
+            if (status.active === false) {
+              clearTimers();
+              live.finalize("failed");
+              live.setSessionStatus("error", status.lastError);
+              return;
+            }
+            live.setSessionStatus("collecting", `${status.lastError} — retrying the native probe.`);
           }
         } catch (error) {
-          console.error("[LatencyAnalyzer]", JSON.stringify({ event: "sample_request_failed", error: error instanceof Error ? error.message : String(error), ts: new Date().toISOString() }));
+          if (!cancelled && generation === generationRef.current) useLatencyAnalyzerStore.getState().setSessionStatus("collecting", error instanceof Error ? error.message : "The native counter request failed.");
         }
-        if (!cancelled) setTimeout(pollSamples, 2000);
+        if (!cancelled && generation === generationRef.current) pollTimer = setTimeout(poll, 500);
       };
-      setTimeout(pollSamples, 2000);
+      pollTimer = setTimeout(poll, 500);
 
-      // Bug 3 fix: guard driver/audio scan results against store.reset() racing
-      // the 12s driverquery call — only write to store if still mounted/active.
-      const capturedDuration = store.durationSec;
-      if (capturedDuration > 0) {
-        durationTimerRef.current = setTimeout(
-          () => handleStopRef.current(),
-          capturedDuration * 1000,
-        );
+      const [drivers, audioDevices] = await Promise.all([api().latencyAnalyzer.scanDrivers(), api().latencyAnalyzer.scanAudioDevices()]);
+      if (!cancelled && generation === generationRef.current) {
+        useLatencyAnalyzerStore.getState().setDrivers(Array.isArray(drivers) ? drivers : []);
+        useLatencyAnalyzerStore.getState().setAudioDevices(Array.isArray(audioDevices) ? audioDevices : []);
+        useLatencyAnalyzerStore.getState().setDriversScanned(true);
       }
-
-      try {
-        const [drivers, audioDevices] = await Promise.all([
-          eApi().latencyAnalyzer.scanDrivers(),
-          eApi().latencyAnalyzer.scanAudioDevices(),
-        ]);
-        if (scanActive) {
-          store.setDrivers(drivers || []);
-          store.setAudioDevices(audioDevices || []);
-          console.info("[LatencyAnalyzer]", JSON.stringify({ event: "inventory_scan_completed", drivers: drivers?.length ?? 0, audioDevices: audioDevices?.length ?? 0, partial: !(drivers?.length && audioDevices?.length), ts: new Date().toISOString() }));
-        }
-      } catch {
-        // scan failed — fall through to finally so spinner is always cleared
-      } finally {
-        // Mark scan complete regardless of outcome so the UI doesn't spin forever.
-        // driversScanned being true means "the scan ran to completion (even if empty)".
-        if (scanActive) store.setDriversScanned(true);
-      }
-
-    } catch (err: any) {
-      console.error("[LatencyAnalyzer]", JSON.stringify({ event: "analysis_failed", error: err?.message || "Failed to start analysis", ts: new Date().toISOString() }));
-      cancelSamplePollRef.current?.();
-      cancelSamplePollRef.current = null;
-      store.setSessionStatus("error", err?.message || "Failed to start analysis");
+    } catch (error) {
+      if (generation !== generationRef.current) return;
+      clearTimers();
+      api().latencyAnalyzer.stop().catch(() => {});
+      useLatencyAnalyzerStore.getState().finalize("failed");
+      useLatencyAnalyzerStore.getState().setSessionStatus("error", error instanceof Error ? error.message : "The Windows counter collector failed.");
     }
-  }, [store]);
+  }, [clearTimers, locked]);
 
   const handleReset = useCallback(() => {
-    if (tickRef.current)          { clearInterval(tickRef.current);   tickRef.current = null; }
-    if (durationTimerRef.current) { clearTimeout(durationTimerRef.current); durationTimerRef.current = null; }
-    cancelSamplePollRef.current?.();
-    cancelSamplePollRef.current = null;
-    if (isElectron) eApi()?.latencyAnalyzer?.stop?.().catch(() => {});
-    store.reset();
-  }, [store]);
+    generationRef.current++;
+    clearTimers();
+    if (desktopAvailable()) api().latencyAnalyzer.stop().catch(() => {});
+    useLatencyAnalyzerStore.getState().reset();
+  }, [clearTimers]);
 
   if (locked) return <LockedState />;
-
-  const { sessionStatus, drivers, driversScanned, audioDevices, sampleCount } = store;
-  const hasData = sampleCount > 0;
-
   return (
     <AppLayout noPageAnimation>
-      <div className="relative mx-auto max-w-[1180px] space-y-5 px-4 py-6">
-        <div className="pointer-events-none absolute -left-24 top-20 -z-10 size-72 rounded-full bg-indigo-500/[0.07] blur-3xl" />
-        <div className="pointer-events-none absolute right-0 top-0 -z-10 size-64 rounded-full bg-cyan-500/[0.05] blur-3xl" />
-        {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <div className="mb-2 flex items-center gap-2 text-[9px] uppercase tracking-[0.22em] text-cyan-300/60">
-              <span className="size-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_rgba(103,232,249,0.8)]" />
-              {t("Diagnostics / Windows performance")}
-            </div>
-            <h1 className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-[#E6EAF0]">
-              <Timer className="size-5 text-cyan-300" />
-               {t("Latency Analyzer")}
-            </h1>
-            <p className="mt-1 text-[11px] text-[#7F8997]">
-               {t("Windows user-mode DPC, interrupt & driver activity analysis")}
-            </p>
-          </div>
-          {isTrial && !isPremium && (
-            <span className="text-[10px] px-2 py-1 rounded border border-amber-500/30 text-amber-400 bg-amber-500/[0.06]">
-               {t("Trial — read-only after expiry")}
-            </span>
-          )}
-        </div>
-
-        {/* Controls */}
-        <ControlsCard onStart={handleStart} onStop={handleStop} onReset={handleReset} />
-
-        {/* Overall status */}
-        <OverallStatusCard />
-
-        {/* Core metrics */}
-        <div>
-          <h2 className="text-[11px] text-[#6B7380] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-             <Shield className="size-3.5" /> {t("Core Metrics")}
-          </h2>
-          <CoreMetricsGrid />
-        </div>
-
-        {/* Timeline chart */}
-        <TimelineChart />
-
-        {/* Audio + Gaming side by side */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <AudioStabilityCard audioDevices={audioDevices} />
-          <GamingResponsivenessCard />
-        </div>
-
-        {/* Driver table */}
-        {drivers.length > 0 && <DriverTable drivers={drivers} />}
-        {hasData && !driversScanned && (
-          <GlassCard className="p-5">
-            <div className="flex items-center gap-2 text-[11px] text-[#6B7380]">
-              <Loader2 className="size-4 animate-spin" />
-               {t("Scanning drivers…")}
-            </div>
-          </GlassCard>
-        )}
-        {hasData && driversScanned && drivers.length === 0 && (
-          <GlassCard className="p-5">
-            <div className="text-[11px] text-[#6B7380]">
-               {t("No driver data available — driverquery returned no results on this system.")}
-            </div>
-          </GlassCard>
-        )}
-
-        {/* Before/After */}
-        <ComparisonPanel />
-
-        {/* Export + Notes */}
-        <ExportNotesCard />
-
-        {/* System Responsiveness Analysis */}
-        <InputDelaySection />
-
-        {/* Limitations */}
-        <LimitationsNotice />
+      <div className="mx-auto max-w-[1180px] space-y-5 px-4 py-6">
+        <header>
+          <p className="text-[9px] uppercase tracking-[0.2em] text-cyan-300/60">{t("Diagnostics / Windows performance")}</p>
+          <h1 className="mt-2 flex items-center gap-2.5 text-xl font-semibold text-[#E6EAF0]"><Timer className="size-5 text-cyan-300" />{t("Latency Analyzer")}</h1>
+          <p className="mt-1 text-[11px] text-[#7F8997]">{t("Measured system-wide counters and factual device inventory — not an input-latency test.")}</p>
+        </header>
+        <Controls onStart={() => { void handleStart(); }} onStop={() => { void handleStop(); }} onReset={handleReset} />
+        <CollectionSummary desktop={desktopAvailable()} />
+        <CoreCounterMetrics />
+        <CounterTimeline />
+        <SystemLoadPanel data={systemLoad} />
+        <DriverInventory drivers={store.drivers} />
+        {store.sampleCount > 0 && !store.driversScanned && <p className="flex items-center gap-2 px-2 text-[11px] text-[#778292]"><Loader2 className="size-3.5 animate-spin" />{t("Requesting driver and audio inventory…")}</p>}
+        {store.driversScanned && store.drivers.length === 0 && <p className="px-2 text-[11px] text-[#778292]">{t("No driver inventory data is available.")}</p>}
+        <AudioInventory />
+        <CaptureComparison />
+        <CaptureExport />
+        <GlassCard className="p-4" variant="secondary">
+          <div className="flex items-start gap-2 text-[10px] leading-relaxed text-[#778292]"><Info className="mt-0.5 size-4 shrink-0" /><p>{t("This capture measures system-wide DPC CPU-time %, interrupt CPU-time %, and total page faults/sec. It does not measure scheduler dispatch delay, per-driver execution time, disk paging delay, audio dropout risk, gaming performance, or input-to-display latency. Valid zero activity remains zero; missing or invalid counters are excluded rather than replaced.")}</p></div>
+        </GlassCard>
       </div>
     </AppLayout>
   );
