@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, type FC, type ReactNode } from "r
 import {
   Brain, ChevronUp, ChevronDown, RefreshCw, AlertCircle,
   TrendingUp, TrendingDown, Minus, Cpu, HardDrive, Activity,
-  Wifi, Sparkles,
+  Wifi, Sparkles, Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GlassCard } from "@/components/ui/glass-card";

@@ -799,7 +799,7 @@ function NavigationCard({ items, onNavigate }: {
   );
 }
 
-function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmin, isPremium, onOpenUpgrade, onViewTweaks, onViewNetwork, onNavigate, onGuideMe }: {
+function ChatBubble({ msg, avatarUrl, isSlow, reducedMotion, onApply, onApplyInline, isAdmin, isPremium, onOpenUpgrade, onViewTweaks, onViewNetwork, onNavigate, onGuideMe }: {
   msg: ChatMessage;
   avatarUrl: string | null;
   isSlow: boolean;
