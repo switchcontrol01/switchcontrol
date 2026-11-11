@@ -29,6 +29,41 @@ export function buildAuthHeaders(): Record<string, string> {
   return headers;
 }
 
+async function postAuthLogout(): Promise<Response> {
+  const headers = buildAuthHeaders();
+  const hasBearer = !!headers.Authorization;
+  const csrfCookie = () => {
+    try {
+      const match = document.cookie.match(/(?:^|;\s*)_csrf=([^;]*)/);
+      return match ? decodeURIComponent(match[1]) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Cookie-authenticated browsers need the double-submit token. JWT-authenticated
+  // requests are exempt server-side, but include the token when available.
+  if (!hasBearer) {
+    let token = csrfCookie();
+    if (!token) {
+      const tokenResponse = await fetch(`${AUTH_DOMAIN}/api/csrf-token`, {
+        credentials: 'include',
+      });
+      if (tokenResponse.ok) {
+        const data = await tokenResponse.json().catch(() => null);
+        token = typeof data?.token === 'string' ? data.token : null;
+      }
+    }
+    if (token) headers['x-csrf-token'] = token;
+  }
+
+  return fetch(`${AUTH_DOMAIN}/auth/logout`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+  });
+}
+
 // ── Device header injector ────────────────────────────────────────────────────
 // authClient calls fetch() with ABSOLUTE URLs (https://switchcontrol.org/api/me)
 // which bypass the global fetch interceptor in api.ts. This helper adds
@@ -325,11 +360,11 @@ export async function performFullLogout(reason: string): Promise<void> {
   _retryRefreshInFlight = null;
 
   try {
-    const resp = await fetch(`${AUTH_DOMAIN}/auth/logout`, {
-      method: 'POST',
-      credentials: 'include',
-    });
+    const resp = await postAuthLogout();
     if (isDebug) console.log(`[AuthClient] logout backend HTTP ${resp.status} reqId=${requestId}`);
+    if (!resp.ok) {
+      console.warn(`[AuthClient] logout was rejected by server (HTTP ${resp.status}) reqId=${requestId}`);
+    }
   } catch (err) {
     // Non-fatal — local state is cleared regardless
     if (isDebug) console.warn('[AuthClient] logout backend call failed:', (err as Error).message);
