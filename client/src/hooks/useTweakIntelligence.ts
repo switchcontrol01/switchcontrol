@@ -13,12 +13,9 @@ export interface SystemSignal {
   subsystem: "cpu" | "memory" | "process" | "network" | "trend";
 }
 
-export interface TweakRanking {
+export interface TweakScore {
   tweakId: string;
   score: number;
-  relevance: "high" | "medium" | "low" | "none";
-  reason: string;
-  dominantSignal: string;
   alreadyApplied: boolean;
 }
 
@@ -33,7 +30,7 @@ export interface PostureDimension {
 
 export interface TweakIntelligenceState {
   signals: SystemSignal[];
-  rankings: TweakRanking[];
+  tweakScores: TweakScore[];
   posture: PostureDimension[];
   overallCoverage: number;
   cpuLoad: number;
@@ -48,7 +45,7 @@ export interface TweakIntelligenceState {
 
 const DEFAULT_STATE: TweakIntelligenceState = {
   signals: [],
-  rankings: [],
+  tweakScores: [],
   posture: [],
   overallCoverage: 0,
   cpuLoad: 0,
@@ -135,12 +132,12 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
       }
 
       // Fix #3: use Promise.allSettled so a flaky endpoint (e.g. posture)
-      // doesn't discard perfectly good signals/rankings data from the other
+      // doesn't discard perfectly good signals/category scores from the other
       // two.  Each result is merged independently — partial data is better
       // than a blank dashboard.
-      const [stateResult, rankResult, postureResult] = await Promise.allSettled([
+      const [stateResult, scoresResult, postureResult] = await Promise.allSettled([
         apiFetch(`/tweak-intelligence/system-state?${liveQuery.slice(1)}`, {}, { signal: ac.signal }),
-        apiFetch(`/tweak-intelligence/rankings?applied=${encodeURIComponent(param)}&gpu=${gpu}${liveQuery}`, {}, { signal: ac.signal }),
+        apiFetch(`/tweak-intelligence/category-scores?applied=${encodeURIComponent(param)}&gpu=${gpu}${liveQuery}`, {}, { signal: ac.signal }),
         fetchPosture
           ? apiFetch(`/tweak-intelligence/posture?applied=${encodeURIComponent(param)}`, {}, { signal: ac.signal })
           : Promise.resolve(null),
@@ -160,9 +157,9 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
         try { return await result.value.json(); } catch { return null; }
       };
 
-      const [systemState, rankData, postureData] = await Promise.all([
+      const [systemState, scoreData, postureData] = await Promise.all([
         toJson(stateResult),
-        toJson(rankResult),
+        toJson(scoresResult),
         toJson(postureResult),
       ]);
 
@@ -170,7 +167,7 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
       if (isStale() || !mountedRef.current) return;
 
       // Track whether at least one endpoint succeeded.
-      const anySucceeded = systemState !== null || rankData !== null || postureData !== null;
+      const anySucceeded = systemState !== null || scoreData !== null || postureData !== null;
       if (!anySucceeded) {
         throw new Error("All three intelligence endpoints failed");
       }
@@ -180,7 +177,7 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
 
       setState((prev: TweakIntelligenceState) => ({
         signals:         systemState?.signals       ?? prev.signals,
-        rankings:        rankData?.rankings         ?? prev.rankings,
+        tweakScores:     scoreData?.scores         ?? prev.tweakScores,
         posture:         postureData?.dimensions    ?? prev.posture,
         overallCoverage: postureData?.overallCoverage ?? prev.overallCoverage,
         cpuLoad:         systemState?.cpuLoad       ?? prev.cpuLoad,

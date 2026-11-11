@@ -10,7 +10,6 @@ import { safeFixed, safeNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLiveTelemetryValues, useTelemetryHistory } from "@/hooks/useLiveTelemetry";
-import { computeGraphStability } from "@/lib/systemStateEngine";
 import { useTranslation } from "@/lib/i18n";
 
 // ── Persistent cross-mount cache (survives React unmount/remount) ─────────────
@@ -1049,38 +1048,6 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
           </ResponsiveContainer>
         </div>
       </div>
-
-      {/* Stability zone label */}
-      {!isLoading && (() => {
-        const cpuHist = data.map(d => d.cpuLoad);
-        if (cpuHist.length < 5) return null;
-        const stability = computeGraphStability(cpuHist);
-        return (
-          <div className="flex items-center gap-1.5 mt-2 mb-0.5">
-            <span
-              className={cn(
-                "inline-block w-1.5 h-1.5 rounded-full shrink-0",
-                stability.zone === "stable"
-                  ? "bg-emerald-500"
-                  : stability.zone === "minor"
-                  ? "bg-amber-400"
-                  : "bg-red-500"
-              )}
-              style={{
-                boxShadow:
-                  stability.zone === "stable"
-                    ? "0 0 5px rgba(52,211,153,0.7)"
-                    : stability.zone === "minor"
-                    ? "0 0 5px rgba(251,191,36,0.7)"
-                    : "0 0 5px rgba(239,68,68,0.7)",
-              }}
-            />
-            <span className={cn("text-[10px] font-medium", stability.color)}>
-              {stability.label}
-            </span>
-          </div>
-        );
-      })()}
 
       {/* Footer */}
       <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground/60">

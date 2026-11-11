@@ -23,7 +23,7 @@ export const TWEAK_CONTROL_TRANSLATIONS: Partial<Record<Locale, Record<string, s
     "Safe": "安全", "Moderate": "中等", "Risky": "有风险", "Advanced": "高级", "Experimental": "实验性",
     "Search tweaks": "搜索调整项", "Search tweaks…": "搜索调整项…", "All": "全部",
     "Performance Intelligence": "性能智能", "Live System Signals": "实时系统信号", "Category Opportunities": "类别机会",
-    "Top Opportunities Right Now": "当前重点机会", "Coverage": "覆盖率", "Rising": "上升",
+    "Coverage": "覆盖率", "Rising": "上升",
     "Loading system intelligence…": "正在加载系统智能…", "Building history…": "正在建立历史记录…",
   },
   es: {
@@ -37,7 +37,7 @@ export const TWEAK_CONTROL_TRANSLATIONS: Partial<Record<Locale, Record<string, s
     "Safe": "Seguro", "Moderate": "Moderado", "Risky": "Arriesgado", "Advanced": "Avanzado", "Experimental": "Experimental",
     "Search tweaks": "Buscar ajustes", "Search tweaks…": "Buscar ajustes…", "All": "Todo",
     "Performance Intelligence": "Inteligencia de rendimiento", "Live System Signals": "Señales del sistema en vivo", "Category Opportunities": "Oportunidades por categoría",
-    "Top Opportunities Right Now": "Mejores oportunidades ahora", "Coverage": "Cobertura", "Rising": "Subiendo",
+    "Coverage": "Cobertura", "Rising": "Subiendo",
     "Loading system intelligence…": "Cargando inteligencia del sistema…", "Building history…": "Creando historial…",
   },
   de: {
@@ -51,7 +51,7 @@ export const TWEAK_CONTROL_TRANSLATIONS: Partial<Record<Locale, Record<string, s
     "Safe": "Sicher", "Moderate": "Moderat", "Risky": "Riskant", "Advanced": "Erweitert", "Experimental": "Experimentell",
     "Search tweaks": "Optimierungen suchen", "Search tweaks…": "Optimierungen suchen…", "All": "Alle",
     "Performance Intelligence": "Leistungsintelligenz", "Live System Signals": "Live-Systemsignale", "Category Opportunities": "Chancen nach Kategorie",
-    "Top Opportunities Right Now": "Top-Chancen jetzt", "Coverage": "Abdeckung", "Rising": "Steigend",
+    "Coverage": "Abdeckung", "Rising": "Steigend",
     "Loading system intelligence…": "Systemintelligenz wird geladen…", "Building history…": "Verlauf wird erstellt…",
   },
   fr: {
@@ -65,7 +65,7 @@ export const TWEAK_CONTROL_TRANSLATIONS: Partial<Record<Locale, Record<string, s
     "Safe": "Sûr", "Moderate": "Modéré", "Risky": "Risqué", "Advanced": "Avancé", "Experimental": "Expérimental",
     "Search tweaks": "Rechercher des réglages", "Search tweaks…": "Rechercher des réglages…", "All": "Tous",
     "Performance Intelligence": "Intelligence des performances", "Live System Signals": "Signaux système en direct", "Category Opportunities": "Opportunités par catégorie",
-    "Top Opportunities Right Now": "Meilleures opportunités actuelles", "Coverage": "Couverture", "Rising": "En hausse",
+    "Coverage": "Couverture", "Rising": "En hausse",
     "Loading system intelligence…": "Chargement de l’intelligence système…", "Building history…": "Création de l’historique…",
   },
   "pt-BR": {
@@ -79,7 +79,7 @@ export const TWEAK_CONTROL_TRANSLATIONS: Partial<Record<Locale, Record<string, s
     "Safe": "Seguro", "Moderate": "Moderado", "Risky": "Arriscado", "Advanced": "Avançado", "Experimental": "Experimental",
     "Search tweaks": "Pesquisar ajustes", "Search tweaks…": "Pesquisar ajustes…", "All": "Todos",
     "Performance Intelligence": "Inteligência de desempenho", "Live System Signals": "Sinais do sistema ao vivo", "Category Opportunities": "Oportunidades por categoria",
-    "Top Opportunities Right Now": "Principais oportunidades agora", "Coverage": "Cobertura", "Rising": "Subindo",
+    "Coverage": "Cobertura", "Rising": "Subindo",
     "Loading system intelligence…": "Carregando inteligência do sistema…", "Building history…": "Criando histórico…",
   },
   ru: {
@@ -93,7 +93,7 @@ export const TWEAK_CONTROL_TRANSLATIONS: Partial<Record<Locale, Record<string, s
     "Safe": "Безопасно", "Moderate": "Умеренно", "Risky": "Рискованно", "Advanced": "Расширенный", "Experimental": "Экспериментальный",
     "Search tweaks": "Поиск настроек", "Search tweaks…": "Поиск настроек…", "All": "Все",
     "Performance Intelligence": "Интеллект производительности", "Live System Signals": "Сигналы системы в реальном времени", "Category Opportunities": "Возможности по категориям",
-    "Top Opportunities Right Now": "Главные возможности сейчас", "Coverage": "Охват", "Rising": "Растёт",
+    "Coverage": "Охват", "Rising": "Растёт",
     "Loading system intelligence…": "Загрузка системного интеллекта…", "Building history…": "Создание истории…",
   },
   ja: {
@@ -107,7 +107,7 @@ export const TWEAK_CONTROL_TRANSLATIONS: Partial<Record<Locale, Record<string, s
     "Safe": "安全", "Moderate": "中程度", "Risky": "危険", "Advanced": "詳細", "Experimental": "実験的",
     "Search tweaks": "調整を検索", "Search tweaks…": "調整を検索…", "All": "すべて",
     "Performance Intelligence": "パフォーマンスインテリジェンス", "Live System Signals": "ライブシステムシグナル", "Category Opportunities": "カテゴリ別の機会",
-    "Top Opportunities Right Now": "現在の主な機会", "Coverage": "カバレッジ", "Rising": "上昇",
+    "Coverage": "カバレッジ", "Rising": "上昇",
     "Loading system intelligence…": "システムインテリジェンスを読み込み中…", "Building history…": "履歴を作成中…",
   },
   ko: {
@@ -121,7 +121,7 @@ export const TWEAK_CONTROL_TRANSLATIONS: Partial<Record<Locale, Record<string, s
     "Safe": "안전", "Moderate": "보통", "Risky": "위험", "Advanced": "고급", "Experimental": "실험적",
     "Search tweaks": "조정 검색", "Search tweaks…": "조정 검색…", "All": "전체",
     "Performance Intelligence": "성능 인텔리전스", "Live System Signals": "실시간 시스템 신호", "Category Opportunities": "카테고리별 기회",
-    "Top Opportunities Right Now": "현재 주요 기회", "Coverage": "범위", "Rising": "상승",
+    "Coverage": "범위", "Rising": "상승",
     "Loading system intelligence…": "시스템 인텔리전스 로드 중…", "Building history…": "기록 생성 중…",
   },
   ar: {
@@ -135,7 +135,7 @@ export const TWEAK_CONTROL_TRANSLATIONS: Partial<Record<Locale, Record<string, s
     "Safe": "آمن", "Moderate": "متوسط", "Risky": "خطِر", "Advanced": "متقدم", "Experimental": "تجريبي",
     "Search tweaks": "البحث في التعديلات", "Search tweaks…": "البحث في التعديلات…", "All": "الكل",
     "Performance Intelligence": "ذكاء الأداء", "Live System Signals": "إشارات النظام المباشرة", "Category Opportunities": "الفرص حسب الفئة",
-    "Top Opportunities Right Now": "أهم الفرص الآن", "Coverage": "التغطية", "Rising": "متصاعد",
+    "Coverage": "التغطية", "Rising": "متصاعد",
     "Loading system intelligence…": "جارٍ تحميل ذكاء النظام…", "Building history…": "جارٍ إنشاء السجل…",
   },
   hi: {
@@ -149,7 +149,7 @@ export const TWEAK_CONTROL_TRANSLATIONS: Partial<Record<Locale, Record<string, s
     "Safe": "सुरक्षित", "Moderate": "मध्यम", "Risky": "जोखिमपूर्ण", "Advanced": "उन्नत", "Experimental": "प्रयोगात्मक",
     "Search tweaks": "ट्वीक्स खोजें", "Search tweaks…": "ट्वीक्स खोजें…", "All": "सभी",
     "Performance Intelligence": "प्रदर्शन बुद्धिमत्ता", "Live System Signals": "लाइव सिस्टम संकेत", "Category Opportunities": "श्रेणी अवसर",
-    "Top Opportunities Right Now": "अभी के प्रमुख अवसर", "Coverage": "कवरेज", "Rising": "बढ़ रहा है",
+    "Coverage": "कवरेज", "Rising": "बढ़ रहा है",
     "Loading system intelligence…": "सिस्टम बुद्धिमत्ता लोड हो रही है…", "Building history…": "इतिहास बनाया जा रहा है…",
   },
 };

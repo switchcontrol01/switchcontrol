@@ -10,9 +10,9 @@ import { aiPerWindowLimiter, aiHourlyLimiter } from "../middleware/rateLimiter";
 
 const router = Router();
 
-let rankingsCache: {
+let categoryScoresCache: {
   key: string;
-  rankings: TweakRanking[];
+  scores: TweakScore[];
 } | null = null;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -28,12 +28,9 @@ export interface SystemSignal {
   subsystem: "cpu" | "memory" | "process" | "network" | "trend";
 }
 
-export interface TweakRanking {
+export interface TweakScore {
   tweakId: string;
   score: number;
-  relevance: "high" | "medium" | "low" | "none";
-  reason: string;
-  dominantSignal: string;
   alreadyApplied: boolean;
 }
 
@@ -102,7 +99,7 @@ function getSnapshotForRequest(req: Request) {
 // ── Vendor gates ──────────────────────────────────────────────────────────────
 // Tweaks that are only meaningful for a specific GPU/CPU vendor.
 // If the user's hardware string doesn't match any of the listed keywords
-// (case-insensitive), the tweak is excluded from ranked output entirely.
+// (case-insensitive), the tweak is excluded from category scoring.
 const TWEAK_VENDOR_GATES: Record<string, { gpuVendors?: string[]; cpuVendors?: string[] }> = {
   "nvidia-telemetry": { gpuVendors: ["nvidia", "geforce", "rtx", "gtx"] },
 };
@@ -122,224 +119,38 @@ function vendorGatePasses(
 }
 
 // ── Tweak signal weights ───────────────────────────────────────────────────────
-// cpu: how much CPU pressure makes this tweak valuable
-// mem: memory pressure weight
-// proc: high process count weight
-// net: network activity weight
-// trend: CPU rising trend weight
+// Signal weights used to derive the remaining category-pressure scores.
+// cpu: CPU pressure contribution
+// mem: memory pressure contribution
+// proc: process-count contribution
+// net: network-activity contribution
+// trend: rising-load contribution
 
 interface TweakSignalProfile {
   cpu: number; mem: number; proc: number; net: number; trend: number;
   baseScore: number;
-  reason: { cpu: string; mem: string; proc: string; net: string; trend: string; default: string };
 }
 
 const TWEAK_PROFILES: Record<string, TweakSignalProfile> = {
-  "maintenance": {
-    cpu: 28, mem: 5, proc: 20, net: 0, trend: 12, baseScore: 15,
-    reason: {
-      cpu:     "Scheduled maintenance tasks are spiking CPU under current load — disabling stops background interference.",
-      mem:     "Maintenance routines are active and competing with your workload.",
-      proc:    "Background maintenance processes are in the active process set.",
-      net:     "Maintenance diagnostics are generating background activity.",
-      trend:   "System load is rising — maintenance activity is likely contributing.",
-      default: "Reduces background maintenance task interference.",
-    },
-  },
-  "bg-apps": {
-    cpu: 30, mem: 12, proc: 22, net: 12, trend: 18, baseScore: 18,
-    reason: {
-      cpu:     "Background app processes are competing for CPU — disabling frees scheduling headroom.",
-      mem:     "Background UWP apps are occupying RAM under current memory pressure.",
-      proc:    "Process count is elevated — background app services are in the mix.",
-      net:     "Background apps are generating detectable network activity.",
-      trend:   "CPU load is trending up — background apps may be contributing.",
-      default: "Reduces background app CPU, RAM, and network consumption.",
-    },
-  },
-  "tune-priority": {
-    cpu: 22, mem: 0, proc: 5, net: 0, trend: 20, baseScore: 12,
-    reason: {
-      cpu:     "CPU contention detected — foreground priority scheduling is valuable.",
-      mem:     "System is under memory load; scheduling tweaks support responsiveness.",
-      proc:    "High process count means scheduling competition is high.",
-      net:     "",
-      trend:   "Load is rising — priority scheduling ensures your active window wins.",
-      default: "Improves foreground scheduling responsiveness under contention.",
-    },
-  },
-  "gaming-mode": {
-    cpu: 14, mem: 0, proc: 0, net: 0, trend: 26, baseScore: 14,
-    reason: {
-      cpu:     "CPU pressure is elevated — Game Mode prioritizes active game processes.",
-      mem:     "",
-      proc:    "",
-      net:     "",
-      trend:   "CPU trend is rising — Game Mode helps constrain background resource contention.",
-      default: "Tells the OS to prioritize the active game process.",
-    },
-  },
-  "mem-opt": {
-    cpu: 10, mem: 38, proc: 8, net: 0, trend: 0, baseScore: 14,
-    reason: {
-      cpu:     "Memory manager behavior under CPU pressure can introduce micro-stutters.",
-      mem:     "Memory pressure is elevated — memory manager tuning has direct impact now.",
-      proc:    "High process count means memory manager is working harder.",
-      net:     "",
-      trend:   "",
-      default: "Tunes memory manager for lower latency frametime consistency.",
-    },
-  },
-  "large-system-cache": {
-    cpu: 5, mem: 22, proc: 0, net: 0, trend: 0, baseScore: 10,
-    reason: {
-      cpu: "",
-      mem:     "System is caching aggressively under current memory usage — this tweak adjusts the priority.",
-      proc:    "",
-      net:     "",
-      trend:   "",
-      default: "Adjusts file cache vs program memory allocation preference.",
-    },
-  },
-  "page-combining": {
-    cpu: 8, mem: 26, proc: 10, net: 0, trend: 0, baseScore: 10,
-    reason: {
-      cpu:     "Page combining uses CPU cycles for deduplication work that is visible under load.",
-      mem:     "Memory pressure is elevated — disabling page combining trades RAM for CPU savings.",
-      proc:    "More processes means more deduplication work happening in the background.",
-      net:     "",
-      trend:   "",
-      default: "Reduces CPU work spent on memory page deduplication.",
-    },
-  },
-  "superfetch": {
-    cpu: 8, mem: 20, proc: 12, net: 0, trend: 0, baseScore: 10,
-    reason: {
-      cpu:     "SysMain background prefetch is competing for I/O under current load.",
-      mem:     "SysMain preloading is consuming memory that your active workload needs.",
-      proc:    "SysMain activity is elevated in the process list.",
-      net:     "",
-      trend:   "",
-      default: "Reduces SysMain background prefetch and disk noise.",
-    },
-  },
-  "xbox-bar": {
-    cpu: 16, mem: 12, proc: 16, net: 0, trend: 10, baseScore: 16,
-    reason: {
-      cpu:     "Xbox Game Bar overlay hooks add CPU overhead that is measurable under load.",
-      mem:     "Game Bar background recording buffers occupy RAM.",
-      proc:    "Xbox capture processes are in the active process set.",
-      net:     "",
-      trend:   "Load is rising — overlay hooks add marginal overhead to rising pressure.",
-      default: "Removes overlay and background recording overhead.",
-    },
-  },
-  "xbox-services": {
-    cpu: 10, mem: 10, proc: 22, net: 8, trend: 5, baseScore: 10,
-    reason: {
-      cpu:     "Xbox services are contributing to background CPU consumption.",
-      mem:     "Xbox background services hold RAM allocations.",
-      proc:    "Multiple Xbox service processes are present in the process list.",
-      net:     "Xbox background services generate network traffic.",
-      trend:   "",
-      default: "Reduces Xbox background service overhead.",
-    },
-  },
-  "telemetry": {
-    cpu: 10, mem: 0, proc: 12, net: 22, trend: 5, baseScore: 10,
-    reason: {
-      cpu:     "Telemetry tasks run CPU-bound diagnostics in the background.",
-      mem:     "",
-      proc:    "Telemetry service processes are in the running process set.",
-      net:     "Telemetry data uploads are generating background network activity.",
-      trend:   "System load is rising — telemetry tasks may be contributing.",
-      default: "Reduces background telemetry tasks and data uploads.",
-    },
-  },
-  "nvidia-telemetry": {
-    cpu: 6, mem: 0, proc: 8, net: 12, trend: 0, baseScore: 8,
-    reason: {
-      cpu:     "NVIDIA telemetry tasks are contributing to background CPU load.",
-      mem:     "",
-      proc:    "NVIDIA analytics processes are in the process list.",
-      net:     "NVIDIA telemetry is generating background network traffic.",
-      trend:   "",
-      default: "Removes NVIDIA background telemetry overhead.",
-    },
-  },
-  "copilot": {
-    cpu: 6, mem: 6, proc: 12, net: 8, trend: 0, baseScore: 8,
-    reason: {
-      cpu:     "Copilot integration hooks add background CPU activity.",
-      mem:     "Copilot background components occupy memory.",
-      proc:    "Copilot service is active in the process set.",
-      net:     "Copilot generates background network requests.",
-      trend:   "",
-      default: "Removes Copilot integration overhead.",
-    },
-  },
-  "cortana": {
-    cpu: 6, mem: 6, proc: 10, net: 0, trend: 0, baseScore: 8,
-    reason: {
-      cpu:     "Legacy Cortana components add unnecessary background CPU activity.",
-      mem:     "Cortana background service holds memory allocations.",
-      proc:    "Cortana legacy process is visible in the process list.",
-      net:     "",
-      trend:   "",
-      default: "Removes legacy Cortana background components.",
-    },
-  },
-  "search-highlights": {
-    cpu: 5, mem: 0, proc: 6, net: 16, trend: 0, baseScore: 8,
-    reason: {
-      cpu:     "",
-      mem:     "",
-      proc:    "Search highlight background fetchers are in the process set.",
-      net:     "Search web highlights are generating background network fetches.",
-      trend:   "",
-      default: "Removes background search content fetching.",
-    },
-  },
-  "fax-printer": {
-    cpu: 6, mem: 0, proc: 12, net: 0, trend: 0, baseScore: 8,
-    reason: {
-      cpu:     "Print spooler service is consuming minor CPU cycles.",
-      mem:     "",
-      proc:    "Printer service processes are active in the background.",
-      net:     "",
-      trend:   "",
-      default: "Removes unused print services from the process list.",
-    },
-  },
-  "energy-logging": {
-    cpu: 6, mem: 0, proc: 6, net: 0, trend: 0, baseScore: 8,
-    reason: {
-      cpu:     "Energy logging diagnostics add minor background CPU overhead.",
-      mem:     "",
-      proc:    "Energy diagnostic tasks are in the background process list.",
-      net:     "",
-      trend:   "",
-      default: "Reduces power diagnostic logging overhead.",
-    },
-  },
-  "synth-timers": {
-    cpu: 6, mem: 0, proc: 0, net: 0, trend: 6, baseScore: 8,
-    reason: {
-      cpu:     "Synthetic timer sources add overhead to CPU interrupt handling.",
-      mem:     "",
-      proc:    "",
-      net:     "",
-      trend:   "",
-      default: "Reduces virtual timer overhead in scheduling.",
-    },
-  },
-  "prefetch": {
-    cpu: 0, mem: 0, proc: 0, net: 0, trend: 0, baseScore: 8,
-    reason: {
-      cpu: "", mem: "", proc: "", net: "", trend: "",
-      default: "Reduces prefetch-related disk writes and background I/O.",
-    },
-  },
+  "maintenance": { cpu: 28, mem: 5, proc: 20, net: 0, trend: 12, baseScore: 15 },
+  "bg-apps": { cpu: 30, mem: 12, proc: 22, net: 12, trend: 18, baseScore: 18 },
+  "tune-priority": { cpu: 22, mem: 0, proc: 5, net: 0, trend: 20, baseScore: 12 },
+  "gaming-mode": { cpu: 14, mem: 0, proc: 0, net: 0, trend: 26, baseScore: 14 },
+  "mem-opt": { cpu: 10, mem: 38, proc: 8, net: 0, trend: 0, baseScore: 14 },
+  "large-system-cache": { cpu: 5, mem: 22, proc: 0, net: 0, trend: 0, baseScore: 10 },
+  "page-combining": { cpu: 8, mem: 26, proc: 10, net: 0, trend: 0, baseScore: 10 },
+  "superfetch": { cpu: 8, mem: 20, proc: 12, net: 0, trend: 0, baseScore: 10 },
+  "xbox-bar": { cpu: 16, mem: 12, proc: 16, net: 0, trend: 10, baseScore: 16 },
+  "xbox-services": { cpu: 10, mem: 10, proc: 22, net: 8, trend: 5, baseScore: 10 },
+  "telemetry": { cpu: 10, mem: 0, proc: 12, net: 22, trend: 5, baseScore: 10 },
+  "nvidia-telemetry": { cpu: 6, mem: 0, proc: 8, net: 12, trend: 0, baseScore: 8 },
+  "copilot": { cpu: 6, mem: 6, proc: 12, net: 8, trend: 0, baseScore: 8 },
+  "cortana": { cpu: 6, mem: 6, proc: 10, net: 0, trend: 0, baseScore: 8 },
+  "search-highlights": { cpu: 5, mem: 0, proc: 6, net: 16, trend: 0, baseScore: 8 },
+  "fax-printer": { cpu: 6, mem: 0, proc: 12, net: 0, trend: 0, baseScore: 8 },
+  "energy-logging": { cpu: 6, mem: 0, proc: 6, net: 0, trend: 0, baseScore: 8 },
+  "synth-timers": { cpu: 6, mem: 0, proc: 0, net: 0, trend: 6, baseScore: 8 },
+  "prefetch": { cpu: 0, mem: 0, proc: 0, net: 0, trend: 0, baseScore: 8 },
 };
 
 // ── Posture dimension sets ─────────────────────────────────────────────────────
@@ -471,9 +282,9 @@ router.get("/system-state", (_req, res) => {
   }
 });
 
-// ── GET /api/tweak-intelligence/rankings ─────────────────────────────────────
+// ── GET /api/tweak-intelligence/category-scores ──────────────────────────────
 
-router.get("/rankings", (req, res) => {
+router.get("/category-scores", (req, res) => {
   try {
     const snap     = getSnapshotForRequest(req);
     if (snap.status !== "ready") {
@@ -486,8 +297,8 @@ router.get("/rankings", (req, res) => {
     const gpuName  = String(req.query.gpu ?? "");
     const cacheKey = JSON.stringify([snap.ts, applied.join(","), gpuName]);
 
-    if (rankingsCache?.key === cacheKey) {
-      return res.json({ rankings: rankingsCache.rankings, ts: Date.now() });
+    if (categoryScoresCache?.key === cacheKey) {
+      return res.json({ scores: categoryScoresCache.scores, ts: Date.now() });
     }
 
     const cpuMult  = LEVEL_MULT[classify(snap.cpu.load, [20, 50, 75])];
@@ -497,7 +308,7 @@ router.get("/rankings", (req, res) => {
     const netMult  = LEVEL_MULT[classify(netKbs, [50, 500, 2000])];
     const trendBonus = snap.load_trend === "rising" ? 1.0 : 0.3;
 
-    const rankings: TweakRanking[] = Object.entries(TWEAK_PROFILES)
+    const scores: TweakScore[] = Object.entries(TWEAK_PROFILES)
     // Skip tweaks whose vendor gate doesn't match the client's hardware.
     // When no GPU name is provided we pass through (conservative: don't hide anything).
     .filter(([id]) => !gpuName || vendorGatePasses(id, gpuName))
@@ -510,43 +321,18 @@ router.get("/rankings", (req, res) => {
 
       const raw = p.baseScore + cpuContrib + memContrib + procContrib + netContrib + trendContrib;
 
-      // Find dominant contributing signal
-      const contribs: [string, number][] = [
-        ["cpu",   cpuContrib],
-        ["mem",   memContrib],
-        ["proc",  procContrib],
-        ["net",   netContrib],
-        ["trend", trendContrib],
-      ].sort((a, b) => b[1] - a[1]);
-
-      const dominant = contribs[0][1] > 5 ? contribs[0][0] : "default";
-      const reason   = p.reason[dominant as keyof typeof p.reason] || p.reason.default;
-
-      const relevance: TweakRanking["relevance"] =
-        raw >= 45 ? "high" : raw >= 28 ? "medium" : raw >= 12 ? "low" : "none";
-
       return {
         tweakId:       id,
         score:         Math.min(100, Math.round(raw)),
-        relevance,
-        reason:        reason || p.reason.default,
-        dominantSignal: dominant,
         alreadyApplied: appliedSet.has(id),
       };
     });
 
-    rankings.sort((a, b) => {
-      // Not-applied first, then by score
-      if (!a.alreadyApplied && b.alreadyApplied) return -1;
-      if (a.alreadyApplied && !b.alreadyApplied) return 1;
-      return b.score - a.score;
-    });
-
-    rankingsCache = { key: cacheKey, rankings };
-    res.json({ rankings, ts: Date.now() });
+    categoryScoresCache = { key: cacheKey, scores };
+    res.json({ scores, ts: Date.now() });
   } catch (e: any) {
-    console.error("[TweakIntel] rankings error:", e.message);
-    res.status(500).json({ error: "Failed to compute rankings" });
+    console.error("[TweakIntel] category scores error:", e.message);
+    res.status(500).json({ error: "Failed to compute category scores" });
   }
 });
 

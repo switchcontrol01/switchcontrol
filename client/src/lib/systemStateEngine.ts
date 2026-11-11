@@ -35,16 +35,6 @@ export interface FpsExplanation {
   hasIssue: boolean;
 }
 
-export type GraphStability = "stable" | "minor" | "fluctuating";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function variance(arr: number[]): number {
-  if (arr.length < 2) return 0;
-  const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
-  return arr.reduce((s, v) => s + (v - mean) ** 2, 0) / arr.length;
-}
-
 // ── System State ──────────────────────────────────────────────────────────────
 
 export function computeSystemState(
@@ -293,32 +283,6 @@ export function computeFpsExplanation(
     confidence: "high",
     hasIssue: false,
   };
-}
-
-// ── Graph Stability ───────────────────────────────────────────────────────────
-
-export function computeGraphStability(cpuHistory: number[]): {
-  zone: GraphStability;
-  label: string;
-  color: string;
-} {
-  const recent = cpuHistory.filter(v => v != null).slice(-20);
-  if (recent.length < 5) {
-    return { zone: "stable", label: "Collecting data…", color: "text-white/30" };
-  }
-
-  const v = variance(recent);
-
-  if (v >= 200) {
-    return { zone: "fluctuating", label: "High fluctuation detected", color: "text-red-400" };
-  }
-  if (v >= 60) {
-    return { zone: "minor", label: "Minor instability", color: "text-amber-400" };
-  }
-  if (v >= 18) {
-    return { zone: "minor", label: "Low variance", color: "text-amber-400/70" };
-  }
-  return { zone: "stable", label: "Stable", color: "text-emerald-400" };
 }
 
 // ── AI Advisor insight text ───────────────────────────────────────────────────

@@ -2,19 +2,18 @@ import { useState, useEffect, useRef, useMemo, type FC, type ReactNode } from "r
 import {
   Brain, ChevronUp, ChevronDown, RefreshCw, AlertCircle,
   TrendingUp, TrendingDown, Minus, Cpu, HardDrive, Activity,
-  Wifi, Target, Sparkles, ArrowRight,
+  Wifi, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GlassCard } from "@/components/ui/glass-card";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { TWEAKS_DATA } from "@/lib/mock-data";
-import { useTweakIntelligence, type PressureLevel, type SystemSignal, type TweakRanking, type PostureDimension } from "@/hooks/useTweakIntelligence";
+import { useTweakIntelligence, type PressureLevel, type SystemSignal, type TweakScore, type PostureDimension } from "@/hooks/useTweakIntelligence";
 import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 import { useTranslation } from "@/lib/i18n";
 
 // ── Tweak title lookup ────────────────────────────────────────────────────────
 
-const TWEAK_TITLE_MAP = Object.fromEntries(TWEAKS_DATA.map((t) => [t.id, t.title]));
 const TWEAK_CATEGORY_MAP = Object.fromEntries(TWEAKS_DATA.map((t) => [t.id, t.category]));
 
 // ── SVG sparkline helpers ─────────────────────────────────────────────────────
@@ -301,7 +300,7 @@ function SignalRow({ signal }: { signal: SystemSignal }) {
 
 interface CategoryScore { label: string; score: number; count: number; color: string }
 
-function CategoryBars({ rankings }: { rankings: TweakRanking[] }) {
+function CategoryBars({ scores }: { scores: TweakScore[] }) {
   const { t } = useTranslation();
   const CATEGORY_MAP: Record<string, { label: string; color: string }> = {
     "System and Power":      { label: "System & Power",   color: "hsl(338,75%,58%)" },
@@ -313,7 +312,7 @@ function CategoryBars({ rankings }: { rankings: TweakRanking[] }) {
 
   const catScores: CategoryScore[] = useMemo(() => {
     const groups: Record<string, number[]> = {};
-    for (const r of rankings) {
+    for (const r of scores) {
       if (r.alreadyApplied) continue;
       const cat = TWEAK_CATEGORY_MAP[r.tweakId];
       if (!cat || !CATEGORY_MAP[cat]) continue;
@@ -326,7 +325,7 @@ function CategoryBars({ rankings }: { rankings: TweakRanking[] }) {
       return { label: meta.label, score: avg, count: scores.length, color: meta.color };
     }).sort((a, b) => b.score - a.score);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rankings]);
+  }, [scores]);
 
   return (
     <div className="space-y-2.5">
@@ -355,56 +354,6 @@ function CategoryBars({ rankings }: { rankings: TweakRanking[] }) {
         </motion.div>
       ))}
     </div>
-  );
-}
-
-// ── Priority tweak item ───────────────────────────────────────────────────────
-
-function PriorityTweakItem({ rank, ranking }: { rank: number; ranking: TweakRanking }) {
-  const { t } = useTranslation();
-  const title = t(TWEAK_TITLE_MAP[ranking.tweakId] ?? ranking.tweakId);
-  const barPct = Math.min(100, ranking.score);
-
-  const badgeStyle = ranking.relevance === "high"
-    ? "bg-red-500/15 text-red-400 border-red-500/25"
-    : ranking.relevance === "medium"
-    ? "bg-orange-500/15 text-orange-400 border-orange-500/25"
-    : "bg-[#21262D] text-[#6B7380] border-[#2A313A]";
-
-  return (
-    <motion.div
-      className="flex items-start gap-3 p-3 rounded-xl border border-[#2A313A] bg-white/[0.025] hover:bg-[#21262D] transition-colors"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.38, delay: rank * 0.07, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className="flex items-center justify-center size-6 rounded-full bg-[#21262D] border border-[#2A313A] shrink-0 mt-0.5">
-        <span className="text-[10px] font-bold text-[#6B7380]">#{rank}</span>
-      </div>
-      <div className="flex-1 min-w-0 space-y-1.5">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-medium text-[#E6EAF0] leading-none">{title}</span>
-          <span className={cn("text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border", badgeStyle)}>
-            {t(ranking.relevance)}
-          </span>
-        </div>
-        <p className="text-[10px] text-[#6B7380] leading-snug line-clamp-2">{t(ranking.reason)}</p>
-        <div className="relative h-0.5 rounded-full bg-[#21262D] mt-2">
-          <motion.div
-            className="absolute inset-y-0 left-0 rounded-full"
-            style={{
-              background: ranking.relevance === "high"   ? "hsl(338,80%,60%)"
-                        : ranking.relevance === "medium" ? "hsl(38,85%,55%)"
-                        : "rgba(255,255,255,0.2)",
-            }}
-            initial={{ width: 0 }}
-            animate={{ width: `${barPct}%` }}
-            transition={{ duration: 0.9, delay: rank * 0.08 + 0.3, ease: [0.22, 1, 0.36, 1] }}
-          />
-        </div>
-      </div>
-      <ArrowRight className="size-3 text-[#E6EAF0]/15 shrink-0 mt-1.5" />
-    </motion.div>
   );
 }
 
@@ -454,15 +403,6 @@ export function TweakIntelligenceLayer() {
       setCpuHistory([...cpuHistoryRef.current]);
     }
   }, [intel.cpuLoad, intel.loading]);
-
-  // Top 3 priority tweaks (not yet applied)
-  const topPriority = useMemo(() =>
-    intel.rankings.filter((r) => !r.alreadyApplied && r.score >= 12).slice(0, 3),
-    [intel.rankings]
-  );
-
-  const isWellOptimized = !intel.loading && intel.rankings.length > 0
-    && intel.rankings.filter((r) => !r.alreadyApplied && r.relevance !== "none").length === 0;
 
   const trendSignal = intel.signals.find((s) => s.subsystem === "trend");
   const visibleSignals = intel.signals.filter((s) => s.subsystem !== "trend");
@@ -756,7 +696,7 @@ export function TweakIntelligenceLayer() {
                       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                     >
-                      <CategoryBars rankings={intel.rankings} />
+                      <CategoryBars scores={intel.tweakScores} />
                     </motion.div>
                   )}
                   </AnimatePresence>
@@ -766,7 +706,7 @@ export function TweakIntelligenceLayer() {
                     <div className="pt-3  flex items-center gap-1.5">
                       <RefreshCw className="size-3 text-[#6B7380]/50" />
                       <span className="text-[9px] text-[#6B7380]">
-                        {t("{count} tweaks already applied", undefined, { count: intel.rankings.filter((r) => r.alreadyApplied).length })}
+                        {t("{count} tweaks already applied", undefined, { count: intel.tweakScores.filter((r) => r.alreadyApplied).length })}
                       </span>
                     </div>
                   )}
@@ -774,77 +714,6 @@ export function TweakIntelligenceLayer() {
                 </RevealPanel>
               </div>
 
-              {/* ── Row 2: Top Priority Tweaks ─────────────────────────────── */}
-              <RevealPanel delay={0.32}>
-              <GlassCard blur="sm" className="p-4 space-y-3" hoverEffect={false}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Target className="size-3.5 text-primary/60" />
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7380]">
-                      {t("Top Opportunities Right Now")}
-                    </span>
-                  </div>
-                  {!intel.loading && (
-                    <span className="text-[9px] text-[#6B7380]">{t("Based on current system state")}</span>
-                  )}
-                </div>
-
-                <AnimatePresence mode="wait" initial={false}>
-                {intel.loading ? (
-                  <motion.div
-                    key="skel-opps"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="space-y-2"
-                  >
-                    {[0, 1, 2].map((i) => (
-                      <SkeletonPulse key={i} className="h-16 rounded-xl" />
-                    ))}
-                  </motion.div>
-                ) : isWellOptimized ? (
-                  <motion.div
-                    key="data-optimized"
-                    className="flex items-center gap-3 px-4 py-5 rounded-xl border border-emerald-500/15 bg-emerald-500/5 text-sm text-emerald-400/80"
-                    initial={{ opacity: 0, y: 8, filter: "blur(6px)" }}
-                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <Sparkles className="size-4 shrink-0 text-emerald-400" />
-                    <div>
-                      <span className="font-medium text-emerald-400">{t("System is well-optimized")}</span>
-                      <p className="text-[10px] text-emerald-400/50 mt-0.5">
-                        {t("No high-priority opportunities detected under current system state.")}
-                      </p>
-                    </div>
-                  </motion.div>
-                ) : topPriority.length > 0 ? (
-                  <motion.div
-                    key="data-opps"
-                    initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
-                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                    className="space-y-2"
-                  >
-                    {topPriority.map((r, i) => (
-                      <PriorityTweakItem key={r.tweakId} rank={i + 1} ranking={r} />
-                    ))}
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="data-empty"
-                    initial={{ opacity: 0, y: 8, filter: "blur(6px)" }}
-                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                    className="py-4 text-center text-xs text-[#6B7380]"
-                  >
-                    Apply some tweaks first to see personalized opportunity rankings.
-                  </motion.div>
-                )}
-                </AnimatePresence>
-              </GlassCard>
-              </RevealPanel>
             </div>
           </motion.div>
         )}
