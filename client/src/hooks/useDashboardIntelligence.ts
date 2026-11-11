@@ -1,4 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  EMPTY_SYSTEM_LOAD,
+  normalizeSystemLoad,
+  type SystemLoadMeasurement,
+} from "@/lib/responsivenessMetrics";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -35,22 +40,6 @@ export interface ActiveProblemsData {
   ts: number;
 }
 
-export interface LatencyBreakdown {
-  label: string;
-  ms: number;
-  note: string;
-}
-
-export interface LatencyData {
-  estimatedMs: number | null;
-  quality: "Excellent" | "Good" | "Fair" | "Poor" | "Not enough data";
-  trend: "rising" | "falling" | "stable";
-  breakdown: LatencyBreakdown[];
-  ready: boolean;
-  reason?: string;
-  ts: number;
-}
-
 // ── Display Signal profile ─────────────────────────────────────────────────────
 
 export interface DisplaySignalProfile {
@@ -76,7 +65,7 @@ export interface DisplaySignalProfile {
 interface DashboardIntelligenceState {
   instability:   InstabilityData | null;
   problems:      ActiveProblemsData | null;
-  latency:       LatencyData | null;
+  systemLoad:    SystemLoadMeasurement;
   loading:       boolean;
   refresh:       () => void;
 }
@@ -87,59 +76,32 @@ async function fetchJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-async function getLatencyEstimateUrl(): Promise<string> {
-  const base = "/api/dashboard-intelligence/latency-estimate";
+async function getSystemLoadSnapshot(): Promise<SystemLoadMeasurement> {
   const electronAPI = (window as any).electronAPI;
-  if (!electronAPI?.isElectron || !electronAPI.telemetry?.getLive) return base;
-
-  const live = await electronAPI.telemetry.getLive().catch(() => null);
-  const cpuLoad = live?.cpu?.usagePct;
-  const cpuCores = live?.cpu?.coreCount;
-  const ramTotalGB = live?.ram?.totalGb;
-  const memPct = live?.ram?.usagePct;
-  const networkKbs = (Number(live?.network?.rxKBps) || 0) + (Number(live?.network?.txKBps) || 0);
-  const processCount = live?.processes?.total;
-
-  if (
-    !Number.isFinite(cpuLoad) ||
-    !Number.isFinite(cpuCores) ||
-    !Number.isFinite(ramTotalGB) ||
-    !Number.isFinite(memPct)
-  ) {
-    return base;
+  if (!electronAPI?.isElectron || !electronAPI.telemetry?.getLive) {
+    return {
+      ...EMPTY_SYSTEM_LOAD,
+      state: "unsupported",
+      reason: "System readings are available only from the Windows desktop app.",
+    };
   }
-
-  const params = new URLSearchParams({
-    cpuLoad: String(cpuLoad),
-    cpuCores: String(cpuCores),
-    ramTotalGB: String(ramTotalGB),
-    memPct: String(memPct),
-    networkKbs: String(networkKbs),
-  });
-  if (Number.isFinite(processCount) && processCount > 0) {
-    params.set("processCount", String(processCount));
+  try {
+    return normalizeSystemLoad(await electronAPI.telemetry.getLive());
+  } catch {
+    return {
+      ...EMPTY_SYSTEM_LOAD,
+      state: "unavailable",
+      reason: "Could not read telemetry from this Windows device.",
+    };
   }
-  return `${base}?${params.toString()}`;
 }
 
 export function useDashboardIntelligence(enabled = true): DashboardIntelligenceState {
   const [instability,   setInstability]   = useState<InstabilityData | null>(null);
   const [problems,      setProblems]      = useState<ActiveProblemsData | null>(null);
-  const [latency,       setLatency]       = useState<LatencyData | null>(null);
+  const [systemLoad, setSystemLoad] = useState<SystemLoadMeasurement>(EMPTY_SYSTEM_LOAD);
   const [loading,       setLoading]       = useState(true);
-  // An incomplete sample can occur while Electron's native bridge is waking
-  // after minimize/restore. Keep the last complete estimate visible until a
-  // complete replacement arrives; otherwise a transient process-count zero
-  // makes the card flicker to "Not enough data".
-  const lastReadyLatencyRef = useRef<LatencyData | null>(null);
-  const commitLatency = useCallback((next: LatencyData) => {
-    if (next.ready && next.estimatedMs != null) {
-      lastReadyLatencyRef.current = next;
-      setLatency(next);
-    } else if (!lastReadyLatencyRef.current) {
-      setLatency(next);
-    }
-  }, []);
+  const commitSystemLoad = useCallback((next: SystemLoadMeasurement) => setSystemLoad(next), []);
   const initRef = useRef(false);
   // F-3: AbortController so an unmount mid-fetch cancels the network requests
   // AND prevents the setState() calls from running on an unmounted hook.
@@ -147,21 +109,20 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
 
   const fetchAll = useCallback(async (signal?: AbortSignal) => {
     try {
-      const latencyUrl = await getLatencyEstimateUrl();
-      const [inst, probs, lat] = await Promise.allSettled([
+      const [inst, probs, load] = await Promise.allSettled([
         fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability", signal),
         fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems", signal),
-        fetchJSON<LatencyData>(latencyUrl, signal),
+        getSystemLoadSnapshot(),
       ]);
       // F-3: Bail before any setState if the caller has aborted (unmount).
       if (signal?.aborted) return;
       if (inst.status  === "fulfilled") setInstability(inst.value);
       if (probs.status === "fulfilled") setProblems(probs.value);
-      if (lat.status   === "fulfilled") commitLatency(lat.value);
+      if (load.status  === "fulfilled") commitSystemLoad(load.value);
     } catch (_) {}
     if (signal?.aborted) return;
     setLoading(false);
-  }, [commitLatency]);
+  }, [commitSystemLoad]);
 
   const refresh = useCallback(() => {
     setLoading(true);
@@ -173,7 +134,7 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
   const lastRunRef = useRef({
     instability: 0,
     problems: 0,
-    latency: 0,
+    systemLoad: 0,
   });
 
   useEffect(() => {
@@ -186,7 +147,7 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
     abortRef.current = ac;
 
     const TTL = {
-      latency: 8000,
+      systemLoad: 8000,
       instability: 15000,
       problems: 30000,
     };
@@ -210,12 +171,11 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
         const now = Date.now();
         const tasks: Promise<void>[] = [];
 
-        if (now - lastRunRef.current.latency >= TTL.latency) {
-          lastRunRef.current.latency = now;
+        if (now - lastRunRef.current.systemLoad >= TTL.systemLoad) {
+          lastRunRef.current.systemLoad = now;
           tasks.push(
-            getLatencyEstimateUrl()
-              .then((url) => fetchJSON<LatencyData>(url, ac.signal))
-              .then(guarded(commitLatency))
+            getSystemLoadSnapshot()
+              .then(guarded(commitSystemLoad))
               .catch(() => {})
           );
         }
@@ -261,7 +221,7 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
         lastRunRef.current = {
           instability: now,
           problems: now,
-          latency: now,
+          systemLoad: now,
         };
         setLoading(false);
       }
@@ -292,7 +252,7 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
       document.removeEventListener("visibilitychange", handleVisibility);
       initRef.current = false;
     };
-  }, [enabled, fetchAll, commitLatency]);
+  }, [enabled, fetchAll, commitSystemLoad]);
 
-  return { instability, problems, latency, loading, refresh };
+  return { instability, problems, systemLoad, loading, refresh };
 }

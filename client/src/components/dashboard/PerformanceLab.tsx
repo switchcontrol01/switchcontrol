@@ -4,9 +4,9 @@
  * Panels:
  *   1. Stability Score       — real-time SVG arc gauge + source analysis
  *   2. Active Problems       — backend-derived issue list with severity
- *   3. System Responsiveness — conservatively estimated, honestly labeled
+ *   3. System load — measured local CPU, memory, and process readings
  *
- * All data: backend-derived from getCachedSnapshot(), no fake numbers.
+ * Responsiveness readings come only from timestamped local Windows telemetry.
  */
 
 import { useState, useEffect, useRef, type ReactNode } from "react";
@@ -20,7 +20,7 @@ import {
   useDashboardIntelligence,
   type InstabilityData,
   type ActiveProblemsData,
-  type LatencyData,
+  type SystemLoadMeasurement,
   type ActiveProblem,
 } from "@/hooks/useDashboardIntelligence";
 import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
@@ -30,12 +30,10 @@ import {
   ChevronRight,
   Cpu,
   Gauge,
-  Minus,
   RefreshCw,
   Shield,
-  TrendingDown,
-  TrendingUp,
 } from "lucide-react";
+import { SystemLoadPanel } from "@/components/SystemLoadPanel";
 
 // ── Utility helpers ────────────────────────────────────────────────────────────
 
@@ -49,13 +47,6 @@ function severityColor(s: "high" | "warning" | "info") {
   if (s === "high")    return { dot: "bg-red-500",    text: "text-red-400",    border: "border-red-500/25",    bg: "bg-red-500/[0.06]"    };
   if (s === "warning") return { dot: "bg-amber-400",  text: "text-amber-400",  border: "border-amber-500/25",  bg: "bg-amber-500/[0.06]"  };
   return                      { dot: "bg-blue-400",   text: "text-blue-400",   border: "border-blue-500/25",   bg: "bg-blue-500/[0.06]"   };
-}
-
-function qualityColor(q: string) {
-  if (q === "Excellent") return "text-emerald-400";
-  if (q === "Good")      return "text-teal-400";
-  if (q === "Fair")      return "text-amber-400";
-  return "text-red-400";
 }
 
 // ── Animated counter ─────────────────────────────────────────────────────────
@@ -356,108 +347,9 @@ function ActiveProblemsCard({ data, alertsEnabled = true }: { data: ActiveProble
 
 // ── 3. System Responsiveness Card ─────────────────────────────────────────────
 
-function LatencyBar({ ms, max, color }: { ms: number; max: number; color: string }) {
-  const pct = Math.min(100, (ms / max) * 100);
+function SystemResponsivenessCard({ data }: { data: SystemLoadMeasurement }) {
   return (
-    <div className="flex-1 h-1.5 rounded-full bg-[#21262D]">
-      <motion.div
-        className="h-full rounded-full"
-        style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}66` }}
-        initial={{ width: 0 }}
-        animate={{ width: `${pct}%` }}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
-      />
-    </div>
-  );
-}
-
-function SystemResponsivenessCard({ data }: { data: LatencyData | null }) {
-  const hasEstimate = !!data?.ready && data.estimatedMs != null;
-  const animMs = useAnimatedValue(hasEstimate ? data.estimatedMs! : 0, 300);
-  const maxMs = 12;
-
-  const trendIcon = data?.trend === "rising"  ? <TrendingUp  className="size-3 text-red-400" />
-                  : data?.trend === "falling" ? <TrendingDown className="size-3 text-emerald-400" />
-                  : <Minus className="size-3 text-[#6B7380]" />;
-
-  const barColors = ["rgba(255,255,255,0.2)", "hsl(338,70%,60%)", "hsl(200,75%,55%)", "hsl(45,80%,55%)"];
-
-  return (
-    <GlassCard className="h-full" data-testid="card-latency-estimate">
-      <div className="p-5 space-y-3 h-full flex flex-col">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium flex items-center gap-2">
-            <Gauge className="size-4 text-muted-foreground" />
-            System Responsiveness Estimate
-          </h3>
-          {hasEstimate && (
-            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded border border-[#2A313A] text-[#6B7380]">
-              Model estimate
-            </span>
-          )}
-        </div>
-
-        {/* Big number */}
-        <div className="flex items-end gap-2">
-          {hasEstimate ? (
-            <>
-              <span className="text-4xl font-bold tabular-nums leading-none" data-testid="text-latency-ms">
-                ~{animMs.toFixed(1)}
-              </span>
-              <span className="text-base text-muted-foreground mb-0.5">ms</span>
-              <div className="ml-auto flex items-center gap-1.5 mb-1">
-                {trendIcon}
-                <span className={cn("text-xs font-semibold", qualityColor(data.quality))} data-testid="text-latency-quality">
-                  {data.quality}
-                </span>
-              </div>
-            </>
-          ) : data ? (
-            <div className="flex items-end gap-2">
-              <span className="text-3xl font-semibold text-[#6B7380]" data-testid="text-latency-ms">
-                —
-              </span>
-              <span className="text-xs text-[#6B7380] mb-0.5">Not enough data</span>
-            </div>
-          ) : (
-            <div className="h-10 w-28 rounded-lg bg-[#21262D] animate-pulse" />
-          )}
-        </div>
-
-        {/* Breakdown */}
-        {hasEstimate && (
-          <div className="space-y-2 flex-1">
-            {data.breakdown.map((b, i) => (
-              <div key={b.label} className="space-y-1" data-testid={`latency-breakdown-${i}`}>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-muted-foreground/70">{b.label}</span>
-                  <span className="text-[10px] font-mono text-[#A0A8B3]">{b.ms.toFixed(1)}ms</span>
-                </div>
-                <LatencyBar ms={b.ms} max={maxMs * 0.45} color={barColors[i] ?? barColors[0]} />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!data && (
-          <div className="flex-1 space-y-2">
-            {[1, 2, 3, 4].map(i => <div key={i} className="h-6 rounded bg-[#21262D] animate-pulse" />)}
-          </div>
-        )}
-
-        {data && !hasEstimate && (
-          <div className="flex-1 flex items-center text-[10px] text-muted-foreground/50">
-            {data.reason ?? "Waiting for a complete Windows telemetry sample."}
-          </div>
-        )}
-
-        {hasEstimate && (
-          <p className="text-[9px] text-muted-foreground/40">
-            Load-based estimate — not directly measured. This is not mouse-to-screen input latency.
-          </p>
-        )}
-      </div>
-    </GlassCard>
+    <SystemLoadPanel data={data} title="System Responsiveness" />
   );
 }
 
@@ -482,7 +374,7 @@ function RevealCard({ children, delay = 0 }: { children: ReactNode; delay?: numb
 
 export function PerformanceLab() {
   const { user } = useAuth();
-  const { instability, problems, latency } = useDashboardIntelligence(!!user?.loggedIn);
+  const { instability, problems, systemLoad } = useDashboardIntelligence(!!user?.loggedIn);
   const showHealthAlerts = useUserPreferencesStore((s) => s.showHealthAlerts);
   const { prefersReducedMotion } = useMotion();
 
@@ -510,7 +402,7 @@ export function PerformanceLab() {
       <div className="grid gap-4 md:grid-cols-3">
         <RevealCard delay={0.05}><StabilityScoreCard data={instability} /></RevealCard>
         <RevealCard delay={0.10}><ActiveProblemsCard data={showHealthAlerts ? problems : null} alertsEnabled={showHealthAlerts} /></RevealCard>
-        <RevealCard delay={0.15}><SystemResponsivenessCard data={latency} /></RevealCard>
+        <RevealCard delay={0.15}><SystemResponsivenessCard data={systemLoad} /></RevealCard>
       </div>
 
     </div>
