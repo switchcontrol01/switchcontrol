@@ -19,3 +19,4 @@ logs/
 attached_assets/
 screenshots/electron/native/sc_memory/target/
 /generated-artifacts/
+electron/native/sc_memory/target/
