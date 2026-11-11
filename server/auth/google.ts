@@ -808,10 +808,10 @@ export function setupGoogleAuth(app: Express): void {
     passport.authenticate("google", {
       scope: ["profile", "email"],
       state: statePayload,
-      // Electron opens OAuth in the system browser, whose Google session can
-      // silently reuse the account that was just signed out. Show the account
-      // chooser for desktop sign-ins without changing normal web SSO behavior.
-      prompt: source === "electron" ? "select_account" : undefined,
+      // The browser may retain its Google session after the user signs out of
+      // SwitchControl. Always show the account chooser so web and desktop users
+      // can intentionally continue with a different Google account.
+      prompt: "select_account",
     } as any)(req, res, next);
   });
 

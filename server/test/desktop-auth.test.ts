@@ -228,7 +228,8 @@ test("production wiring has one auth budget layer and both provider callbacks st
   assert.ok(!google.includes("_exchangeAttempts"));
   assert.ok(google.includes("desktopPollCodes.consume(token)"));
   assert.ok(google.includes("consumeElectronCode(code)"));
-  assert.match(google, /prompt:\s*source\s*===\s*["']electron["']\s*\?\s*["']select_account["']/);
+  assert.match(google, /prompt:\s*["']select_account["']/);
+  assert.ok(!google.includes('prompt: source === "electron"'));
   const login = read("client/src/screens/Login.tsx");
   assert.ok(login.includes('https://discord.com/login'));
   assert.ok(login.includes("setDiscordSwitchGuideOpen(true)"));
