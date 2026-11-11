@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import {
   ChevronDown, ChevronUp, Loader2, CheckCircle2, XCircle,
   RefreshCw, ShieldCheck, AlertTriangle, Info, RotateCcw,
-  CornerDownLeft, Terminal, ShieldAlert, Zap,
+  CornerDownLeft, Terminal, ShieldAlert,
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -497,11 +497,6 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
               )}>
                 {t(tweak.risk)}
               </span>
-              {isElectron && (
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20">
-                  <Zap className="inline-block size-3 mr-0.5 -mt-0.5" /> {t("Real")}
-                </span>
-              )}
             </div>
           </div>
           <button
