@@ -41,6 +41,7 @@ import {
   retryRefreshEntitlements,
   triggerFlowReset,
   performFullLogout,
+  logoutServerSession,
   clearElectronAuthCookies,
   postUnlockSeen,
   postTourSeen,
@@ -2815,10 +2816,15 @@ function WebsiteContent() {
       "[Auth] logout called because user_clicked_signout triggeredBy=WebsiteApp.handleLogout",
     );
     try {
-      await fetch("/auth/logout", { method: "POST", credentials: "include" });
+      const response = await logoutServerSession();
+      if (!response.ok) {
+        throw new Error(`Logout was rejected (HTTP ${response.status})`);
+      }
       console.log("[Auth] Backend session invalidated");
     } catch (err) {
       console.error("[Auth] Logout failed:", err);
+      window.alert("Could not sign out. Please check your connection and try again.");
+      return;
     }
     setUser(null);
     window.location.href = "/";

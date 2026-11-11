@@ -43,6 +43,7 @@ export {
   retryRefreshEntitlements,
   exchangeToken,
   performFullLogout,
+  logoutServerSession,
   postUnlockSeen,
   postTourSeen,
   postResetTourFlags,

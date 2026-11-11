@@ -29,7 +29,7 @@ export function buildAuthHeaders(): Record<string, string> {
   return headers;
 }
 
-async function postAuthLogout(): Promise<Response> {
+export async function logoutServerSession(): Promise<Response> {
   const headers = buildAuthHeaders();
   const hasBearer = !!headers.Authorization;
   const csrfCookie = () => {
@@ -362,7 +362,7 @@ export async function performFullLogout(reason: string): Promise<void> {
   _retryRefreshInFlight = null;
 
   try {
-    const resp = await postAuthLogout();
+    const resp = await logoutServerSession();
     if (isDebug) console.log(`[AuthClient] logout backend HTTP ${resp.status} reqId=${requestId}`);
     if (!resp.ok) {
       console.warn(`[AuthClient] logout was rejected by server (HTTP ${resp.status}) reqId=${requestId}`);
