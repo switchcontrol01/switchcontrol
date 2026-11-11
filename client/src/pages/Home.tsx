@@ -1015,10 +1015,7 @@ export default function Home() {
 
         {/* Performance Lab, intelligence hub */}
          {showDashboardCard("responsiveness") && <Reveal delay={0.06}>
-          <PerformanceLab
-            onClearRAM={() => setMemCleanerOpen(true)}
-            onRamRefreshStateChange={setRamRefreshing}
-          />
+          <PerformanceLab />
          </Reveal>}
 
         {/* System Pipeline, Latency Map */}

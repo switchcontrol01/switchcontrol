@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { telemetryManager } from "@/lib/telemetryManager";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -52,35 +51,6 @@ export interface LatencyData {
   ts: number;
 }
 
-// ── Smart RAM profile — real state engine ──────────────────────────────────────
-
-export interface TopProcess {
-  name:   string;
-  pid:    number | null;
-  ramMb:  number | null;
-  cpuPct: number | null;
-}
-
-export type RamState = "stable" | "cached_heavy" | "pressure_rising" | "bottleneck" | "critical";
-
-export interface SmartRamProfile {
-  totalGb:          number;
-  usedGb:           number;
-  freeGb:           number;
-  availableGb:      number | null;
-  standbyGb:        number | null;
-  swapUsedGb:       number | null;
-  reclaimableGb:    number;
-  reclaimableSource: "measured" | "estimated";
-  newUsedPct:       number;
-  usedPct:          number;
-  state:            RamState;
-  reason:           string;
-  recommendation:   string;
-  topProcesses:     TopProcess[];
-  ts:               number;
-}
-
 // ── Display Signal profile ─────────────────────────────────────────────────────
 
 export interface DisplaySignalProfile {
@@ -107,11 +77,8 @@ interface DashboardIntelligenceState {
   instability:   InstabilityData | null;
   problems:      ActiveProblemsData | null;
   latency:       LatencyData | null;
-  ram:           SmartRamProfile | null;
-  ramRefreshing: boolean;
   loading:       boolean;
   refresh:       () => void;
-  refreshRam:    () => Promise<void>;
 }
 
 async function fetchJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
@@ -159,8 +126,6 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
   const [instability,   setInstability]   = useState<InstabilityData | null>(null);
   const [problems,      setProblems]      = useState<ActiveProblemsData | null>(null);
   const [latency,       setLatency]       = useState<LatencyData | null>(null);
-  const [ram,           setRam]           = useState<SmartRamProfile | null>(null);
-  const [ramRefreshing, setRamRefreshing] = useState(false);
   const [loading,       setLoading]       = useState(true);
   // An incomplete sample can occur while Electron's native bridge is waking
   // after minimize/restore. Keep the last complete estimate visible until a
@@ -183,18 +148,16 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
   const fetchAll = useCallback(async (signal?: AbortSignal) => {
     try {
       const latencyUrl = await getLatencyEstimateUrl();
-      const [inst, probs, lat, r] = await Promise.allSettled([
+      const [inst, probs, lat] = await Promise.allSettled([
         fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability", signal),
         fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems", signal),
         fetchJSON<LatencyData>(latencyUrl, signal),
-        fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis", signal),
       ]);
       // F-3: Bail before any setState if the caller has aborted (unmount).
       if (signal?.aborted) return;
       if (inst.status  === "fulfilled") setInstability(inst.value);
       if (probs.status === "fulfilled") setProblems(probs.value);
       if (lat.status   === "fulfilled") commitLatency(lat.value);
-      if (r.status     === "fulfilled") setRam(r.value);
     } catch (_) {}
     if (signal?.aborted) return;
     setLoading(false);
@@ -205,28 +168,12 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
     fetchAll();
   }, [fetchAll]);
 
-  const refreshRam = useCallback(async () => {
-    setRamRefreshing(true);
-    // Pull the shared Electron telemetry snapshot immediately as well as
-    // refreshing the RAM analysis endpoint. The dashboard Memory card is
-    // driven by this singleton poller, while Smart RAM uses the endpoint.
-    telemetryManager.refreshNow();
-    try {
-      const r = await fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis?bust=1");
-      setRam(r);
-    } catch (_) {
-    } finally {
-      setRamRefreshing(false);
-    }
-  }, []);
-
   const runningRef = useRef(false);
   const inFlightRef = useRef(false);
   const lastRunRef = useRef({
     instability: 0,
     problems: 0,
     latency: 0,
-    ram: 0,
   });
 
   useEffect(() => {
@@ -242,7 +189,6 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
       latency: 8000,
       instability: 15000,
       problems: 30000,
-      ram: 60000,
     };
 
     // F-3: setState guards — every async write checks cancelled+aborted before
@@ -292,15 +238,6 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
           );
         }
 
-        if (now - lastRunRef.current.ram >= TTL.ram) {
-          lastRunRef.current.ram = now;
-          tasks.push(
-            fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis", ac.signal)
-              .then(guarded(setRam))
-              .catch(() => {})
-          );
-        }
-
         if (tasks.length > 0) {
           await Promise.allSettled(tasks);
         }
@@ -325,7 +262,6 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
           instability: now,
           problems: now,
           latency: now,
-          ram: now,
         };
         setLoading(false);
       }
@@ -358,5 +294,5 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
     };
   }, [enabled, fetchAll, commitLatency]);
 
-  return { instability, problems, latency, ram, ramRefreshing, loading, refresh, refreshRam };
+  return { instability, problems, latency, loading, refresh };
 }

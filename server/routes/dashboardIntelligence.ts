@@ -236,15 +236,12 @@ function normalizeDisplay(d: any, displayCount: number, gpuName: string | null):
 const router = Router();
 
 // ── Server-side caches for expensive routes ───────────────────────────────────
-// /ram-analysis:        calls si.mem() + si.processes() — 8s TTL
 // /what-caused-that:    calls si.processes()             — 8s TTL
 // /display-signal:      calls si.graphics()              — 60s TTL
 
-const RAM_ANALYSIS_TTL       = 8_000;
 const WHAT_CAUSED_THAT_TTL   = 8_000;
 const DISPLAY_SIGNAL_TTL     = 60_000;
 
-let ramAnalysisCache:      { data: any; ts: number } | null = null;
 let whatCausedThatCache:   { data: any; ts: number } | null = null;
 let displaySignalCache:    { data: any; ts: number } | null = null;
 
@@ -987,137 +984,6 @@ router.get("/latency-estimate", async (req, res) => {
     return res.json(result);
   } catch (e: any) {
     res.status(500).json({ error: "Failed to estimate latency" });
-  }
-});
-
-// ── Smart RAM analysis (real state engine) ────────────────────────────────────
-
-router.get("/ram-analysis", async (req, res) => {
-  try {
-    // ?bust=1 allows the client to invalidate the cache after a RAM clean
-    if (req.query.bust === "1") ramAnalysisCache = null;
-
-    // Serve cached result if within TTL — avoids si.processes() on every fast refresh
-    if (ramAnalysisCache && (Date.now() - ramAnalysisCache.ts) < RAM_ANALYSIS_TTL) {
-      return res.json(ramAnalysisCache.data);
-    }
-
-    const snap    = getCachedSnapshot();
-    const usedGB  = snap.ram.usedGB;
-    const totalGB = snap.ram.totalGB;
-    const usedPct = snap.ram.usedPercent;
-
-    // Run si.mem() and si.processes() in parallel — sequential awaits doubled latency
-    type TopProc = { name: string; pid: number | null; ramMb: number | null; cpuPct: number | null };
-    let buffcacheGB: number | null = null;
-    let availableGB: number | null = null;
-    let swapUsedGB:  number | null = null;
-    let topProcesses: TopProc[] = [];
-
-    const [memResult, procsResult] = await Promise.allSettled([si.mem(), si.processes()]);
-
-    if (memResult.status === "fulfilled") {
-      const mem = memResult.value;
-      buffcacheGB = mem.buffcache  > 0 ? parseFloat((mem.buffcache  / 1073741824).toFixed(1)) : null;
-      availableGB = mem.available  > 0 ? parseFloat((mem.available  / 1073741824).toFixed(1)) : null;
-      swapUsedGB  = mem.swapused   > 0 ? parseFloat((mem.swapused   / 1073741824).toFixed(2)) : null;
-    }
-
-    if (procsResult.status === "fulfilled") {
-      topProcesses = procsResult.value.list
-        .filter((p: any) => p.memRss > 0)
-        .sort((a: any, b: any) => b.memRss - a.memRss)
-        .slice(0, 5)
-        .map((p: any) => ({
-          name:   p.name ?? "unknown",
-          pid:    typeof p.pid === "number" ? p.pid : null,
-          ramMb:  typeof p.memRss === "number" ? Math.round(p.memRss / 1024) : null,
-          cpuPct: typeof p.pcpu === "number"   ? parseFloat(p.pcpu.toFixed(1)) : null,
-        }));
-    }
-
-    // Reclaimable: if we have real buffcache data, use it — otherwise estimate conservatively
-    let reclaimableGB: number;
-    let reclaimableSource: "measured" | "estimated";
-    if (buffcacheGB !== null && buffcacheGB > 0) {
-      // On Linux, buffcache is the real reclaimable page cache.
-      // On Windows via si, this approximates standby pages.
-      reclaimableGB  = Math.round(Math.min(buffcacheGB, usedGB * 0.45) * 10) / 10;
-      reclaimableSource = "measured";
-    } else {
-      // Conservative estimate — never overclaim
-      const factor   = usedPct > 85 ? 0.18 : usedPct > 70 ? 0.14 : 0.10;
-      reclaimableGB  = Math.round(usedGB * factor * 10) / 10;
-      reclaimableSource = "estimated";
-    }
-
-    const freeGB = availableGB ?? Math.max(0, parseFloat((totalGB - usedGB).toFixed(1)));
-    // Cap newUsedPct from below at the actual committed ratio — reclaimableGB is
-    // standby/cache pages so we can't go below what's genuinely allocated.
-    const committedPct = totalGB > 0 ? ((usedGB - reclaimableGB) / totalGB) * 100 : 0;
-    const newUsedPct   = Math.round(Math.max(committedPct, usedPct - (reclaimableGB / totalGB) * 100));
-
-    // ── State engine ──────────────────────────────────────────────────────────
-    // "cached_heavy": lots of page cache, real memory is fine
-    // "pressure_rising": increasing usage, standby being trimmed
-    // "bottleneck": high usage, reduced headroom
-    // "critical": OS paging / swap active
-    // "stable": all good
-
-    type RamState = "stable" | "cached_heavy" | "pressure_rising" | "bottleneck" | "critical";
-    let state: RamState;
-    let reason: string;
-    let recommendation: string;
-
-    const loadTrend = snap.load_trend;
-
-    if (usedPct > 92 || (swapUsedGB !== null && swapUsedGB > 0.5)) {
-      state  = "critical";
-      reason = swapUsedGB
-        ? `RAM at ${usedPct.toFixed(0)}% with ${swapUsedGB} GB in swap — OS is paging to disk`
-        : `RAM at ${usedPct.toFixed(0)}% — OS is actively swapping, performance degraded`;
-      recommendation = "Clear RAM now or close high-pressure applications to stop paging";
-    } else if (usedPct > 80) {
-      state  = "bottleneck";
-      reason = `RAM at ${usedPct.toFixed(0)}% — standby memory pool is shrinking, headroom is limited`;
-      recommendation = "Clear standby pages or reduce background process count";
-    } else if (usedPct > 65 && loadTrend === "rising") {
-      state  = "pressure_rising";
-      reason = `RAM at ${usedPct.toFixed(0)}% and trending upward — available headroom is narrowing`;
-      recommendation = "Monitor active processes; consider clearing RAM if trend continues";
-    } else if (buffcacheGB !== null && buffcacheGB > usedGB * 0.30) {
-      state  = "cached_heavy";
-      reason = `${buffcacheGB} GB held as page cache — reclaimable by OS on demand. Real memory is healthy`;
-      recommendation = "No action required — cached memory improves disk-read performance";
-    } else {
-      state  = "stable";
-      reason = `RAM at ${usedPct.toFixed(0)}% with ${freeGB} GB available — system is comfortable`;
-      recommendation = "No action needed";
-    }
-
-    const standbyGb = buffcacheGB;
-
-    const ramResult = {
-      totalGb:          parseFloat(totalGB.toFixed(1)),
-      usedGb:           parseFloat(usedGB.toFixed(1)),
-      freeGb:           parseFloat(freeGB.toFixed(1)),
-      availableGb:      availableGB,
-      standbyGb,
-      swapUsedGb:       swapUsedGB,
-      reclaimableGb:    reclaimableGB,
-      reclaimableSource,
-      newUsedPct,
-      usedPct:          Math.round(usedPct),
-      state,
-      reason,
-      recommendation,
-      topProcesses,
-      ts: Date.now(),
-    };
-    ramAnalysisCache = { data: ramResult, ts: Date.now() };
-    res.json(ramResult);
-  } catch (e: any) {
-    res.status(500).json({ error: "Failed to analyze RAM" });
   }
 });
 
