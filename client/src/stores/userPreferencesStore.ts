@@ -25,7 +25,7 @@ export const ACCENT_COLORS: Record<Exclude<AccentName, "custom">, string> = {
 
 export const DEFAULT_SIDEBAR_ORDER = [
   "/dashboard", "/tweaks", "/network", "/nic-tuning", "/power-plan",
-  "/cleaner", "/debloat", "/startup", "/process-manager", "/ai-advisor",
+  "/cleaner", "/debloat", "/startup", "/ai-advisor",
   "/bios-advisor", "/security", "/history", "/driver-intel", "/latency-analyzer",
   "/settings",
 ] as const;
@@ -172,13 +172,18 @@ export const useUserPreferencesStore = create<UserPreferencesState>()(
     }),
     {
       name: "sc-user-preferences",
-      version: 3,
+      version: 4,
       migrate: (persisted) => {
         const next = { ...DEFAULTS, ...(persisted as Partial<UserPreferences>) };
         if (!LOCALE_CODES.includes(next.language)) next.language = "en";
         if (!PERFORMANCE_PROFILE_OVERRIDES.includes(next.performanceProfileOverride)) {
           next.performanceProfileOverride = "automatic";
         }
+        // Retire only this route; preserve every other saved preference and order.
+        next.sidebarHidden = (Array.isArray(next.sidebarHidden) ? next.sidebarHidden : [])
+          .filter((href) => href !== "/process-manager");
+        next.sidebarOrder = (Array.isArray(next.sidebarOrder) ? next.sidebarOrder : [...DEFAULT_SIDEBAR_ORDER])
+          .filter((href) => href !== "/process-manager");
         return next;
       },
     },

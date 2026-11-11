@@ -99,3 +99,4 @@
 - [NVIDIA safety boundary](nvidia-safety-boundary.md) — NVIDIA services/tasks, uninstall entries, caches, and adapter MSI settings must fail closed; legacy recovery may only re-enable prior state.
 - [Replit package firewall recovery](replit-package-firewall.md) — if a blocked lock entry remains after updating its parent, add a safe compatible release through the managed package tool; never bypass the firewall.
 - [Dashboard RAM and alert copy](dashboard-ram-and-alert-copy.md) — use the top Clear RAM control, not a duplicate analysis panel; avoid panic-inducing status language.
+- [Retired process inspection](retired-process-inspection.md) — Process Manager removal must not become replacement Advisor enumeration; shared telemetry, Startup, and icons remain.

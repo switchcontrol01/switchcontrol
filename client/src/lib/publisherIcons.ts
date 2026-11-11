@@ -1,7 +1,7 @@
 /**
  * publisherIcons.ts — shared publisher→domain mapping and icon-service URLs.
  *
- * Used by StartupAppRow and ProcessManager to render real logos for known
+ * Used by StartupAppRow to render real logos for known
  * publishers when the native shell.getFileIcon call returns null.
  *
  * Keep in sync with InstalledAppsPanel's PUBLISHER_DOMAINS as new publishers
@@ -545,7 +545,7 @@ export function publisherToDomain(publisher: string, name: string): string | nul
 
 /**
  * Derive a domain from a process name (no-extension, lowercase).
- * Used by Process Manager where publisher can be null for many entries.
+ * Supports icon lookup when publisher information is unavailable.
  */
 export function processNameToDomain(procName: string): string | null {
   const key = (procName || "").toLowerCase().replace(/\.exe$/i, "").trim();

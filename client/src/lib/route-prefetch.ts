@@ -21,8 +21,7 @@ type DesktopRoute =
   | "driver-intel"
   | "latency-analyzer"
   | "security"
-  | "history"
-  | "process-manager";
+  | "history";
 
 const loaders: Record<DesktopRoute, () => Promise<any>> = {
   home: () => import("@/pages/Home"),
@@ -40,7 +39,6 @@ const loaders: Record<DesktopRoute, () => Promise<any>> = {
   "latency-analyzer": () => import("@/pages/LatencyAnalyzer"),
   security: () => import("@/pages/Security"),
   history: () => import("@/pages/History"),
-  "process-manager": () => import("@/pages/ProcessManager"),
 };
 
 const loaded = new Map<DesktopRoute, Promise<unknown>>();

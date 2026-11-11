@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import OpenAI from "openai";
+import { stripRetiredAdvisorLinks } from "../../shared/advisorNavigation";
 import crypto from "crypto";
 import { buildAdvisorServerContext } from "./advisorContext";
 import { aiPerWindowLimiter, aiHourlyLimiter } from "../middleware/rateLimiter";
@@ -363,7 +364,8 @@ You have complete real-time visibility into the user's FULL system state (provid
 - The full conversation history — you remember everything discussed
 
 APP SECTIONS YOU CAN ACCESS DATA FROM (every one of these is in your system state):
-Dashboard, Tweaks, Network Tweaks, NIC Tuning, Power Plan, Process Manager, BIOS Advisor, Security, Driver Intel, Latency Analyzer, Startup Manager, System Cleaner, Debloater, History, Settings.
+Dashboard, Tweaks, Network Tweaks, NIC Tuning, Power Plan, BIOS Advisor, Security, Driver Intel, Latency Analyzer, Startup Manager, System Cleaner, Debloater, History, Settings.
+Only advertise and navigate to the current sections listed here. Earlier conversation or client context may refer to retired tools; do not offer them or invent scans for them.
 You have data from ALL of these sections. Never tell the user a section "is not visible to me" or "I don't have access to" any of the above — you always have their data in context.
 
 SECTION LISTING RULE: When the user asks "what sections can you see?", "what do you have access to?", "what parts of the app do you know about?", or any similar question, you MUST list ALL 16 sections above — not just the ones that have active data. A section showing "not run yet" or "no items applied" is still fully visible to you. Omitting a section from your answer misleads the user into thinking you cannot help with it.
@@ -386,7 +388,6 @@ CRITICAL RULE: NEVER say "I cannot check X" or "I don't have access to X" or "X 
 - History → check the recent activity history field
 - BIOS Advisor → check the biosAdvisor field (firmware detections: XMP/EXPO, SMT, PBO, Secure Boot, etc.)
 - Security → check the security field (Defender, Secure Boot, TPM, firewall, BitLocker, HVCI/VBS, RDP, SMBv1, guest account)
-- Process Manager → check the processManager summary field (total processes, top memory consumers)
 If a specific piece of data truly is "unavailable" or "data unavailable" in the context, then you may say you cannot see it — but NEVER say the entire section is invisible.
 
 PERFORMANCE PHILOSOPHY (you are a system intelligence assistant, NOT a tweak dump):
@@ -418,7 +419,6 @@ NAVIGATION ROUTE MAP (use exact paths):
 - Network tweaks → <<NAV:/network:Network Tweaks>>
 - NIC Tuning → <<NAV:/nic-tuning:NIC Tuning>>
 - Power plan → <<NAV:/power-plan:Power Plan>>
-- Process Manager → <<NAV:/process-manager:Process Manager>>
 - BIOS Advisor → <<NAV:/bios-advisor:BIOS Advisor>>
 - Security → <<NAV:/security:Security>>
 - Driver Intel → <<NAV:/driver-intel:Driver Intel>>
@@ -609,22 +609,21 @@ export function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<ty
   // you MUST list every section below — even those that show "not run yet" in the
   // data below.  Absence of activity data does NOT mean the section is unavailable.
   parts.push(
-    "APP SECTIONS YOU HAVE FULL VISIBILITY INTO (ALL 16 — never say any of these are unknown or unavailable):\n" +
+    "APP SECTIONS YOU HAVE FULL VISIBILITY INTO (never say any of these are unknown or unavailable):\n" +
     "  1. Dashboard        <<NAV:/:Dashboard>>\n" +
     "  2. Tweaks           <<NAV:/tweaks:Tweaks>>\n" +
-    "  4. Network Tweaks   <<NAV:/network:Network Tweaks>>\n" +
-    "  5. NIC Tuning       <<NAV:/nic-tuning:NIC Tuning>>\n" +
-    "  6. Power Plan       <<NAV:/power-plan:Power Plan>>\n" +
-    "  7. Process Manager  <<NAV:/process-manager:Process Manager>>\n" +
-    "  8. BIOS Advisor     <<NAV:/bios-advisor:BIOS Advisor>>\n" +
-    "  9. Security         <<NAV:/security:Security>>\n" +
-    " 10. Driver Intel     <<NAV:/driver-intel:Driver Intel>>\n" +
-    " 11. Latency Analyzer <<NAV:/latency-analyzer:Latency Analyzer>>\n" +
-    " 12. Startup Manager  <<NAV:/startup:Startup Manager>>\n" +
-    " 13. System Cleaner   <<NAV:/cleaner:System Cleaner>>\n" +
-    " 14. Debloater        <<NAV:/debloat:Debloater>>\n" +
-    " 15. History          <<NAV:/history:History>>\n" +
-    " 16. Settings         <<NAV:/settings:Settings>>"
+    "  3. Network Tweaks   <<NAV:/network:Network Tweaks>>\n" +
+    "  4. NIC Tuning       <<NAV:/nic-tuning:NIC Tuning>>\n" +
+    "  5. Power Plan       <<NAV:/power-plan:Power Plan>>\n" +
+    "  6. BIOS Advisor     <<NAV:/bios-advisor:BIOS Advisor>>\n" +
+    "  7. Security         <<NAV:/security:Security>>\n" +
+    "  8. Driver Intel     <<NAV:/driver-intel:Driver Intel>>\n" +
+    "  9. Latency Analyzer <<NAV:/latency-analyzer:Latency Analyzer>>\n" +
+    " 10. Startup Manager  <<NAV:/startup:Startup Manager>>\n" +
+    " 11. System Cleaner   <<NAV:/cleaner:System Cleaner>>\n" +
+    " 12. Debloater        <<NAV:/debloat:Debloater>>\n" +
+    " 13. History          <<NAV:/history:History>>\n" +
+    " 14. Settings         <<NAV:/settings:Settings>>"
   );
 
   // Subscription tier
@@ -887,22 +886,6 @@ export function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<ty
     parts.push("NIC Tuning: no adapter data available — navigate to <<NAV:/nic-tuning:NIC Tuning>> to scan");
   }
 
-  // ── Process Manager summary (Tier 4) ─────────────────────────────────────
-  const procMgr = context?.processManager;
-  if (procMgr?.totalProcesses != null && procMgr.totalProcesses > 0) {
-    const topStr = Array.isArray(procMgr.topConsumers) && procMgr.topConsumers.length > 0
-      ? `, top memory: ${procMgr.topConsumers.map((p: any) => `${p.name} (${p.memoryMb}MB)`).join(", ")}`
-      : "";
-    parts.push(
-      `Process Manager: ${procMgr.totalProcesses} processes` +
-      (procMgr.protectedCount != null ? `, ${procMgr.protectedCount} protected` : "") +
-      (procMgr.highMemoryCount != null ? `, ${procMgr.highMemoryCount} high-memory (>500MB)` : "") +
-      topStr
-    );
-  } else {
-    parts.push("Process Manager: summary not loaded — navigate to <<NAV:/process-manager:Process Manager>> to scan");
-  }
-
   // ── Startup Manager ───────────────────────────────────────────────────────
   const ss = context?.startupSummary;
   const startupApps: Array<{ name: string; enabled: boolean; publisher?: string }> =
@@ -1072,7 +1055,6 @@ export function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<ty
       "/ai-advisor":        "AI Advisor",
       "/bios-advisor":      "BIOS Advisor",
       "/security":          "Security",
-      "/process-manager":   "Process Manager",
       "/driver-intel":      "Driver Intel",
       "/latency-analyzer":  "Latency Analyzer",
       "/startup":           "Startup Manager",
@@ -1083,8 +1065,11 @@ export function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<ty
       "/history":           "History",
       "/settings":          "Settings",
     };
-    const label = ROUTE_LABELS[context.currentRoute] ?? context.currentRoute;
-    parts.push(`User's current page: ${label} (${context.currentRoute}) — use <<NAV:${context.currentRoute}:${label}>> if asked to stay here, or other routes to navigate away`);
+    const label = ROUTE_LABELS[context.currentRoute];
+    // Unknown or retired routes from older clients must never become links.
+    if (label) {
+      parts.push(`User's current page: ${label} (${context.currentRoute}) — use <<NAV:${context.currentRoute}:${label}>> if asked to stay here, or other routes to navigate away`);
+    }
   }
 
   // ── Optimization score ────────────────────────────────────────────────────
@@ -1517,7 +1502,7 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
         }
         return {
           role: isUser ? "user" : "assistant",
-          content: textContent,
+          content: stripRetiredAdvisorLinks(textContent),
         };
       }),
     ];
@@ -1546,7 +1531,7 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
     } catch (contractErr: any) {
       console.error(`[AI:chat] enforceApplyContract threw — returning raw content | user=${cloudUser?.id} | ${contractErr?.message}`);
     }
-    return res.json({ role: "assistant", content: finalContent });
+    return res.json({ role: "assistant", content: stripRetiredAdvisorLinks(finalContent) });
 
   } catch (error: any) {
     const status = error?.status;

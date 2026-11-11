@@ -26,7 +26,7 @@ const KEYS = [
   "Safe, reversible, and explained", "RAM cleanup tools", "Free standing-memory cleanup",
   "Startup app manager", "Control what launches with Windows", "System cleaner",
   "Junk files, temp data, and cleanup scans", "Debloater", "Remove unwanted Windows components",
-  "Process Manager", "Inspect and manage running processes", "NIC Tuning",
+    "NIC Tuning",
   "Free adapter diagnostics and controls", "Full Settings customization",
   "Themes, layout, accessibility, and privacy", "Change history", "See actions and system changes",
   "Everything in Free", "All free tools and {count} free tweaks", "{count} advanced system tweaks",
@@ -86,7 +86,7 @@ const KEYS = [
   "What is the refund policy?",
   "Purchases are final. A free trial is available so you can test the Premium tools before paying. If a technical issue prevents the app from working, contact support.",
   "What is included with Free and Premium?",
-  "Free includes core system tweaks, live Activity Monitor, RAM cleanup, Startup Manager, System Cleaner, Debloater, Process Manager, NIC Tuning, and Settings customization. Premium adds advanced system tweaks, AI Advisor, BIOS Advisor, Network Tweaks, Power Plan controls, Latency Analyzer, and Driver Intelligence.",
+  "Free includes core system tweaks, live Activity Monitor, RAM cleanup, Startup Manager, System Cleaner, Debloater, NIC Tuning, and Settings customization. Premium adds advanced system tweaks, AI Advisor, BIOS Advisor, Network Tweaks, Power Plan controls, Latency Analyzer, and Driver Intelligence.",
   "Categories", "All Questions", "General", "Safety & Anti-Cheat", "Performance",
   "Installation & Usage", "Billing & Refunds", "Real answers,", "not corporate copy.",
   "We answer the questions that actually matter: safety, compatibility, what to expect, and what makes SwitchControl worth using.",
@@ -216,7 +216,7 @@ const KEYS = [
   "Give the change a fair test under the same conditions, then reverse it if it does not help or causes a problem. Windows behaviour differs between hardware and drivers, so a setting that helps one computer may have no useful effect on another. History is available for supported reversals, which makes it practical to compare changes instead of keeping settings that do not suit your system.",
   "Not by default. SwitchControl does not add a startup entry, background service, or tray agent during installation. You can choose startup behaviour in Settings if you want the app available when Windows opens. Live monitoring runs while the app is open.",
   "Purchases are final. A free trial is available so you can test the Premium tools before paying. If a technical issue prevents the app from working on your system, contact support with the details and we will help investigate the problem.",
-  "Free includes the core system tweaks, live Activity Monitor, RAM cleanup, Startup Manager, System Cleaner, Debloater, Process Manager, NIC Tuning, and Settings customization. Premium adds advanced system tweaks, AI Advisor, BIOS Advisor, Network Tweaks, Power Plan controls, Latency Analyzer, and Driver Intelligence. The trial lets you explore Premium before making a purchase.",
+  "Free includes the core system tweaks, live Activity Monitor, RAM cleanup, Startup Manager, System Cleaner, Debloater, NIC Tuning, and Settings customization. Premium adds advanced system tweaks, AI Advisor, BIOS Advisor, Network Tweaks, Power Plan controls, Latency Analyzer, and Driver Intelligence. The trial lets you explore Premium before making a purchase.",
 ] as const;
 
 const locales = ["en", "zh-CN", "es", "hi", "ar", "pt-BR", "bn", "ru", "ja", "pa", "de", "id", "ko", "fr", "te", "tr", "mr", "ta", "vi", "ur"] as const;

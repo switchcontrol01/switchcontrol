@@ -4,8 +4,7 @@
  *
  * Exports:
  *   getIconDataUrlForPath(rawPath, cacheKey?)   — simple path → data URL (used by
- *                                                  appIcons:forPath IPC, Process Manager,
- *                                                  Startup)
+ *                                                  appIcons:forPath IPC, Startup)
  *   extractExecutablePath(raw)                  — strips quotes / trailing args from a
  *                                                  raw command string or registry value
  *   expandEnvVars(str)                          — expands %WINDIR% tokens

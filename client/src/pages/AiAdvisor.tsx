@@ -39,6 +39,7 @@ import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 import { computeOptimizationScore } from "@/lib/ai-context-builder";
 import { buildAiHardwareDetails, type AiHardwareDetails } from "@/lib/hardware-ai-context";
 import { useTranslation } from "@/lib/i18n";
+import { isRetiredAdvisorRoute, stripRetiredAdvisorLinks } from "@shared/advisorNavigation";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -72,6 +73,12 @@ function structuredToText(s: ChatStructured): string {
   if (s.type === "answer") return s.detail ? `${s.summary} ${s.detail}` : s.summary;
   if (s.type === "recommendations") {
     return "Tweak recommendations: " + s.items.map(i => i.tweakId).join(", ");
+  }
+  if (s.type === "navigation") {
+    return s.items
+      .filter(item => !isRetiredAdvisorRoute(item.route))
+      .map(item => item.label)
+      .join(", ");
   }
   return s.findings
     .map((f, i) => `Issue ${i + 1}: ${f.problem} Cause: ${f.cause} Fix: ${f.fix}`)
@@ -155,12 +162,6 @@ interface SystemContext {
     adapterName: string | null;
     properties: Array<{ key: string; label: string; supported: boolean; currentValue: string | null }>;
   };
-  processManager?: {
-    totalProcesses: number;
-    protectedCount: number;
-    highMemoryCount: number;
-    topConsumers: Array<{ name: string; memoryMb: number }>;
-  };
 }
 
 interface AdvisorCoverage {
@@ -204,7 +205,7 @@ const THINKING_PHASES = [
 
 function SafeMarkdown({ text, onApply }: { text: string; onApply?: (tweakId: string) => void }) {
   const parts: Array<{ type: "text" | "bold" | "code" | "apply" | "br"; content: string }> = [];
-  const lines = text.split("\n");
+  const lines = stripRetiredAdvisorLinks(text).split("\n");
   for (let i = 0; i < lines.length; i++) {
     if (i > 0) parts.push({ type: "br", content: "" });
     let line = lines[i];
@@ -607,7 +608,6 @@ function CoveragePanel({
             status={powerPlan ? "available" : "partial"}
             detail={powerPlan ? powerPlan.slice(0, 14) : undefined}
           />
-          <CoverageRow label={t("Process Manager")} status={isElectron ? "available" : "partial"} />
           <CoverageRow label={t("Cleaner")} status={isElectron ? "available" : "partial"} />
           <CoverageRow label={t("Debloater")} status={isElectron ? "available" : "partial"} />
           <CoverageRow
@@ -736,7 +736,6 @@ const NAV_ROUTE_META: Record<string, { icon: typeof ChevronRight; desc: string; 
   "/power-plan":      { icon: Zap,          desc: "Switch power profiles for max performance",       color: "text-amber-300",  border: "border-amber-500/30",  iconBg: "bg-amber-500/15"  },
   "/bios-advisor":    { icon: Info,         desc: "Analyze firmware settings and BIOS readiness",   color: "text-emerald-300",border: "border-emerald-500/30",iconBg: "bg-emerald-500/15"},
   "/security":        { icon: ShieldAlert,  desc: "Review security flags and isolation settings",   color: "text-blue-300",   border: "border-blue-500/30",   iconBg: "bg-blue-500/15"   },
-  "/process-manager": { icon: ChevronRight, desc: "Inspect and manage running processes",            color: "text-indigo-300", border: "border-indigo-500/30", iconBg: "bg-indigo-500/15" },
   "/":                { icon: ChevronRight, desc: "System overview and live telemetry",              color: "text-slate-300",  border: "border-slate-500/30",  iconBg: "bg-slate-500/15"  },
 };
 
@@ -748,7 +747,7 @@ function NavigationCard({ items, onNavigate }: {
 
   return (
     <div className="flex flex-col gap-2 w-full max-w-xs">
-      {items.map((item, i) => {
+      {items.filter((item) => !isRetiredAdvisorRoute(item.route)).map((item, i) => {
         const meta = NAV_ROUTE_META[item.route] ?? { icon: ChevronRight, desc: "Open section", color: "text-cyan-300", border: "border-cyan-500/30", iconBg: "bg-cyan-500/15" };
         const Icon = meta.icon;
         const wasVisited = visited.has(item.route);
@@ -990,7 +989,6 @@ export default function AiAdvisor() {
   const [securityStatus, setSecurityStatus] = useState<Record<string, any> | null>(null);
   const [securityAudit, setSecurityAudit] = useState<Record<string, any> | null>(null);
   const [nicCapabilities, setNicCapabilities] = useState<SystemContext["nicTuning"] | null>(null);
-  const [processManagerSummary, setProcessManagerSummary] = useState<SystemContext["processManager"] | null>(null);
 
   // AI tweak-recommendation state
   const [showApplyModal, setShowApplyModal] = useState(false);
@@ -1084,7 +1082,7 @@ export default function AiAdvisor() {
       .catch(() => {});
   }, []);
 
-  // ── Tier 4: Security, NIC Tuning, Process Manager, fetched LAZILY ──────────
+  // ── Tier 4: Security and NIC Tuning, fetched LAZILY ───────────────────────
   // These calls are deferred until the user actually sends their first message.
   // This avoids paying the PS/WMI cost on every page mount for data that is
   // only needed when the AI builds a chat context. Each fetch is one-shot:
@@ -1148,38 +1146,6 @@ export default function AiAdvisor() {
                   }
                   setNicCapabilities({ adapterName, properties: props });
                 });
-            })
-            .catch(() => {})
-        );
-      }
-
-      // Process Manager, prefer cached result to avoid a fresh PS spawn
-      const pcApi = api.processControl;
-      if (pcApi?.getLastResult) {
-        fetches.push(
-          pcApi.getLastResult()
-            .then((result: any) => {
-              // Only fall back to a fresh scan if no prior result exists at all
-              if (!result || !Array.isArray(result?.processes)) {
-                return pcApi.scan?.().then((r: any) => r).catch(() => null);
-              }
-              return result;
-            })
-            .then((result: any) => {
-              if (!result || !Array.isArray(result.processes)) return;
-              const procs = result.processes as any[];
-              const HIGH_MEM_MB = 500;
-              const topConsumers = procs
-                .filter((p: any) => (p.memMb ?? p.workingSetMb ?? 0) > 0)
-                .sort((a: any, b: any) => (b.memMb ?? b.workingSetMb ?? 0) - (a.memMb ?? a.workingSetMb ?? 0))
-                .slice(0, 5)
-                .map((p: any) => ({ name: p.name ?? "Unknown", memoryMb: Math.round(p.memMb ?? p.workingSetMb ?? 0) }));
-              setProcessManagerSummary({
-                totalProcesses: procs.length,
-                protectedCount: procs.filter((p: any) => p.protected || p.isProtected).length,
-                highMemoryCount: procs.filter((p: any) => (p.memMb ?? p.workingSetMb ?? 0) > HIGH_MEM_MB).length,
-                topConsumers,
-              });
             })
             .catch(() => {})
         );
@@ -1652,8 +1618,6 @@ export default function AiAdvisor() {
       // ── Tier 4: NIC Tuning ──────────────────────────────────────────────────
       nicTuning: nicCapabilities ?? undefined,
 
-      // ── Tier 4: Process Manager ─────────────────────────────────────────────
-      processManager: processManagerSummary ?? undefined,
     };
     setContext(ctx);
     contextRef.current = ctx;
@@ -1864,7 +1828,7 @@ export default function AiAdvisor() {
     chatHistory.push({ role: "user", content: messageContent });
 
     try {
-      // Lazy-fetch extended context (Security / NIC / ProcessManager) on first
+      // Lazy-fetch extended context (Security / NIC) on first
       // message only. Awaited here so the data lands in state *before* contextRef
       // is read below, giving the AI full context even on the opening message.
       await fetchExtendedContextOnce();
@@ -2124,7 +2088,9 @@ export default function AiAdvisor() {
       const immediateNavItems: Array<{ route: string; label: string }> = [];
       let navM: RegExpExecArray | null;
       while ((navM = NAV_RE_IMM.exec(rawResponse)) !== null) {
-        immediateNavItems.push({ route: navM[1].trim(), label: navM[2].trim() });
+        if (!isRetiredAdvisorRoute(navM[1].trim())) {
+          immediateNavItems.push({ route: navM[1].trim(), label: navM[2].trim() });
+        }
       }
 
       // 3. Strip all markers from the text that gets typewritten

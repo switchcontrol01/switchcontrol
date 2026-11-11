@@ -13,7 +13,6 @@ import DriverIntelligence from "@/pages/DriverIntelligence";
 import LatencyAnalyzer from "@/pages/LatencyAnalyzer";
 import Security from "@/pages/Security";
 import History from "@/pages/History";
-import ProcessManager from "@/pages/ProcessManager";
 
 export const desktopRoutes = {
   Home,
@@ -31,5 +30,4 @@ export const desktopRoutes = {
   LatencyAnalyzer,
   Security,
   History,
-  ProcessManager,
 } as const;

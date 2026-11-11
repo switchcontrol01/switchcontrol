@@ -188,7 +188,6 @@ const rows: TranslationRow[] = [
   ["Startup app manager", "Gestor de aplicaciones de inicio", "Gerenciador de aplicativos de inicialização", "Autostart-Verwaltung", "Gestionnaire des applications au démarrage"],
   ["System cleaner and cleanup scans", "Limpiador del sistema y análisis de limpieza", "Limpeza do sistema e verificações de limpeza", "Systembereinigung und Bereinigungsscans", "Nettoyage du système et analyses de nettoyage"],
   ["Debloater and Windows component cleanup", "Eliminación de software innecesario y limpieza de componentes de Windows", "Remoção de programas desnecessários e limpeza de componentes do Windows", "Entfernung unnötiger Software und Bereinigung von Windows-Komponenten", "Suppression des logiciels superflus et nettoyage des composants Windows"],
-  ["Process Manager", "Gestor de procesos", "Gerenciador de processos", "Prozessverwaltung", "Gestionnaire des processus"],
   ["NIC Tuning", "Ajuste del adaptador de red", "Ajuste do adaptador de rede", "Netzwerkkarten-Optimierung", "Réglage de la carte réseau"],
   ["Full Settings customization", "Personalización completa de los ajustes", "Personalização completa das configurações", "Vollständige Anpassung der Einstellungen", "Personnalisation complète des paramètres"],
   ["Change history", "Historial de cambios", "Histórico de alterações", "Änderungsverlauf", "Historique des modifications"],

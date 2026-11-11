@@ -986,7 +986,6 @@ export default function Landing() {
                       "Startup app manager",
                       "System cleaner and cleanup scans",
                       "Debloater and Windows component cleanup",
-                      "Process Manager",
                       "NIC Tuning",
                       "Full Settings customization",
                       "Change history",

@@ -28,7 +28,6 @@ const routeNames = [
   "LatencyAnalyzer",
   "Security",
   "History",
-  "ProcessManager",
 ];
 
 test("Electron selects eager desktop routes", () => {
@@ -56,7 +55,6 @@ test("native modules are lazy and optional startup follows first-frame gates", (
     "nic-executor",
     "network-tweak-executor",
     "power-plan-manager",
-    "process-control",
   ]) {
     assert.match(main, new RegExp(`lazyModule\\(['"]\\./${moduleName}['"]`));
   }

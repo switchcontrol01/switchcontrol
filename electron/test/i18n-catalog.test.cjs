@@ -15,7 +15,7 @@ test("localization keeps all supported locales and public catalog coverage", asy
   ];
   const navigationKeys = [
     "Dashboard", "Tweaks", "Network Tweaks", "NIC Tuning", "Power Plan",
-    "Cleaner", "Debloat", "Startup", "Process Manager", "AI Advisor",
+    "Cleaner", "Debloat", "Startup", "AI Advisor",
     "BIOS Advisor", "Security", "History", "Driver Intel",
     "Latency Analyzer", "Settings",
   ];

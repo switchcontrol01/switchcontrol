@@ -17,5 +17,4 @@ export const desktopRoutes = {
   LatencyAnalyzer: lazy(() => loadDesktopRoute("latency-analyzer")),
   Security: lazy(() => loadDesktopRoute("security")),
   History: lazy(() => loadDesktopRoute("history")),
-  ProcessManager: lazy(() => loadDesktopRoute("process-manager")),
 } as const;

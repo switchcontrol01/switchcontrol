@@ -58,6 +58,9 @@ if (!electronBuild) {
   if (!Array.isArray(electronBuild.files) || !electronBuild.files.includes('process-count.js')) {
     failures.push('Electron build must include process-count.js in its packaged files');
   }
+  if (electronBuild.files?.includes('process-control.js')) {
+    failures.push('Retired process-control.js must not be packaged');
+  }
 }
 
 // Generated inputs consumed by electron/package.json and runtime paths in
@@ -68,6 +71,31 @@ if (!electronBuild) {
   'electron/build/icon.ico',
   'electron/bin',
 ].forEach(exists);
+
+// Inspect freshly generated inputs as well as the source allowlist. Retired
+// modules must not survive in a stale renderer or backend bundle.
+for (const dir of ['dist/assets', 'dist-electron/assets']) {
+  const fullDir = path.join(ROOT_DIR, dir);
+  if (!fs.existsSync(fullDir)) {
+    failures.push(`Missing generated assets: ${dir}`);
+    continue;
+  }
+  for (const name of fs.readdirSync(fullDir)) {
+    if (/ProcessManager|process-control/i.test(name)) {
+      failures.push(`Retired module in build output: ${dir}/${name}`);
+    }
+    if (name.endsWith('.js')) {
+      const source = fs.readFileSync(path.join(fullDir, name), 'utf8');
+      if (/processControl|Process Manager|Inspect and manage running processes/.test(source)) {
+        failures.push(`Retired feature in generated JavaScript: ${dir}/${name}`);
+      }
+    }
+  }
+}
+const backendPath = path.join(ROOT_DIR, 'dist/index.cjs');
+if (fs.existsSync(backendPath) && /processControl|Process Manager/.test(fs.readFileSync(backendPath, 'utf8'))) {
+  failures.push('Retired feature in generated backend');
+}
 
 if (failures.length > 0) {
   console.error('[package-contract] FAIL');

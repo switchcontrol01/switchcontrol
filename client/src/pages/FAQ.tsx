@@ -140,7 +140,7 @@ const FAQ_ITEMS: FAQItem[] = [
   {
     category: "billing",
     question: "What is included with Free and Premium?",
-    answer: "Free includes the core system tweaks, live Activity Monitor, RAM cleanup, Startup Manager, System Cleaner, Debloater, Process Manager, NIC Tuning, and Settings customization. Premium adds advanced system tweaks, AI Advisor, BIOS Advisor, Network Tweaks, Power Plan controls, Latency Analyzer, and Driver Intelligence. The trial lets you explore Premium before making a purchase.",
+    answer: "Free includes the core system tweaks, live Activity Monitor, RAM cleanup, Startup Manager, System Cleaner, Debloater, NIC Tuning, and Settings customization. Premium adds advanced system tweaks, AI Advisor, BIOS Advisor, Network Tweaks, Power Plan controls, Latency Analyzer, and Driver Intelligence. The trial lets you explore Premium before making a purchase.",
     badge: "Trial available",
   },
 ];

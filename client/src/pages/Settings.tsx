@@ -241,7 +241,7 @@ const DASHBOARD_LABELS: Record<string, string> = {
 const SIDEBAR_LABELS: Record<string, string> = {
   "/dashboard": "Dashboard", "/tweaks": "Tweaks", "/network": "Network Tweaks", "/nic-tuning": "NIC Tuning",
   "/power-plan": "Power Plan", "/cleaner": "Cleaner", "/debloat": "Debloat", "/startup": "Startup",
-  "/process-manager": "Process Manager", "/ai-advisor": "AI Advisor", "/bios-advisor": "BIOS Advisor",
+  "/ai-advisor": "AI Advisor", "/bios-advisor": "BIOS Advisor",
   "/security": "Security", "/history": "History", "/driver-intel": "Driver Intel",
   "/latency-analyzer": "Latency Analyzer", "/settings": "Settings",
 };

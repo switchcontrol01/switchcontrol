@@ -126,7 +126,6 @@
   const { createFactoryResetHandler } = require('./factory-reset');
   const { APPDATA_DIR, TWEAK_STATE_FILE, CONFIG_FILE, DEVICE_ID_FILE, SPECS_CACHE_FILE, DEVICE_SIGNATURE_FILE } = require('./user-data-paths');
   const { parseDriverProbeOutput } = require('./driver-probe-output');
-  const processControl = lazyModule('./process-control');
   const { selectProcessCount } = require('./process-count');
 
   // Create the restore point used by the "Create restore point" preference.
@@ -2448,81 +2447,6 @@ function Write-SwitchControlProbe($status, $data, $message) {
   });
   
   
-  // ── Process Control IPC bridge ────────────────────────────────────────────────────────
-  
-  ipcMain.handle("processControl:scan", async () => {
-    try {
-      const result = await processControl.scan();
-      if (result.error) {
-        return { success: false, error: result.error, data: result };
-      }
-      return { success: true, data: result };
-    } catch (err) {
-      console.error("[ProcessControl] scan error:", err.message);
-      return { success: false, error: err.message };
-    }
-  });
-  
-  ipcMain.handle("processControl:buildPlan", (_event, scanResult, profile) => {
-    try {
-      const plan = processControl.buildPlan(scanResult, profile);
-      return { success: true, data: plan };
-    } catch (err) {
-      console.error("[ProcessControl] buildPlan error:", err.message);
-      return { success: false, error: err.message };
-    }
-  });
-  
-  ipcMain.handle("processControl:applyPlan", async (_event, plan) => {
-    try {
-      const result = await processControl.applyPlan(plan);
-      return { success: true, data: result };
-    } catch (err) {
-      console.error("[ProcessControl] applyPlan error:", err.message);
-      return { success: false, error: err.message };
-    }
-  });
-  
-  ipcMain.handle("processControl:restoreLast", async () => {
-    try {
-      const result = await processControl.restoreLast();
-      return { success: true, data: result };
-    } catch (err) {
-      console.error("[ProcessControl] restoreLast error:", err.message);
-      return { success: false, error: err.message };
-    }
-  });
-  
-  ipcMain.handle("processControl:getLastResult", () => {
-    try {
-      const result = processControl.getLastResult();
-      return { success: true, data: result };
-    } catch (err) {
-      console.error("[ProcessControl] getLastResult error:", err.message);
-      return { success: false, error: err.message };
-    }
-  });
-  
-  ipcMain.handle("processControl:getProtectedList", () => {
-    try {
-      const list = processControl.getProtectedList();
-      return { success: true, data: list };
-    } catch (err) {
-      console.error("[ProcessControl] getProtectedList error:", err.message);
-      return { success: false, error: err.message };
-    }
-  });
-  
-  ipcMain.handle("processControl:terminate", async (_event, pid) => {
-    try {
-      const result = await processControl.terminate(pid);
-      return { success: true, data: result };
-    } catch (err) {
-      console.error("[ProcessControl] terminate error:", err.message);
-      return { success: false, error: err.message };
-    }
-  });
-  
   // ── Critical-logger IPC bridge ────────────────────────────────────────────────
   
   /**
@@ -3459,7 +3383,7 @@ Write-Output ('SCDRV:' + (ConvertTo-Json -InputObject $result -Compress -Depth 2
     return await loadSystemSpecs();
   });
   
-  // App icon handler — used by Process Manager and Startup pages
+  // Shared app icon handler — used by Startup and other app lists
   ipcMain.handle('appIcons:forPath', async (_event, filePath) => {
     return getIconDataUrlForPath(filePath);
   });

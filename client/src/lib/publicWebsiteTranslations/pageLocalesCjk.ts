@@ -310,18 +310,6 @@ const ENTRIES: ReadonlyArray<readonly [string, string, string, string]> = [
     "원하지 않는 Windows 구성 요소 제거"
   ],
   [
-    "Process Manager",
-    "流程经理",
-    "プロセスマネージャー",
-    "프로세스 관리자"
-  ],
-  [
-    "Inspect and manage running processes",
-    "检查和管理正在运行的进程",
-    "実行中のプロセスを検査および管理する",
-    "실행 중인 프로세스 검사 및 관리"
-  ],
-  [
     "NIC Tuning",
     "网卡调优",
     "NICのチューニング",
@@ -904,10 +892,10 @@ const ENTRIES: ReadonlyArray<readonly [string, string, string, string]> = [
     "무료와 프리미엄에는 무엇이 포함되어 있나요?"
   ],
   [
-    "Free includes core system tweaks, live Activity Monitor, RAM cleanup, Startup Manager, System Cleaner, Debloater, Process Manager, NIC Tuning, and Settings customization. Premium adds advanced system tweaks, AI Advisor, BIOS Advisor, Network Tweaks, Power Plan controls, Latency Analyzer, and Driver Intelligence.",
-    "免费包括核心系统调整、实时活动监视器、RAM 清理、启动管理器、系统清理器、Debloater、进程管理器、NIC 调整和设置自定义。 Premium 添加了高级系统调整、AI Advisor、BIOS Advisor、网络调整、电源计划控制、延迟分析器和驱动程序智能。",
-    "無料には、コア システムの調整、ライブ アクティビティ モニター、RAM クリーンアップ、スタートアップ マネージャー、システム クリーナー、デブローター、プロセス マネージャー、NIC チューニング、および設定のカスタマイズが含まれます。プレミアムでは、高度なシステム調整、AI アドバイザー、BIOS アドバイザー、ネットワーク調整、電源プラン コントロール、レイテンシー アナライザー、およびドライバー インテリジェンスが追加されます。",
-    "무료에는 핵심 시스템 조정, 실시간 활동 모니터, RAM 정리, 시작 관리자, 시스템 클리너, Debloater, 프로세스 관리자, NIC 조정 및 설정 사용자 정의가 포함됩니다. 프리미엄에는 고급 시스템 조정, AI Advisor, BIOS Advisor, 네트워크 조정, 전원 계획 제어, 대기 시간 분석기 및 드라이버 인텔리전스가 추가됩니다."
+    "Free includes core system tweaks, live Activity Monitor, RAM cleanup, Startup Manager, System Cleaner, Debloater, NIC Tuning, and Settings customization. Premium adds advanced system tweaks, AI Advisor, BIOS Advisor, Network Tweaks, Power Plan controls, Latency Analyzer, and Driver Intelligence.",
+    "免费包括核心系统调整、实时活动监视器、RAM 清理、启动管理器、系统清理器、Debloater、NIC 调整和设置自定义。 Premium 添加了高级系统调整、AI Advisor、BIOS Advisor、网络调整、电源计划控制、延迟分析器和驱动程序智能。",
+    "無料には、コア システムの調整、ライブ アクティビティ モニター、RAM クリーンアップ、スタートアップ マネージャー、システム クリーナー、デブローター、NIC チューニング、および設定のカスタマイズが含まれます。プレミアムでは、高度なシステム調整、AI アドバイザー、BIOS アドバイザー、ネットワーク調整、電源プラン コントロール、レイテンシー アナライザー、およびドライバー インテリジェンスが追加されます。",
+    "무료에는 핵심 시스템 조정, 실시간 활동 모니터, RAM 정리, 시작 관리자, 시스템 클리너, Debloater, NIC 조정 및 설정 사용자 정의가 포함됩니다. 프리미엄에는 고급 시스템 조정, AI Advisor, BIOS Advisor, 네트워크 조정, 전원 계획 제어, 대기 시간 분석기 및 드라이버 인텔리전스가 추가됩니다."
   ],
   [
     "Categories",
@@ -2608,10 +2596,10 @@ const ENTRIES: ReadonlyArray<readonly [string, string, string, string]> = [
     "구매는 최종적입니다. 무료 평가판을 사용하여 결제하기 전에 프리미엄 도구를 테스트할 수 있습니다. 기술적인 문제로 인해 시스템에서 앱이 작동하지 않는 경우 자세한 내용을 지원팀에 문의해 주시면 문제 조사에 도움을 드리겠습니다."
   ],
   [
-    "Free includes the core system tweaks, live Activity Monitor, RAM cleanup, Startup Manager, System Cleaner, Debloater, Process Manager, NIC Tuning, and Settings customization. Premium adds advanced system tweaks, AI Advisor, BIOS Advisor, Network Tweaks, Power Plan controls, Latency Analyzer, and Driver Intelligence. The trial lets you explore Premium before making a purchase.",
-    "免费包括核心系统调整、实时活动监视器、RAM 清理、启动管理器、系统清理器、Debloater、进程管理器、NIC 调整和设置自定义。 Premium 添加了高级系统调整、AI Advisor、BIOS Advisor、网络调整、电源计划控制、延迟分析器和驱动程序智能。该试用版可让您在购买前探索 Premium。",
-    "無料には、コア システムの調整、ライブ アクティビティ モニター、RAM クリーンアップ、スタートアップ マネージャー、システム クリーナー、デブローター、プロセス マネージャー、NIC チューニング、および設定のカスタマイズが含まれます。プレミアムでは、高度なシステム調整、AI アドバイザー、BIOS アドバイザー、ネットワーク調整、電源プラン コントロール、レイテンシー アナライザー、およびドライバー インテリジェンスが追加されます。トライアルでは、購入する前にプレミアムを試してみることができます。",
-    "무료에는 핵심 시스템 조정, 실시간 활동 모니터, RAM 정리, 시작 관리자, 시스템 클리너, Debloater, 프로세스 관리자, NIC 조정 및 설정 사용자 정의가 포함됩니다. 프리미엄에는 고급 시스템 조정, AI Advisor, BIOS Advisor, 네트워크 조정, 전원 계획 제어, 대기 시간 분석기 및 드라이버 인텔리전스가 추가됩니다. 평가판을 사용하면 구매하기 전에 Premium을 탐색할 수 있습니다."
+    "Free includes the core system tweaks, live Activity Monitor, RAM cleanup, Startup Manager, System Cleaner, Debloater, NIC Tuning, and Settings customization. Premium adds advanced system tweaks, AI Advisor, BIOS Advisor, Network Tweaks, Power Plan controls, Latency Analyzer, and Driver Intelligence. The trial lets you explore Premium before making a purchase.",
+    "免费包括核心系统调整、实时活动监视器、RAM 清理、启动管理器、系统清理器、Debloater、NIC 调整和设置自定义。 Premium 添加了高级系统调整、AI Advisor、BIOS Advisor、网络调整、电源计划控制、延迟分析器和驱动程序智能。该试用版可让您在购买前探索 Premium。",
+    "無料には、コア システムの調整、ライブ アクティビティ モニター、RAM クリーンアップ、スタートアップ マネージャー、システム クリーナー、デブローター、NIC チューニング、および設定のカスタマイズが含まれます。プレミアムでは、高度なシステム調整、AI アドバイザー、BIOS アドバイザー、ネットワーク調整、電源プラン コントロール、レイテンシー アナライザー、およびドライバー インテリジェンスが追加されます。トライアルでは、購入する前にプレミアムを試してみることができます。",
+    "무료에는 핵심 시스템 조정, 실시간 활동 모니터, RAM 정리, 시작 관리자, 시스템 클리너, Debloater, NIC 조정 및 설정 사용자 정의가 포함됩니다. 프리미엄에는 고급 시스템 조정, AI Advisor, BIOS Advisor, 네트워크 조정, 전원 계획 제어, 대기 시간 분석기 및 드라이버 인텔리전스가 추가됩니다. 평가판을 사용하면 구매하기 전에 Premium을 탐색할 수 있습니다."
   ]
 ];
 

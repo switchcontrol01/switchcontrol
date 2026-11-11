@@ -307,7 +307,6 @@ function ElectronAppRoutes() {
           <Route path="/history" component={desktopRoutes.History} />
           <Route path="/driver-intel" component={desktopRoutes.DriverIntelligence} />
           <Route path="/latency-analyzer" component={desktopRoutes.LatencyAnalyzer} />
-          <Route path="/process-manager" component={desktopRoutes.ProcessManager} />
           <Route path="/settings" component={desktopRoutes.Settings} />
           <Route component={desktopRoutes.Home} />
         </Switch>
