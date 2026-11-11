@@ -1,8 +1,8 @@
 /**
- * Windows system-wide counter capture. No inferred timings, scores, driver
- * attribution, or audio/gaming verdicts are produced by this page.
+ * Windows system-wide counter capture and a transparent system-responsiveness
+ * model. This page does not infer input-to-display timing or driver attribution.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Activity, AlertTriangle, ChevronDown, ChevronUp, Crown, Info, Layers, Loader2, Music, Play, RotateCcw, Square, Timer } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -10,11 +10,13 @@ import { Button } from "@/components/ui/button";
 import { SystemLoadPanel } from "@/components/SystemLoadPanel";
 import { CollectionSummary, CoreCounterMetrics, CounterTimeline } from "@/components/latency-analyzer/CounterMetrics";
 import { CaptureComparison, CaptureExport } from "@/components/latency-analyzer/CaptureTools";
+import { ResponsivenessModel } from "@/components/latency-analyzer/ResponsivenessModel";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 import { useMeasuredSystemLoad } from "@/hooks/useMeasuredSystemLoad";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useLatencyAnalyzerStore, type DriverRow } from "@/stores/latencyAnalyzerStore";
+import { calculateResponsivenessModel } from "@/lib/responsivenessModel";
 import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -101,7 +103,7 @@ function LockedState() {
         <GlassCard className="w-full max-w-md space-y-4 p-8 text-center">
           <Timer className="mx-auto size-8 text-cyan-300" />
           <h1 className="text-lg font-semibold">{t("Latency Analyzer")}</h1>
-          <p className="text-xs text-[#8A95A4]">{t("Capture Windows DPC CPU-time %, interrupt CPU-time %, and total page faults/sec, with factual device inventory and timestamped reports.")}</p>
+          <p className="text-xs text-[#8A95A4]">{t("Analyze real Windows DPC and interrupt counters with a transparent responsiveness model, detailed 3D capture graph, and factual device inventory.")}</p>
           <p className="text-[10px] text-[#778292]">{t("Scheduler delay and input-to-display latency are not measured.")}</p>
           <Button onClick={() => openUpgradeModal()} className="w-full gap-2"><Crown className="size-4" />{t("Unlock Premium")}</Button>
         </GlassCard>
@@ -116,6 +118,10 @@ export default function LatencyAnalyzer() {
   const entitlement = useEntitlementUiState();
   const locked = !isPremium && entitlement.status !== "trial_active";
   const store = useLatencyAnalyzerStore();
+  const responsivenessModel = useMemo(
+    () => calculateResponsivenessModel(store.chartSamples),
+    [store.chartSamples],
+  );
   const { data: systemLoad } = useMeasuredSystemLoad(!locked);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const durationRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -247,6 +253,7 @@ export default function LatencyAnalyzer() {
         </header>
         <Controls onStart={() => { void handleStart(); }} onStop={() => { void handleStop(); }} onReset={handleReset} />
         <CollectionSummary desktop={desktopAvailable()} />
+        <ResponsivenessModel samples={store.chartSamples} model={responsivenessModel} />
         <CoreCounterMetrics />
         <CounterTimeline />
         <SystemLoadPanel data={systemLoad} />
