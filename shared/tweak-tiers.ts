@@ -130,7 +130,6 @@ export const PREMIUM_EXCEPTION_IDS: Set<string> = new Set([
   "menu-show-delay",
   "hung-app-timeout",
   // ── Premium Power / GPU ──────────────────────────────────────────────────
-  "maximum-cpu-responsiveness",
   "gpu-msi-mode",
   "pci-msi-mode",
   "wait-to-kill-app",
@@ -249,7 +248,6 @@ export const TWEAK_TIER_MAP: Record<string, TweakTierInfo> = {
   "disable-wallpaper-compression": { level: "Advanced", category: "Windows UX" },
 
   // ── Premium Power / GPU ───────────────────────────────────────────────────
-  "maximum-cpu-responsiveness": { level: "Advanced",   category: "System and Power" },
   "gpu-msi-mode":               { level: "Advanced",   category: "GPU and Graphics" },
   "pci-msi-mode":               { level: "Advanced",   category: "Gaming and Latency" },
 };

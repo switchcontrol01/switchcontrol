@@ -876,7 +876,9 @@ export async function runPremiumRevert(
  */
 export function hasPremiumItemsToRevert(): boolean {
   const store = useTweakOwnershipStore.getState();
-  const hasTweaks      = Object.values(store.appliedTweaks).some(r => r.provenance === 'app' && r.isPremium);
+  const hasTweaks      = Object.entries(store.appliedTweaks).some(([id, r]) =>
+    TWEAKS_DATA.some(t => t.id === id) && r.provenance === 'app' && r.isPremium
+  );
   const hasNetwork     = Object.values(store.networkTweaks).some(r => r.provenance === 'app');
   const hasPlan        = store.powerPlan?.provenance === 'app';
 

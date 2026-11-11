@@ -1036,15 +1036,6 @@ const ADMIN_TWEAKS = {
     check:  `$bk = "${_VENDOR_UPDATERS_BK}"; if (-not (Test-Path $bk)) { $false; return }; $data = Get-Content $bk -Raw | ConvertFrom-Json; $allDisabled = $true; foreach ($n in $data.changed) { $s = Get-Service -Name $n -EA SilentlyContinue; if (-not $s -or $s.StartType -ne "Disabled") { $allDisabled = $false } }; $allDisabled`,
   },
 
-  // ── Maximum CPU Responsiveness — powercfg power-plan settings ─────────────────
-  // apply/revert/verify handled by executeMaxCpuResponsiveness below.
-  'maximum-cpu-responsiveness': {
-    name: 'CPU C-STATES | Core parking',
-    requiresAdmin:  true,
-    requiresReboot: false,
-    _special: 'maximum-cpu-responsiveness',
-  },
-
   // ── GPU MSI Mode — registry interrupt properties ──────────────────────────────
   // apply/revert/verify handled by executeGpuMsiMode below.
   'gpu-msi-mode': {
@@ -1258,173 +1249,6 @@ async function executeNvidiaTelemetry(action) {
       : (!verified ? 'NVIDIA telemetry restored (detected NVIDIA GPU).' : 'NVIDIA telemetry could not be fully restored — tasks or service may still be disabled.'),
     rebootRequired: false,
   };
-}
-
-// ─── CPU C-States / Core Parking — powercfg + registry handler ───────────────
-// Uses full setting GUIDs for registry reads and powercfg writes so the tweak
-// works on AMD/OEM custom power schemes where alias-based powercfg /query fails.
-async function executeMaxCpuResponsiveness(action) {
-  const fs_   = require('fs');
-  const path_ = require('path');
-  const { CPU_RESPONSIVENESS_BACKUP_FILE } = require('./user-data-paths');
-
-  // Well-known GUIDs (case-insensitive on Windows registry)
-  const SUB  = '54533251-82be-4824-96c1-47b60b740d00'; // SUB_PROCESSOR
-  const CPM  = '3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb'; // CPMINCORES
-  const PBM  = 'be337238-0d82-4146-a960-4f3749d470c7'; // PERFBOOSTMODE
-
-  // Detect active scheme GUID
-  const rawScheme = await queryPowerShell(
-    `$s = (powercfg /getactivescheme 2>&1 | Out-String).Trim(); ` +
-    `if ($s -match 'GUID:\\s*([0-9a-fA-F-]{36})') { $matches[1] } else { '' }`
-  );
-  if (!rawScheme || rawScheme.trim().length < 36) {
-    return { ok: false, commandsRun: [], message: 'Active power scheme could not be detected.', errorCode: 'no_scheme' };
-  }
-  const schemeGuid = rawScheme.trim();
-
-  // ── Read helper: registry first (full GUIDs), alias powercfg as fallback ────
-  // This works on AMD/OEM schemes where powercfg /query alias returns nothing.
-  async function readAcSetting(settingGuid, aliasName) {
-    const out = await queryPowerShell(
-      `$v=(Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerSchemes\\${schemeGuid}\\${SUB}\\${settingGuid}" -Name ACSettingIndex -EA SilentlyContinue).ACSettingIndex; ` +
-      `if ($null -ne $v) { [int]$v } else { ` +
-      `$raw=(powercfg /query "${schemeGuid}" SUB_PROCESSOR ${aliasName} 2>&1 | Out-String); ` +
-      `if ($raw -match 'Current AC Power Setting Index:\\s*0x([0-9a-fA-F]+)') { [Convert]::ToInt64($matches[1],16) } else { '' } }`
-    );
-    return out !== null ? out.trim() : null;
-  }
-
-  // ── Write helper: powercfg /setacvalueindex with full GUIDs ─────────────────
-  // Also writes directly to registry to cover schemes where powercfg persists nothing.
-  function buildSetCmd(schGuid, settingGuid, value) {
-    return (
-      `& powercfg /setacvalueindex "${schGuid}" "${SUB}" "${settingGuid}" ${value} 2>&1 | Out-Null; ` +
-      `$rp="HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerSchemes\\${schGuid}\\${SUB}\\${settingGuid}"; ` +
-      `if (Test-Path $rp) { Set-ItemProperty $rp -Name ACSettingIndex -Value ${value} -Type DWord -Force }`
-    );
-  }
-
-  // ── Read verify via registry ─────────────────────────────────────────────────
-  async function readAcSettingForScheme(schGuid, settingGuid) {
-    const out = await queryPowerShell(
-      `$v=(Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerSchemes\\${schGuid}\\${SUB}\\${settingGuid}" -Name ACSettingIndex -EA SilentlyContinue).ACSettingIndex; ` +
-      `if ($null -ne $v) { [int]$v } else { '' }`
-    );
-    return out !== null ? out.trim() : null;
-  }
-
-  // ── Marker helpers ────────────────────────────────────────────────────────────
-  // Write the applied marker to BOTH HKLM and HKCU so the verify check survives
-  // any HKLM write failure (e.g. transient elevation hiccup) by reading from HKCU.
-  const SET_MARKER   = `New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -Value 1 -Type DWord -Force; New-Item -Path "HKCU:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty "HKCU:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -Value 1 -Type DWord -Force`;
-  const CLEAR_MARKER = `New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -Value 0 -Type DWord -Force; New-Item -Path "HKCU:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty "HKCU:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -Value 0 -Type DWord -Force`;
-
-  if (action === 'apply') {
-    // Read original values — use '0' as safe default when registry key absent
-    // (0 = Windows default: cores can be parked / no boost override)
-    const origCpMinCores    = (await readAcSetting(CPM, 'CPMINCORES'))    || '0';
-    const origPerfBoostMode = (await readAcSetting(PBM, 'PERFBOOSTMODE')) || '0';
-
-    // Save backup
-    const backup = { schemeGuid, origCpMinCores, origPerfBoostMode, savedAt: new Date().toISOString() };
-    try {
-      saveAtomicBackup(CPU_RESPONSIVENESS_BACKUP_FILE, backup);
-    } catch (e) {
-      console.warn('[CpuResponsiveness] backup write failed:', e.message);
-      return { ok: false, commandsRun: [], message: 'Original value could not be backed up — aborting to keep rollback available.', errorCode: 'backup_failed' };
-    }
-
-    // Apply: set CPMINCORES=100 (no core parking) and PERFBOOSTMODE=2 (aggressive boost)
-    const applyCmd = [
-      buildSetCmd(schemeGuid, CPM, 100),
-      buildSetCmd(schemeGuid, PBM, 2),
-      `& powercfg /setactive "${schemeGuid}" 2>&1 | Out-Null`,
-      SET_MARKER,
-      'exit 0',
-    ].join('; ');
-    try {
-      await runPowerShell(applyCmd);
-    } catch (e) {
-      return { ok: false, commandsRun: [applyCmd], message: e.message, errorCode: 'exec_failed' };
-    }
-
-    // Verify via registry (most reliable — alias query can still fail on some builds)
-    const vCpMin = await readAcSettingForScheme(schemeGuid, CPM);
-    const vPbm   = await readAcSettingForScheme(schemeGuid, PBM);
-    // Accept if registry shows our values OR if marker was set (powercfg succeeded
-    // but the registry key didn't exist before and wasn't created by the driver yet).
-    // Read marker from BOTH HKLM and HKCU — either being 1 is sufficient.
-    const markerRaw = await queryPowerShell(
-      `$ml=(Get-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied; ` +
-      `$mc=(Get-ItemProperty "HKCU:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied; ` +
-      `if (($ml -eq 1) -or ($mc -eq 1)) { '1' } else { '0' }`
-    );
-    const markerSet = markerRaw !== null && markerRaw.trim() === '1';
-    const regOk     = (vCpMin === '100') && (vPbm === '2');
-    const verified  = regOk || markerSet;
-
-    return {
-      ok: verified,
-      commandsRun: [applyCmd],
-      verified,
-      message: verified
-        ? 'CPU C-States / Core parking applied and verified.'
-        : `Verification failed — CPMINCORES=${vCpMin ?? '?'}, PERFBOOSTMODE=${vPbm ?? '?'}`,
-      rebootRequired: false,
-      historyMeta: { schemeGuid, prevCpMinCores: origCpMinCores, prevPerfBoostMode: origPerfBoostMode, newCpMinCores: '100', newPerfBoostMode: '2' },
-    };
-  } else {
-    // Revert: restore original values from backup
-    let backup = null;
-    try {
-      const raw = fs_.readFileSync(CPU_RESPONSIVENESS_BACKUP_FILE, 'utf8');
-      backup = JSON.parse(raw);
-    } catch (_) {}
-
-    if (!backup || !backup.schemeGuid || backup.origCpMinCores == null || backup.origPerfBoostMode == null) {
-      return { ok: false, commandsRun: [], message: 'Revert backup unavailable — original values were not captured.', errorCode: 'no_backup' };
-    }
-
-    const { schemeGuid: bkGuid, origCpMinCores, origPerfBoostMode } = backup;
-
-    const revertCmd = [
-      buildSetCmd(bkGuid, CPM, origCpMinCores),
-      buildSetCmd(bkGuid, PBM, origPerfBoostMode),
-      `& powercfg /setactive "${bkGuid}" 2>&1 | Out-Null`,
-      CLEAR_MARKER,
-      'exit 0',
-    ].join('; ');
-    try {
-      await runPowerShell(revertCmd);
-    } catch (e) {
-      return { ok: false, commandsRun: [revertCmd], message: e.message, errorCode: 'exec_failed' };
-    }
-
-    // Verify revert via registry
-    const vCpMin   = await readAcSettingForScheme(bkGuid, CPM);
-    const vPbm     = await readAcSettingForScheme(bkGuid, PBM);
-    const markerRaw = await queryPowerShell(
-      `$ml=(Get-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied; ` +
-      `$mc=(Get-ItemProperty "HKCU:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied; ` +
-      `if (($ml -eq 1) -or ($mc -eq 1)) { '1' } else { '0' }`
-    );
-    const markerCleared = markerRaw === null || markerRaw.trim() !== '1';
-    // Revert is ok if marker is cleared (our command ran) — exact registry value
-    // check is a bonus but not required (backup value may have been the default 0
-    // which means the registry key may not exist at all after revert)
-    const verified = markerCleared;
-
-    return {
-      ok: verified,
-      commandsRun: [revertCmd],
-      verified,
-      message: verified
-        ? 'CPU C-States / Core parking reverted and verified.'
-        : `Revert could not be confirmed — CPMINCORES=${vCpMin ?? '?'}, PERFBOOSTMODE=${vPbm ?? '?'}`,
-      rebootRequired: false,
-    };
-  }
 }
 
 // ─── Power-plan baseline handlers ─────────────────────────────────────────────
@@ -2341,7 +2165,7 @@ async function executeGpuMsiMode(action, options) {
 }
 
 // ─── Shared special-tweak dispatch map ────────────────────────────────────────
-// Single source of truth for the 8 tweaks that have custom execution handlers.
+// Single source of truth for tweaks that have custom execution handlers.
 // Both executeTweak (which already checks tweak._special) and verifyTweak (which
 // previously used independent tweakId=== string comparisons) route through this
 // map so they can never silently diverge when a new special tweak is added.
@@ -2349,7 +2173,6 @@ async function executeGpuMsiMode(action, options) {
 // and does not follow the standard execute(action)→result function contract.
 const SPECIAL_HANDLERS = {
   'nvidia-telemetry':            { execute: executeNvidiaTelemetry,       requiresReboot: false, requiresAdmin: true },
-  'maximum-cpu-responsiveness':  { execute: executeMaxCpuResponsiveness,  requiresReboot: false, requiresAdmin: true },
   'pcie-link-state':             { execute: executePcieLinkState,         requiresReboot: false, requiresAdmin: true },
   'usb-selective-suspend':       { execute: executeUsbSelectiveSuspend,   requiresReboot: false, requiresAdmin: true },
   'preemption':                  { execute: executePreemption,            requiresReboot: true,  requiresAdmin: true },
@@ -2374,59 +2197,6 @@ async function verifyTweak(tweakId) {
     const isRunning = !!((_timerResProcess) && !_timerResProcess.killed);
     logTweakSupport(tweakId, true, 'persistent PowerShell agent', { osRelease: osVer, helperFound: isRunning });
     return { isApplied: isRunning, verified: true };
-  }
-
-  // ── Maximum CPU Responsiveness ────────────────────────────────────────────────
-  if (tweak._special === 'maximum-cpu-responsiveness') {
-    try {
-      // Detect active scheme GUID
-      const schemeRaw = await queryPowerShell(
-        `$s = (powercfg /getactivescheme 2>&1 | Out-String).Trim(); ` +
-        `if ($s -match 'GUID:\\s*([0-9a-fA-F-]{36})') { $matches[1] } else { '' }`
-      );
-      if (!schemeRaw || schemeRaw.trim().length < 36) {
-        return { isApplied: false, verified: false, error: 'Active power scheme could not be detected.' };
-      }
-      const guid = schemeRaw.trim();
-      // Read via full setting GUIDs directly from the registry — more reliable than
-      // powercfg /query alias which fails on AMD/OEM custom schemes (Win 11 24H2).
-      // Registry is case-insensitive on Windows so any GUID casing works.
-      const SUB = '54533251-82be-4824-96c1-47b60b740d00';
-      const CPM = '3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb';
-      const PBM = 'be337238-0d82-4146-a960-4f3749d470c7';
-      const readReg = (settingGuid) =>
-        `$v=(Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerSchemes\\${guid}\\${SUB}\\${settingGuid}" -Name ACSettingIndex -EA SilentlyContinue).ACSettingIndex; ` +
-        `if ($null -ne $v) { [int]$v } else { ` +
-        // Alias-based fallback for schemes that do expose it
-        `$raw=(powercfg /query "${guid}" SUB_PROCESSOR ${settingGuid === CPM ? 'CPMINCORES' : 'PERFBOOSTMODE'} 2>&1 | Out-String); ` +
-        `if ($raw -match 'Current AC Power Setting Index:\\s*0x([0-9a-fA-F]+)') { [Convert]::ToInt64($matches[1],16) } else { '' } }`;
-      const cpMinRaw = await queryPowerShell(readReg(CPM));
-      const pbmRaw   = await queryPowerShell(readReg(PBM));
-
-      // Check our own apply-marker as well (written on apply, cleared on revert)
-      // Read marker from BOTH HKLM and HKCU — either being 1 means applied.
-      const markerRaw = await queryPowerShell(
-        `$ml=(Get-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied; ` +
-        `$mc=(Get-ItemProperty "HKCU:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied; ` +
-        `if (($ml -eq 1) -or ($mc -eq 1)) { '1' } else { '0' }`
-      );
-      const markerApplied = markerRaw !== null && markerRaw.trim() === '1';
-
-      const cpMinVal = cpMinRaw !== null ? cpMinRaw.trim() : '';
-      const pbmVal   = pbmRaw   !== null ? pbmRaw.trim()   : '';
-      const settingsReadable = cpMinVal !== '' && pbmVal !== '';
-
-      if (settingsReadable) {
-        logTweakSupport(tweakId, true, 'CPU C-States settings readable via registry', { osRelease: osVer });
-        const isApplied = (cpMinVal === '100' && pbmVal === '2') || markerApplied;
-        return { isApplied, verified: true };
-      }
-      // Settings not in registry yet — rely on marker only; allow apply to proceed
-      logTweakSupport(tweakId, true, 'CPU C-States registry keys absent — will be created on apply', { osRelease: osVer });
-      return { isApplied: markerApplied, verified: true };
-    } catch (e) {
-      return { isApplied: false, verified: false, error: e.message };
-    }
   }
 
   // ── PCIe Link State Power Management ───────────────────────────────────────
@@ -2849,43 +2619,6 @@ async function executeTweak(tweakId, action, options = {}) {
     }
   }
 
-  if (tweak._special === 'maximum-cpu-responsiveness') {
-    try {
-      const res = await executeMaxCpuResponsiveness(action);
-      if (!res.ok && res.needsGpuSelection) {
-        // Should not happen for this tweak, but guard anyway
-        const r = enrichFailure({
-          success: false, unsupported: false, requiresReboot: false, requiresAdmin: true,
-          commandsRun: res.commandsRun || [], message: res.message || null, error: res.message || 'Unexpected selection required.',
-        }, 'unknown');
-        logEntry({ tweakId, action, result: r, ms: Date.now() - startTime });
-        return r;
-      }
-      const result = {
-        success:        res.ok,
-        unsupported:    !!(res.unsupported || res.errorCode === 'unsupported_setting'),
-        requiresReboot: false,
-        requiresAdmin:  true,
-        commandsRun:    res.commandsRun || [],
-        message:        res.message || null,
-        error:          res.ok ? null : (res.message || 'Maximum CPU Responsiveness operation failed'),
-        verified:       res.ok,
-      };
-      if (!res.ok && !result.unsupported) {
-        enrichFailure(result, res.errorCode === 'no_backup' ? 'verification_failed' : 'unknown');
-      }
-      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
-      return result;
-    } catch (err) {
-      const result = {
-        success: false, unsupported: false, requiresReboot: false, requiresAdmin: true,
-        commandsRun: [], message: null, error: err.message,
-      };
-      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
-      return result;
-    }
-  }
-
   if (tweak._special === 'pcie-link-state') {
     try {
       const res = await executePcieLinkState(action);
@@ -3148,7 +2881,7 @@ async function checkTweakStatus(tweakId) {
   }
 
   const tweak = ALL_TWEAKS[tweakId];
-  if (!tweak) return { tweakId, isApplied: false, applied: false, error: null };
+  if (!tweak) return { tweakId, isApplied: false, applied: false, verified: false, error: 'not_found' };
 
   try {
     const result = await verifyTweak(tweakId);
@@ -3231,11 +2964,11 @@ async function batchCheckAllTweaks() {
   // PowerShell spawns per startup that always returned "unsupported" on modern
   // drivers.  See the UNSUPPORTED_TWEAKS comment for the full rationale.
 
-  // 3b–3h. Special tweaks that can't be batched into the single PS script.
+  // Special tweaks that can't be batched into the single PS script.
   // Each uses powercfg queries, backup files, or multi-step registry reads.
   //
   // Two improvements over the old sequential awaits:
-  //   a) All 7 run in parallel via Promise.all — saves ~2s of serial PS lag on
+  //   a) All run in parallel via Promise.all — saves ~2s of serial PS lag on
   //      every startup/status-refresh (each verifyTweak internally spawns 2-4
   //      powershell.exe calls through the semaphore, which now overlap).
   //   b) On error, fall back to cached state (tweak-state.json) instead of
@@ -3244,7 +2977,6 @@ async function batchCheckAllTweaks() {
   const _specialCachedTweaks = loadState().tweaks;
 
   const SPECIAL_TWEAK_IDS = [
-    'maximum-cpu-responsiveness', // 3b
     'pcie-link-state',            // 3c
     'usb-selective-suspend',      // 3d
     'preemption',                 // 3e
@@ -3335,6 +3067,7 @@ async function batchCheckAllTweaks() {
     }
 
     for (const [id, val] of Object.entries(parsed)) {
+      if (!batchIds.includes(id)) continue;
       result[id] = { isApplied: !!val, applied: !!val, error: null };
     }
   } catch (err) {
@@ -3362,7 +3095,8 @@ async function batchCheckAllTweaks() {
 function getLocalState() {
   const state = loadState();
   return {
-    appliedTweaks: state.tweaks,
+    // Keep historical entries on disk, but never expose retired IDs as controls.
+    appliedTweaks: Object.fromEntries(Object.entries(state.tweaks).filter(([id]) => isKnownTweak(id))),
     lastSync:      state.meta.lastVerified,
     windowsBuild:  state.meta.windowsBuild,
   };
@@ -3406,6 +3140,8 @@ const ownershipStore = require('./ownership-store');
  * This lets the revert pipeline restore the exact prior state, not just toggle off.
  */
 async function executeTweakWithOwnership(tweakId, action, options = {}) {
+  // Reject stale direct requests before reading or creating ownership records.
+  if (!isKnownTweak(tweakId)) return executeTweak(tweakId, action, options);
   const scopeKey = ownershipStore.buildScopeKey('tweak', tweakId);
 
   // Step 1+2: capture baseline if first time touching this tweak
@@ -3445,6 +3181,10 @@ function isUnsupported(tweakId) {
   return Object.prototype.hasOwnProperty.call(UNSUPPORTED_TWEAKS, tweakId);
 }
 
+function isKnownTweak(tweakId) {
+  return Object.prototype.hasOwnProperty.call(ALL_TWEAKS, tweakId) || isUnsupported(tweakId);
+}
+
 function getUnsupportedReason(tweakId) {
   return UNSUPPORTED_TWEAKS[tweakId] || null;
 }
@@ -3460,7 +3200,7 @@ function saveVerifiedState(stateMap) {
     if (!stateMap || typeof stateMap !== 'object') return { ok: false, error: 'invalid stateMap' };
     const state = loadState();
     for (const [id, val] of Object.entries(stateMap)) {
-      if (typeof val === 'boolean') {
+      if (typeof val === 'boolean' && isKnownTweak(id)) {
         state.tweaks[id] = val;
       }
     }
@@ -3483,6 +3223,7 @@ module.exports = {
   getTweakInfo,
   getExecutionLog,
   isUnsupported,
+  isKnownTweak,
   getUnsupportedReason,
   cleanupTimerResProcess,
   scanCompatibleGpus,

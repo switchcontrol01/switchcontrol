@@ -16,7 +16,7 @@ export async function collectSystemSignals(): Promise<Record<string, SignalValue
   const hasSpecsApi = !!api?.system?.getSpecs;
 
   // ── Concurrent IPC ────────────────────────────────────────────────────────
-  // All 5 calls run in parallel — a single slow or failed call cannot stall
+  // Calls run in parallel — a single slow or failed call cannot stall
   // the others. Promise.allSettled guarantees failure isolation.
   const osVersionPromise: Promise<string | null> =
     _cachedOsVersion !== undefined
@@ -33,7 +33,6 @@ export async function collectSystemSignals(): Promise<Record<string, SignalValue
     osVersionResult,
     memIntegResult,
     hagsResult,
-    cpuResponsivenessResult,
     gpuMsiResult,
   ] = await Promise.allSettled([
     hasTweakApi ? api.tweaks.checkStatus("game-mode")                    : Promise.resolve(null),
@@ -41,7 +40,6 @@ export async function collectSystemSignals(): Promise<Record<string, SignalValue
     osVersionPromise,
     hasTweakApi ? api.tweaks.checkStatus("memory-integrity")             : Promise.resolve(null),
     hasTweakApi ? api.tweaks.checkStatus("hags")                         : Promise.resolve(null),
-    hasTweakApi ? api.tweaks.checkStatus("maximum-cpu-responsiveness")   : Promise.resolve(null),
     hasTweakApi ? api.tweaks.checkStatus("gpu-msi-mode")                 : Promise.resolve(null),
   ]);
 
@@ -90,20 +88,6 @@ export async function collectSystemSignals(): Promise<Record<string, SignalValue
     signals.hags = { value: hagsResult.value?.enabled ? "on" : "off", source: "electron" };
   } else {
     signals.hags = { value: null, source: "electron", error: "Failed to read HAGS status" };
-  }
-
-  // maximum-cpu-responsiveness
-  if (!hasTweakApi) {
-    signals.cpuResponsiveness = { value: null, source: "electron", error: "Electron API unavailable" };
-  } else if (cpuResponsivenessResult.status === "fulfilled") {
-    const r = cpuResponsivenessResult.value;
-    if (r?.unsupported) {
-      signals.cpuResponsiveness = { value: null, source: "electron", error: r.unsupportedReason || "Unsupported" };
-    } else {
-      signals.cpuResponsiveness = { value: r?.isApplied ? "on" : "off", source: "electron" };
-    }
-  } else {
-    signals.cpuResponsiveness = { value: null, source: "electron", error: "Failed to read CPU responsiveness status" };
   }
 
   // gpu-msi-mode

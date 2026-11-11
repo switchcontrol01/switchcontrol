@@ -152,12 +152,14 @@ export const useAdvisorStore = create<AdvisorState>()(
             : "idle",
       }),
       migrate: (persistedState: any, version: number) => {
-        if (!persistedState || typeof persistedState !== "object") {
+        // Reports cache rule findings and fixes. Invalidate the old catalog's
+        // report rather than rendering an actionable recommendation we retired.
+        if (version < 2 || !persistedState || typeof persistedState !== "object") {
           return { report: null, lastRunAt: null, runState: "idle" };
         }
         return persistedState;
       },
-      version: 1,
+      version: 2,
     }
   )
 );

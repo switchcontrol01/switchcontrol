@@ -320,24 +320,6 @@ const BASE: BaseTweak[] = [
     supported: true, requiresAdmin: true,
   },
   {
-    id: "maximum-cpu-responsiveness",
-    title: "CPU C-STATES | Core parking",
-    description: "Reduces processor core parking and applies responsive boost behavior on AC power. Intended primarily for gaming desktops. May increase temperatures and energy consumption.",
-    impact: [
-      "Disables processor core parking on AC power (CPMINCORES = 100)",
-      "Selects responsive CPU boost mode (PERFBOOSTMODE = 2)",
-      "May improve latency consistency in CPU-bound workloads",
-      "Increases power usage and thermal output — not recommended for laptops on battery",
-    ],
-    expected: { cpu: "High", latency: "Medium", ram: "None", gpu: "None", disk: "None", network: "None", stabilityRisk: "Low" },
-    category: "System and Power", level: "Advanced", risk: "Moderate",
-    requiresReboot: false, supported: true, requiresAdmin: true,
-    whoShouldAvoid: "Laptop users on battery — this raises power consumption and temperatures. Do not apply if your system already runs hot.",
-    detailsConfig: {
-      warningText: "This modifies your active Windows power plan settings (CPMINCORES and PERFBOOSTMODE). It does not disable BIOS-level CPU C-States. Original values are backed up before any change is made and restored on revert.",
-    },
-  },
-  {
     id: "pcie-link-state",
     title: "Disable PCIe Link State Power Management",
     description: "Prevents PCIe from entering low-power states — eliminates micro-stutters caused by GPU/NVMe power transitions.",

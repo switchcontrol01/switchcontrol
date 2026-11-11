@@ -6391,7 +6391,9 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
    */
   ipcMain.handle('premium:hasAppOwned', () => {
     try {
-      const owned = ownershipStore.getAllAppOwned();
+      const owned = ownershipStore.getAllAppOwned().filter(record =>
+        record.itemType !== 'tweak' || tweakExecutor.isKnownTweak(record.itemId)
+      );
       return { success: true, hasItems: owned.length > 0, count: owned.length };
     } catch (e) {
       console.error('[IPC] premium:hasAppOwned error:', e.message);

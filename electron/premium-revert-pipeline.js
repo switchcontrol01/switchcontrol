@@ -570,6 +570,20 @@ async function revertAllAppOwned(options = {}) {
     otherRecords.map(async (record) => {
       const { scopeKey, itemType, baselineCaptured } = record;
 
+      // Historical controls are not executable. Preserve their recovery records
+      // and Windows settings rather than failing or silently reverting them.
+      if (itemType === 'tweak' && !getTweakExecutor().isKnownTweak(record.itemId)) {
+        return {
+          scopeKey,
+          result: {
+            skipped: true,
+            safeToProceed: true,
+            action: 'skipped_unavailable_tweak',
+            reason: 'Tweak is no longer available; Windows settings and recovery history were preserved.',
+          },
+        };
+      }
+
       if (!baselineCaptured) {
         // Older builds claimed any active Windows setting as app-owned during
         // startup reconciliation. Without a baseline that claim is not proof
@@ -814,7 +828,8 @@ function previewRevert() {
     previousPlanGuid: record.previousPlanGuid || null,
     appliedValue:     record.appliedValue,
     lastAppliedAt:    record.lastAppliedAt,
-    willSkip:         !record.baselineCaptured && record.itemType !== 'power_plan',
+    willSkip:         (record.itemType === 'tweak' && !getTweakExecutor().isKnownTweak(record.itemId)) ||
+                      (!record.baselineCaptured && record.itemType !== 'power_plan'),
     // Power plan revert always forces Windows Balanced regardless of previousPlanGuid.
     // previousPlanGuid is shown above for informational context only — it will NOT
     // be restored. This note exists to prevent UI from promising GUID restoration.
