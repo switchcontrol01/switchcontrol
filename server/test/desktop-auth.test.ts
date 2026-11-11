@@ -228,6 +228,7 @@ test("production wiring has one auth budget layer and both provider callbacks st
   assert.ok(!google.includes("_exchangeAttempts"));
   assert.ok(google.includes("desktopPollCodes.consume(token)"));
   assert.ok(google.includes("consumeElectronCode(code)"));
+  assert.match(google, /prompt:\s*source\s*===\s*["']electron["']\s*\?\s*["']select_account["']/);
   const login = read("client/src/screens/Login.tsx");
   assert.ok(!login.includes("setInterval("));
   assert.ok(login.includes("attemptRef.current?.abort()"));
