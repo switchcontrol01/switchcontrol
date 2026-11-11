@@ -1,7 +1,7 @@
 /**
  * Centralized rate limiting middleware for SwitchControl.
  *
- * All limiters use a composite key: userId > deviceId > IP (in priority order)
+ * Non-auth limiters use a composite key: userId > deviceId > IP (in priority order)
  * so a single user cannot bypass limits by reconnecting from a new IP.
  *
  * ⚠ Trust-proxy dependency: the IP fallback reads req.ip which is the proxy IP
@@ -47,26 +47,7 @@ function blockHandler(label: string) {
   };
 }
 
-// ── Auth routes — strict burst, protect login flows ───────────────────────────
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 40,
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
-  keyGenerator: (req) => compositeKey(req, "auth"),
-  handler: blockHandler("auth"),
-});
-
-export const oauthStartLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 8,
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
-  keyGenerator: (req) => compositeKey(req, "oauth"),
-  handler: blockHandler("oauth"),
-});
+// Authentication uses separate, bounded IP-only budgets in authRateLimits.ts.
 
 // ── Promo popup check — called once per app launch by design ─────────────────
 // Anything faster than a couple of calls per window is a crash loop or abuse;

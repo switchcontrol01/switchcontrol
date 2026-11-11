@@ -102,7 +102,10 @@ Key models: `users` (auth + plan/trial), `sessions`, `userSettings`, `appliedTwe
 - `helmet` middleware: CSP, HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy.
 - CORS: strict production allowlist (`switchcontrol.org`). Dev adds localhost ports.
 - JWT: HS256 pinning, issuer validation, 32-char minimum secret in production.
-- Rate limiting: auth 100/15min, `/api/me` 60/min, AI 3/5min + 15/hr.
+- Auth budgets are independent and IP-only: desktop polling 600/min, Google/Discord starts 30/min, callbacks 120/15min, exchange 120/15min, other auth 40/15min. Each counter store caps at 10,000 IPs with a shared overflow budget; poll codes cap at 5,000 and expire after 2 minutes. These remain process-local, so multi-replica hosting needs shared storage.
+- Desktop polling waits for each response, honors Retry-After, aborts on cancellation/replacement/unmount, and stops after 5 minutes. Run `npm run test:desktop-auth` for regression checks.
+- Proxy trust remains the existing one-hop setting. Live Railway proxy topology was not available to verify here; do not broaden trust based on the login-rate symptom.
+- `/api/me` 30/min; other feature budgets are defined in `server/middleware/rateLimiter.ts`.
 - Production 500+ errors return generic messages; stack traces logged server-side only.
 - Structured logging: UUID requestId, ISO timestamp, recursive key-based redaction.
 - Electron: DevTools disabled in production, `contextIsolation: true`, `nodeIntegration: false`, input validation on IPC handlers.

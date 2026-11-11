@@ -14,6 +14,7 @@
 - [Electron startup flash fix](electron-startup-flash.md) — two-gate show pattern: ready-to-show + app:first-frame-ready (double-rAF); never show on ready-to-show alone.
 - [Electron startup flash and fade-in](electron-flash-gpu-prewarm.md) — backgroundColor:'#07090D' + CSS opacity transition (app:window-shown IPC) is the correct pattern; transparent:true causes DWM lag for window lifetime.
 - [Electron OAuth deep-link failure](electron-oauth-polling.md) — Chrome silently blocks custom-protocol redirects without user gesture; fixed via server-side poll map + 2s polling from Electron renderer.
+- [Desktop OAuth budgets](desktop-oauth-budgets.md) — routine polling must not consume callback/exchange allowances; client-chosen device headers cannot bypass auth limits.
 - [SysIntelligence WMI all-null guard](sysintelligence-wmi-null-guard.md) — when all 15 WMI sources timeout, skip _saveDiskCache() to preserve previous good data; restore disk fallback into memory if both are empty.
 - [Electron log noise patterns](electron-log-noise.md) — renderer console.warn → main [ERROR]; use console.info for expected races (e.g. slider "busy"). Module-level flags for page-visit guards (useRef resets on unmount).
 - [electronAPI global typing](electron-api-typing.md) — per-page `declare global` clashes with electron.d.ts; pre-existing tsc errors, build ignores them, do not fix inline.

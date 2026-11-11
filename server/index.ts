@@ -9,7 +9,8 @@ import cors from "cors";
 import helmet from "helmet";
 import crypto from "crypto";
 import { registerRoutes } from "./routes";
-import { authLimiter, oauthStartLimiter, meLimiter, stripeLimiter, systemLimiter, telemetryRestLimiter } from "./middleware/rateLimiter";
+import { meLimiter, stripeLimiter, systemLimiter, telemetryRestLimiter } from "./middleware/rateLimiter";
+import { mountAuthRateLimits } from "./middleware/authRateLimits";
 import { serveStatic } from "./static";
 import { storage } from "./storage";
 import { createServer } from "http";
@@ -70,9 +71,7 @@ app.use((_req, res, next) => {
   next();
 });
 
-app.use("/api/auth", authLimiter);
 app.use("/api/me", meLimiter);
-app.use("/auth/google", oauthStartLimiter);
 app.use("/api/stripe", stripeLimiter);
 app.use("/api/billing", stripeLimiter);
 app.use("/api/telemetry", telemetryRestLimiter);
@@ -134,15 +133,17 @@ app.use("/api", cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'x-device-id', 'x-device-signature'],
-  exposedHeaders: ['X-Auth-Mode'],
+  exposedHeaders: ['X-Auth-Mode', 'Retry-After'],
 }));
 app.use("/auth", cors({
   origin: corsOriginValidator,
   credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
-  exposedHeaders: ['X-Auth-Mode'],
+  exposedHeaders: ['X-Auth-Mode', 'Retry-After'],
 }));
+// After CORS so allowed clients can read Retry-After even on a 429.
+mountAuthRateLimits(app);
 const httpServer = createServer(app);
 
 declare module "http" {

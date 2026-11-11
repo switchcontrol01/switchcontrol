@@ -11,6 +11,7 @@ import { storage } from "../storage";
 import { signJwt, verifyJwt, invalidateJwt } from "../lib/jwt";
 import { resolveEffectivePlan, isPlanActive } from "../lib/planUtils";
 import { csrfProtection } from "../middleware/csrf";
+import { DesktopPollCodes } from "./desktopPollCodes";
 
 declare global {
   namespace Express {
@@ -132,13 +133,10 @@ const ELECTRON_CODE_TTL = 120_000; // 2 minutes
 // in the OAuth state, then polls GET /api/auth/desktop-poll?token=<pollToken>
 // every 2 s. This completely bypasses the unreliable browser → custom-protocol
 // deep-link path (Chrome blocks window.location.href without a user gesture).
-const _desktopPollMap = new Map<string, { code: string; issuedAt: number }>();
-const POLL_TOKEN_TTL = 300_000; // 5 min
+const desktopPollCodes = new DesktopPollCodes();
 
 export function storePollCode(pollToken: string, code: string): void {
-  if (!pollToken || !/^[a-zA-Z0-9_-]{16,64}$/.test(pollToken)) return;
-  _desktopPollMap.set(pollToken, { code, issuedAt: Date.now() });
-  setTimeout(() => _desktopPollMap.delete(pollToken), POLL_TOKEN_TTL);
+  desktopPollCodes.store(pollToken, code);
 }
 
 /** Read the HMAC secret at call time, NOT at module load. In Electron desktop
@@ -1291,31 +1289,8 @@ export function setupGoogleAuth(app: Express): void {
     return res.json({ authMode: 'none', loggedIn: false, userId: null });
   });
 
-  // ── Simple per-IP rate limiter for /api/auth/exchange ────────────────────────
-  const _exchangeAttempts = new Map<string, { count: number; resetAt: number }>();
-
-  function rateLimitExchange(ip: string): { ok: boolean; remaining?: number } {
-    const now = Date.now();
-    const record = _exchangeAttempts.get(ip);
-    if (record && now < record.resetAt) {
-      if (record.count >= 10) {
-        return { ok: false, remaining: 0 };
-      }
-      record.count++;
-      return { ok: true, remaining: 10 - record.count };
-    }
-    _exchangeAttempts.set(ip, { count: 1, resetAt: now + 60000 });
-    return { ok: true, remaining: 9 };
-  }
-
   app.post("/api/auth/exchange", async (req, res) => {
     try {
-      const ip = req.ip || 'unknown';
-      const limitCheck = rateLimitExchange(ip);
-      if (!limitCheck.ok) {
-        return res.status(429).json({ success: false, error: 'Too many attempts' });
-      }
-
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ success: false, error: 'Missing or invalid authorization header' });
@@ -1414,28 +1389,12 @@ export function setupGoogleAuth(app: Express): void {
   // Electron polls this every 2 s after opening the browser for OAuth.
   // Returns { ready: true, code } when the OAuth callback has stored a code
   // under the poll token, or { ready: false } while waiting.
-  // Rate-limited per IP: 30 req / min (2 s interval × 30 = 1 min of polling).
-  const _pollAttempts = new Map<string, { count: number; resetAt: number }>();
+  // Budget is mounted centrally, independently of callbacks and exchange.
   app.get("/api/auth/desktop-poll", (req, res) => {
-    const ip = req.ip || 'unknown';
-    const now = Date.now();
-    const rec = _pollAttempts.get(ip);
-    if (rec && now < rec.resetAt) {
-      if (rec.count >= 30) return res.status(429).json({ ready: false, error: 'rate_limited' });
-      rec.count++;
-    } else {
-      _pollAttempts.set(ip, { count: 1, resetAt: now + 60_000 });
-    }
-
+    res.setHeader("Cache-Control", "no-store");
     const token = req.query.token as string;
     if (!token || !/^[a-zA-Z0-9_-]{16,64}$/.test(token)) {
       return res.json({ ready: false });
-    }
-    const entry = _desktopPollMap.get(token);
-    if (!entry) return res.json({ ready: false });
-    if (now - entry.issuedAt > POLL_TOKEN_TTL) {
-      _desktopPollMap.delete(token);
-      return res.json({ ready: false, expired: true });
     }
     // Single-use: delete the entry immediately before returning the code.
     // The legitimate Electron poller (2 s interval) reads it first and completes
@@ -1443,8 +1402,7 @@ export function setupGoogleAuth(app: Express): void {
     // poll token — sees { ready: false } instead of the exchangeable code.
     // Without this, the code was readable for the full 5-minute POLL_TOKEN_TTL
     // window by anyone who obtained the token URL.
-    _desktopPollMap.delete(token);
-    return res.json({ ready: true, code: entry.code });
+    return res.json(desktopPollCodes.consume(token));
   });
 }
 

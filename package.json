@@ -7,6 +7,7 @@
     "dev": "tsx server/index.ts",
     "build": "npx tsx script/build.ts",
     "test:cpu-tweak-removal": "node --import tsx --test electron/test/cpu-tweak-removal.test.cjs",
+    "test:desktop-auth": "node --import tsx --test server/test/desktop-auth.test.ts",
     "start": "node dist/index.cjs",
     "postinstall": "cd electron && npm install",
     "electron:dev": "cd electron && npm start",

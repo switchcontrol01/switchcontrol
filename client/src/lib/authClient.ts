@@ -284,7 +284,7 @@ export async function retryRefreshEntitlements(opts?: {
 
 // ── exchangeToken ─────────────────────────────────────────────────────────────
 
-export async function exchangeToken(token: string): Promise<AuthUser | null> {
+export async function exchangeToken(token: string, signal?: AbortSignal): Promise<AuthUser | null> {
   try {
     if (isDebug) console.log('[AuthClient] exchangeToken — starting OAuth code exchange');
 
@@ -295,6 +295,7 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
         'Content-Type': 'application/json',
       },
       credentials: 'include',
+      signal,
     });
 
     if (!resp.ok) {
@@ -304,6 +305,7 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
     }
 
     const data = await resp.json();
+    if (signal?.aborted) return null;
 
     if (!data.success || !data.user) {
       if (isDebug) console.warn('[AuthClient] exchangeToken: no success/user in response');
