@@ -244,7 +244,7 @@ const SIDEBAR_LABELS: Record<string, string> = {
   "/dashboard": "Dashboard", "/tweaks": "Tweaks", "/network": "Network Tweaks", "/nic-tuning": "NIC Tuning",
   "/power-plan": "Power Plan", "/cleaner": "Cleaner", "/debloat": "Debloat", "/startup": "Startup",
   "/ai-advisor": "AI Advisor", "/bios-advisor": "BIOS Advisor",
-  "/security": "Security", "/history": "History", "/driver-intel": "Driver Intel",
+  "/security": "Security", "/driver-intel": "Driver Intel",
   "/latency-analyzer": "Latency Analyzer", "/settings": "Settings",
 };
 
@@ -405,12 +405,12 @@ function CustomizationSettings() {
           <div>
              <Label className="mb-2 block">{t("Sidebar items")}</Label>
             <ReorderList
-              items={preferences.sidebarOrder.filter((id) => id !== "/settings")}
+              items={preferences.sidebarOrder.filter((id) => id !== "/settings" && id !== "/history")}
               hidden={preferences.sidebarHidden}
               labels={SIDEBAR_LABELS}
               onToggle={preferences.toggleSidebarItem}
               onReorder={(from, to) => {
-                const order = preferences.sidebarOrder.filter((id) => id !== "/settings");
+                const order = preferences.sidebarOrder.filter((id) => id !== "/settings" && id !== "/history");
                 const [moved] = order.splice(from, 1);
                 order.splice(to, 0, moved);
                 preferences.setSidebarOrder([...order, "/settings"]);

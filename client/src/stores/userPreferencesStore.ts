@@ -26,7 +26,7 @@ export const ACCENT_COLORS: Record<Exclude<AccentName, "custom">, string> = {
 export const DEFAULT_SIDEBAR_ORDER = [
   "/dashboard", "/tweaks", "/network", "/nic-tuning", "/power-plan",
   "/cleaner", "/debloat", "/startup", "/ai-advisor",
-  "/bios-advisor", "/security", "/history", "/driver-intel", "/latency-analyzer",
+  "/bios-advisor", "/security", "/driver-intel", "/latency-analyzer",
   "/settings",
 ] as const;
 

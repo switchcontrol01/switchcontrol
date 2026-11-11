@@ -842,12 +842,13 @@ export default function Home() {
             >
               <Button
                 variant="outline"
-                className="gap-2 hidden sm:flex"
+                className="gap-2 flex"
+                aria-label={t("View Logs")}
                 data-testid="button-view-logs"
                 onClick={() => navigate("/history")}
               >
                 <Activity className="size-4" />
-                {t("View Logs")}
+                <span className="hidden sm:inline">{t("View Logs")}</span>
               </Button>
               <Button
                 className="gap-2 bg-primary hover:bg-primary/90 text-[#E6EAF0] font-medium border-0"
