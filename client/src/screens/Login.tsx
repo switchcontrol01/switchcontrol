@@ -25,6 +25,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuthStore, exchangeToken } from "@/lib/auth-store";
 import { useTranslation } from "@/lib/i18n";
 import logoImg from "@/assets/logo.webp";
@@ -133,6 +141,9 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
   const [loginState, setLoginState] = useState<LoginState>("idle");
   const [loginProvider, setLoginProvider] = useState<"google" | "discord" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [discordSwitchGuideOpen, setDiscordSwitchGuideOpen] = useState(false);
+  const [discordAccountConfirmed, setDiscordAccountConfirmed] = useState(false);
+  const [discordGuideError, setDiscordGuideError] = useState<string | null>(null);
   const [recoveryExpanded, setRecoveryExpanded] = useState(false);
   const [pastedCode, setPastedCode] = useState("");
   const [isPasting, setIsPasting] = useState(false);
@@ -330,6 +341,29 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
       setError(t("Failed to open browser. Please try again."));
     }
   }, [clearSoftTimeout, stopPolling, handlePollSuccess, t]);
+
+  const openDiscordAccountPage = useCallback(async () => {
+    const api = (window as any).electronAPI;
+    if (!api?.openExternal) {
+      setDiscordGuideError(t("Could not open Discord. Please open discord.com/login in your browser."));
+      return;
+    }
+
+    try {
+      await api.openExternal("https://discord.com/login");
+      setDiscordGuideError(null);
+    } catch {
+      setDiscordGuideError(t("Could not open Discord. Please open discord.com/login in your browser."));
+    }
+  }, [t]);
+
+  const continueWithDiscord = useCallback(() => {
+    if (!discordAccountConfirmed) return;
+    setDiscordSwitchGuideOpen(false);
+    setDiscordAccountConfirmed(false);
+    setDiscordGuideError(null);
+    void handleLogin("discord");
+  }, [discordAccountConfirmed, handleLogin]);
 
   const handleRetry = useCallback(() => {
     if (loginProvider) {
@@ -873,7 +907,11 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                     transition={{ delay: 0.5 }}
                   >
                     <Button
-                      onClick={() => handleLogin("discord")}
+                      onClick={() => {
+                        setDiscordAccountConfirmed(false);
+                        setDiscordGuideError(null);
+                        setDiscordSwitchGuideOpen(true);
+                      }}
                       className="w-full h-12 bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:shadow-[#5865F2]/20"
                       data-testid="button-login-discord"
                     >
@@ -948,6 +986,86 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <Dialog
+        open={discordSwitchGuideOpen}
+        onOpenChange={(open) => {
+          setDiscordSwitchGuideOpen(open);
+          if (!open) {
+            setDiscordAccountConfirmed(false);
+            setDiscordGuideError(null);
+          }
+        }}
+      >
+        <DialogContent
+          className="max-w-md border-[#30384A] bg-[#0B0E15] text-white"
+          data-testid="dialog-discord-account-switch"
+        >
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              {t("Switch Discord account")}
+            </DialogTitle>
+            <DialogDescription className="space-y-2 pt-2 text-left text-white/65">
+              <span className="block">
+                {t("Discord may automatically use the account already signed in to your browser.")}
+              </span>
+              <span className="block">
+                {t("To switch, open Discord, change accounts there, then return here. SwitchControl will not sign you out of Discord.")}
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={openDiscordAccountPage}
+              className="w-full border-[#5865F2]/40 bg-[#5865F2]/10 text-[#D4D8FF] hover:bg-[#5865F2]/20 hover:text-white"
+              data-testid="button-open-discord-account-page"
+            >
+              <DiscordIcon className="mr-2 h-4 w-4" />
+              {t("Open Discord in browser")}
+            </Button>
+
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3 text-sm text-white/75">
+              <input
+                type="checkbox"
+                checked={discordAccountConfirmed}
+                onChange={(event) => setDiscordAccountConfirmed(event.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[#5865F2]"
+                data-testid="checkbox-discord-account-confirmed"
+              />
+              <span>{t("I have switched to the Discord account I want.")}</span>
+            </label>
+
+            {discordGuideError && (
+              <p role="alert" className="text-xs text-red-300">
+                {discordGuideError}
+              </p>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:space-x-0">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setDiscordSwitchGuideOpen(false)}
+              className="text-white/60 hover:bg-white/10 hover:text-white"
+            >
+              {t("Cancel")}
+            </Button>
+            <Button
+              type="button"
+              disabled={!discordAccountConfirmed}
+              onClick={continueWithDiscord}
+              className="bg-[#5865F2] text-white hover:bg-[#4752C4] disabled:cursor-not-allowed disabled:opacity-40"
+              data-testid="button-continue-discord-login"
+            >
+              {t("Continue with Discord")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
