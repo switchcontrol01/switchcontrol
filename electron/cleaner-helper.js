@@ -106,10 +106,7 @@ function getCleanerAvailability(id, gpuCapabilities) {
       return { unsupported: true, unsupportedReason: 'NVIDIA shader cache paths are protected to avoid disrupting driver or game troubleshooting.' };
     }
   }
-  const protectedReason = PROTECTED_SCAN_REASONS[id];
-  if (protectedReason) {
-    return { unsupported: true, unsupportedReason: protectedReason };
-  }
+  // Deliberately removed and unknown IDs have no native cleanup handler.
   if (!Object.prototype.hasOwnProperty.call(SCAN_DEFS, id)) {
     return { unsupported: true, unsupportedReason: 'No safe native cleanup handler is available for this item.' };
   }
@@ -1097,23 +1094,20 @@ ipcMain.handle('cleaner:scan', async (event, itemIds) => {
     const scanWorker = async () => {
       while (nextIndex < ids.length && !cleanerCancelRequested) {
         const id = ids[nextIndex++];
-      const def = SCAN_DEFS[id];
-      if (!def) {
-        results[id] = { sizeBytes: 0, fileCount: 0, found: false, unsupported: true, error: 'unsupported-item' };
-        continue;
-      }
-      if (!isVendorApplicable(id, gpuCapabilities)) {
-        results[id] = { sizeBytes: 0, fileCount: 0, found: false, notApplicable: true, error: 'gpu-vendor-not-present' };
-        continue;
-      }
-      try {
-        const timeout = id === 'old_windows_update' ? 60000 : 15000;
-        const out = await runPS(def.scanCmd(), timeout);
-        const { a: sizeBytes, b: fileCount } = parseOutput(out);
-        results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0 };
-      } catch (err) {
-        results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: err.message };
-      }
+        const availability = getCleanerAvailability(id, gpuCapabilities);
+        if (availability) {
+          results[id] = { sizeBytes: 0, fileCount: 0, found: false, ...availability };
+          continue;
+        }
+        const def = SCAN_DEFS[id];
+        try {
+          const timeout = id === 'old_windows_update' ? 60000 : 15000;
+          const out = await runPS(def.scanCmd(), timeout);
+          const { a: sizeBytes, b: fileCount } = parseOutput(out);
+          results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0 };
+        } catch (err) {
+          results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: err.message };
+        }
       }
     };
     await Promise.all(Array.from({ length: workerCount }, () => scanWorker()));
@@ -1163,17 +1157,13 @@ ipcMain.handle('cleaner:clean', async (event, itemIds) => {
     const cleanWorker = async () => {
       while (nextIndex < itemIds.length && !cleanerCancelRequested) {
         const id = itemIds[nextIndex++];
+        const availability = getCleanerAvailability(id, gpuCapabilities);
+        if (availability) {
+          results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, ...availability };
+          event.sender.send('cleaner:progress', { id, ...results[id] });
+          continue;
+        }
         const def = SCAN_DEFS[id];
-        if (!def) {
-          results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, unsupported: true, error: 'unsupported-item' };
-          event.sender.send('cleaner:progress', { id, ...results[id] });
-          continue;
-        }
-        if (!isVendorApplicable(id, gpuCapabilities)) {
-          results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, notApplicable: true, error: 'gpu-vendor-not-present' };
-          event.sender.send('cleaner:progress', { id, ...results[id] });
-          continue;
-        }
         const timeout = LARGE_ITEMS.has(id) ? LONG_TIMEOUT : MID_ITEMS.has(id) ? MID_TIMEOUT : STD_TIMEOUT;
         try {
           const out = await runPS(def.cleanCmd(), timeout);
@@ -1225,19 +1215,19 @@ ipcMain.handle('cleaner:verify', async (event, itemIds) => {
     const verifyWorker = async () => {
       while (nextIndex < ids.length && !cleanerCancelRequested) {
         const id = ids[nextIndex++];
-      const def = SCAN_DEFS[id];
-      if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false, unsupported: true, error: 'unsupported-item' }; continue; }
-      if (!isVendorApplicable(id, gpuCapabilities)) {
-        results[id] = { sizeBytes: 0, fileCount: 0, found: false, notApplicable: true, error: 'gpu-vendor-not-present' };
-        continue;
-      }
-      try {
-        const out = await runPS(def.scanCmd(), 12000);
-        const { a: sizeBytes, b: fileCount } = parseOutput(out);
-        results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0 };
-      } catch (err) {
-        results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: err.message };
-      }
+        const availability = getCleanerAvailability(id, gpuCapabilities);
+        if (availability) {
+          results[id] = { sizeBytes: 0, fileCount: 0, found: false, ...availability };
+          continue;
+        }
+        const def = SCAN_DEFS[id];
+        try {
+          const out = await runPS(def.scanCmd(), 12000);
+          const { a: sizeBytes, b: fileCount } = parseOutput(out);
+          results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0 };
+        } catch (err) {
+          results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: err.message };
+        }
       }
     };
     await Promise.all(Array.from({ length: Math.min(3, Math.max(1, ids.length)) }, () => verifyWorker()));
