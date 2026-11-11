@@ -61,7 +61,7 @@ Key models: `users` (auth + plan/trial), `sessions`, `userSettings`, `appliedTwe
 - Canonical data lives in `client/src/lib/tweak-registry.ts`.
 - `shared/tweak-tiers.ts` is the single source of truth for premium/free gating.
 - 7 slider tweaks (registry values) + toggle tweaks. `FREE_EXCEPTION_IDS` for no-premium-gate tweaks.
-- Electron: `tweak-executor.js` for registry, `slider-tweak-executor.js` for sliders, `nic-executor.js` for NIC adapter tuning.
+- Electron: `tweak-executor.js` for registry and `slider-tweak-executor.js` for sliders. Adapter tuning is retired; preserve its history/backups without executing legacy actions.
 - Per-action UAC elevation via `runElevated()` for admin tweaks.
 
 **AI Advisor**

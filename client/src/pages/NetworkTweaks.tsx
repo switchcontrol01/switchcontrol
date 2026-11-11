@@ -154,7 +154,9 @@ function buildInitialStateMap(): StateMap {
   const persisted = loadPersistedState();
   const initial: StateMap = {};
   for (const t of NETWORK_TWEAKS) {
-    const savedStatus = persisted?.[t.id];
+    // Legacy RSS badges could be inferred from retired adapter state rather
+    // than a network check. Wait for live verification on a cold start.
+    const savedStatus = t.id === "tcp-rss" ? undefined : persisted?.[t.id];
     const status: TweakStatus =
       t.unavailable ? "unavailable" :
       (savedStatus === "enabled" || savedStatus === "idle" || savedStatus === "unavailable")
@@ -838,46 +840,6 @@ function NetworkTweaksContent() {
     };
     window.addEventListener('sc:slider-state-changed', handler);
     return () => window.removeEventListener('sc:slider-state-changed', handler);
-  }, []);
-  useEffect(() => {
-    const NIC_TO_NETWORK: Array<[string, string]> = [
-      ["nic-rss", "tcp-rss"],
-    ];
-    const unsub = useStore.subscribe((state, prev) => {
-      for (const [nicKey, netId] of NIC_TO_NETWORK) {
-        if (state.tweaks[nicKey] === prev.tweaks[nicKey]) continue;
-        const nicEnabled = !!state.tweaks[nicKey];
-        setStateMap(cur => {
-          const entry = cur[netId];
-          if (nicEnabled && (!entry || entry.status === "idle")) {
-            return { ...cur, [netId]: { status: "enabled" as const, message: "Adapter configured via NIC Tuning" } };
-          }
-          if (!nicEnabled && entry?.message === "Adapter configured via NIC Tuning") {
-            return { ...cur, [netId]: { status: "idle" as const, message: "" } };
-          }
-          return cur;
-        });
-      }
-    });
-    return unsub;
-  }, []);
-  useEffect(() => {
-    const nicTweaks = useStore.getState().tweaks;
-    const NIC_TO_NETWORK: Array<[string, string]> = [
-      ["nic-rss", "tcp-rss"],
-    ];
-    setStateMap(prev => {
-      const updates: Partial<StateMap> = {};
-      for (const [nicKey, netId] of NIC_TO_NETWORK) {
-        if (nicTweaks[nicKey] === true) {
-          const cur = prev[netId];
-          if (!cur || cur.status === "idle") {
-            updates[netId] = { status: "enabled" as const, message: "Adapter configured via NIC Tuning" };
-          }
-        }
-      }
-      return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
-    });
   }, []);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastCounter = useRef(0);

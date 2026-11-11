@@ -1,6 +1,6 @@
 // Public-website translations for the Indic locales maintained in this module.
 // Keep this key order aligned with the canonical public catalog in i18n.tsx.
-const PUBLIC_WEBSITE_KEYS = [
+export const PUBLIC_WEBSITE_KEYS = [
   "Your PC",
   "is holding",
   "you",
@@ -123,7 +123,6 @@ const PUBLIC_WEBSITE_KEYS = [
   "Startup app manager",
   "System cleaner and cleanup scans",
   "Debloater and Windows component cleanup",
-  "NIC Tuning",
   "Full Settings customization",
   "Change history",
   "Get Started Free",
@@ -373,7 +372,6 @@ export const PUBLIC_WEBSITE_TRANSLATIONS: Record<
     "स्टार्टअप ऐप मैनेजर",
     "सिस्टम क्लीनर और क्लीनअप स्कैन",
     "डीब्लोटर और विंडोज़ घटक सफ़ाई",
-    "एनआईसी ट्यूनिंग",
     "पूर्ण सेटिंग्स अनुकूलन",
     "इतिहास बदलें",
     "निःशुल्क आरंभ करें",
@@ -604,7 +602,6 @@ export const PUBLIC_WEBSITE_TRANSLATIONS: Record<
     "স্টার্টআপ অ্যাপ ম্যানেজার",
     "সিস্টেম ক্লিনার এবং ক্লিনআপ স্ক্যান",
     "Debloater এবং Windows উপাদান পরিষ্কার",
-    "NIC টিউনিং",
     "সম্পূর্ণ সেটিংস কাস্টমাইজেশন",
     "ইতিহাস পরিবর্তন করুন",
     "বিনামূল্যে শুরু করুন",
@@ -835,7 +832,6 @@ export const PUBLIC_WEBSITE_TRANSLATIONS: Record<
     "ਸਟਾਰਟਅੱਪ ਐਪ ਮੈਨੇਜਰ",
     "ਸਿਸਟਮ ਕਲੀਨਰ ਅਤੇ ਕਲੀਨਅੱਪ ਸਕੈਨ",
     "ਡੀਬਲੋਟਰ ਅਤੇ ਵਿੰਡੋਜ਼ ਕੰਪੋਨੈਂਟ ਕਲੀਨਅੱਪ",
-    "NIC ਟਿਊਨਿੰਗ",
     "ਪੂਰੀ ਸੈਟਿੰਗ ਅਨੁਕੂਲਨ",
     "ਇਤਿਹਾਸ ਬਦਲੋ",
     "ਮੁਫਤ ਸ਼ੁਰੂਆਤ ਕਰੋ",
@@ -1066,7 +1062,6 @@ export const PUBLIC_WEBSITE_TRANSLATIONS: Record<
     "स्टार्टअप ॲप व्यवस्थापक",
     "सिस्टम क्लिनर आणि क्लीनअप स्कॅन",
     "डिब्लोटर आणि विंडोज घटक साफ करणे",
-    "NIC ट्यूनिंग",
     "पूर्ण सेटिंग्ज सानुकूलन",
     "इतिहास बदला",
     "मोफत प्रारंभ करा",

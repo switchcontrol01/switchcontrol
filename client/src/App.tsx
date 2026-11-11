@@ -264,8 +264,14 @@ const DarkFallback = () => (
 );
 
 function ElectronAppRoutes() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const realtimeMetricsEnabled = useStore((state) => state.realtimeMetricsEnabled);
+
+  useEffect(() => {
+    if (location.split("?")[0].replace(/\/+$/, "") === "/nic-tuning") {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [location, navigate]);
 
   useEffect(() => {
     const path = location.split("?")[0];
@@ -297,7 +303,6 @@ function ElectronAppRoutes() {
           <Route path="/tweaks" component={desktopRoutes.Tweaks} />
           <Route path="/power-plan" component={desktopRoutes.PowerPlan} />
 
-          <Route path="/nic-tuning" component={desktopRoutes.NicTuningPage} />
           <Route path="/network" component={desktopRoutes.NetworkTweaks} />
           <Route path="/cleaner" component={desktopRoutes.SystemCleaner} />
           <Route path="/debloat" component={desktopRoutes.Debloater} />

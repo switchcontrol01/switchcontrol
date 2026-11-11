@@ -158,10 +158,6 @@ interface SystemContext {
     smbv1Enabled?: boolean | null;
     guestAccountEnabled?: boolean | null;
   };
-  nicTuning?: {
-    adapterName: string | null;
-    properties: Array<{ key: string; label: string; supported: boolean; currentValue: string | null }>;
-  };
 }
 
 interface AdvisorCoverage {
@@ -596,14 +592,6 @@ function CoveragePanel({
             }
           />
           <CoverageRow
-            label={t("NIC Tuning")}
-            status={
-              isElectron
-                ? "available"
-                : (coverage?.networkTweaks === "available" ? "available" : "partial")
-            }
-          />
-          <CoverageRow
             label={t("Power Plan")}
             status={powerPlan ? "available" : "partial"}
             detail={powerPlan ? powerPlan.slice(0, 14) : undefined}
@@ -988,7 +976,6 @@ export default function AiAdvisor() {
   // ── Extended section data (Tier 4) ────────────────────────────────────────
   const [securityStatus, setSecurityStatus] = useState<Record<string, any> | null>(null);
   const [securityAudit, setSecurityAudit] = useState<Record<string, any> | null>(null);
-  const [nicCapabilities, setNicCapabilities] = useState<SystemContext["nicTuning"] | null>(null);
 
   // AI tweak-recommendation state
   const [showApplyModal, setShowApplyModal] = useState(false);
@@ -1082,7 +1069,7 @@ export default function AiAdvisor() {
       .catch(() => {});
   }, []);
 
-  // ── Tier 4: Security and NIC Tuning, fetched LAZILY ───────────────────────
+  // ── Tier 4: Security, fetched lazily ─────────────────────────────────────
   // These calls are deferred until the user actually sends their first message.
   // This avoids paying the PS/WMI cost on every page mount for data that is
   // only needed when the AI builds a chat context. Each fetch is one-shot:
@@ -1122,34 +1109,6 @@ export default function AiAdvisor() {
         );
       }
 
-      // NIC Tuning, find first "Up" physical adapter then read its capabilities
-      if (api.nic?.getAdapters && api.nic?.getCapabilities) {
-        fetches.push(
-          api.nic.getAdapters()
-            .then((adapters: any[]) => {
-              if (!Array.isArray(adapters)) return;
-              const upAdapter = adapters.find((a: any) => a.operationalStatus === "Up" || a.status === "Up" || a.isUp);
-              const adapterName = upAdapter?.name ?? upAdapter?.adapterName ?? adapters[0]?.name ?? null;
-              if (!adapterName) return;
-              return api.nic.getCapabilities(adapterName)
-                .then((caps: any) => {
-                  const props: Array<{ key: string; label: string; supported: boolean; currentValue: string | null }> = [];
-                  if (caps?.capabilities && typeof caps.capabilities === "object") {
-                    for (const [key, val] of Object.entries(caps.capabilities as Record<string, any>)) {
-                      props.push({
-                        key,
-                        label: val?.label ?? key,
-                        supported: val?.supported !== false,
-                        currentValue: val?.currentValue != null ? String(val.currentValue) : null,
-                      });
-                    }
-                  }
-                  setNicCapabilities({ adapterName, properties: props });
-                });
-            })
-            .catch(() => {})
-        );
-      }
 
       await Promise.allSettled(fetches);
       extendedContextFetchedRef.current = true;
@@ -1535,15 +1494,15 @@ export default function AiAdvisor() {
       // ── Extended cross-section tweak coverage ────────────────────────────────
       networkTweaksApplied: [
         ...Object.entries(ownership.networkTweaks)
-          .filter(([, rec]) => rec.provenance === 'app')
+          .filter(([id, rec]) => !id.startsWith("nic-") && rec.provenance === 'app')
           .map(([id, rec]) => ({ id, label: rec.label })),
-        // Also include network tweaks and NIC adapter tweaks that are stored in
+        // Also include supported network tweaks that are stored in
         // the canonical useStore (persisted across sessions via localStorage).
-        // These are entries from NetworkTweaks and NicTuning pages that aren't
+        // These are entries from NetworkTweaks that aren't
         // already captured by the ownership store or TWEAKS_DATA registry tweaks.
         ...Object.entries(tweaks)
           .filter(([id, enabled]) => {
-            if (!enabled) return false;
+            if (!enabled || id.startsWith("nic-")) return false;
             if (TWEAKS_DATA.some(t => t.id === id)) return false;
             if (ownership.networkTweaks[id]?.provenance === 'app') return false;
             return true;
@@ -1615,8 +1574,6 @@ export default function AiAdvisor() {
           }
         : { available: false },
 
-      // ── Tier 4: NIC Tuning ──────────────────────────────────────────────────
-      nicTuning: nicCapabilities ?? undefined,
 
     };
     setContext(ctx);
@@ -1828,7 +1785,7 @@ export default function AiAdvisor() {
     chatHistory.push({ role: "user", content: messageContent });
 
     try {
-      // Lazy-fetch extended context (Security / NIC) on first
+      // Lazy-fetch extended Security context on first
       // message only. Awaited here so the data lands in state *before* contextRef
       // is read below, giving the AI full context even on the opening message.
       await fetchExtendedContextOnce();

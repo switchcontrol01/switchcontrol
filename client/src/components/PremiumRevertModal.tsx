@@ -62,7 +62,7 @@ const REVERT_STEPS: Array<{ phase: RevertPhase; label: string; detail: string }>
   { phase: 'reverting_tweaks',      label: 'Reverting tweaks',           detail: 'Restoring registry & services' },
   { phase: 'reverting_sliders',     label: 'Restoring slider settings',  detail: 'Registry values & system timers' },
   { phase: 'reverting_presets',     label: 'Restoring preset profiles',  detail: 'IRQ, I/O & GPU driver profiles' },
-  { phase: 'reverting_network',     label: 'Restoring network settings', detail: 'TCP/IP, DNS, NIC properties' },
+  { phase: 'reverting_network',     label: 'Restoring network settings', detail: 'TCP/IP and DNS' },
   { phase: 'verifying',             label: 'Verifying & cleanup',        detail: 'Power plan + final checks' },
 ];
 

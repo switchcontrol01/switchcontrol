@@ -4,7 +4,7 @@ import { useStore } from "@/lib/store";
 import type { HistoryItem } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 import { logHistory } from "@/lib/logHistory";
-import { displayHistoryNotes, isValidTargetId, readHistoryMetadata } from "@/lib/historyContract";
+import { displayHistoryNotes, isValidTargetId, readHistoryMetadata, isRetiredHistoryEntry } from "@/lib/historyContract";
 import { TWEAKS_DATA } from "@/lib/tweak-registry";
 import { NETWORK_TWEAKS } from "@/lib/network-tweaks-data";
 import { useAppModeStore } from "@/lib/appModeStore";
@@ -50,7 +50,6 @@ export const MODULE_CONFIG: Record<string, { label: string; cls: string }> = {
   "AI Advisor":     { label: "AI",            cls: "bg-amber-500/15 text-amber-400 border-amber-500/25" },
   "BIOS Advisor":   { label: "BIOS",          cls: "bg-yellow-500/15 text-yellow-400 border-yellow-500/25" },
   Dashboard:        { label: "Dashboard",     cls: "bg-sky-500/15 text-sky-400 border-sky-500/25" },
-  "NIC Tuning":     { label: "NIC Tuning",    cls: "bg-indigo-500/15 text-indigo-400 border-indigo-500/25" },
   Settings:         { label: "Settings",      cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25" },
   History:          { label: "History",       cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25" },
 };
@@ -69,7 +68,7 @@ const IMPACT_CONFIG = {
   high:   { color: "text-red-400",     label: "High" },
 };
 
-const MODULES_ALL = ["All", "Tweaks", "Security", "Power", "Network", "Cleaner", "Debloat", "Startup", "AI Advisor", "BIOS Advisor", "Dashboard", "NIC Tuning", "Settings"];
+const MODULES_ALL = ["All", "Tweaks", "Security", "Power", "Network", "Cleaner", "Debloat", "Startup", "AI Advisor", "BIOS Advisor", "Dashboard", "Settings"];
 const STATUSES_ALL = ["All", "success", "failed", "warning", "reverted", "info"];
 
 // ── Enrichment ────────────────────────────────────────────────────────────
@@ -95,7 +94,6 @@ function deriveModule(page: string): string {
   if (lp.includes("startup")) return "Startup";
   if (lp.includes("bios"))    return "BIOS Advisor";
   if (lp.includes("ai") || (lp.includes("advisor") && !lp.includes("bios"))) return "AI Advisor";
-  if (lp.includes("nic") || lp.includes("adapter")) return "NIC Tuning";
   if (lp.includes("dashboard")) return "Dashboard";
   if (lp.includes("setting")) return "Settings";
   if (lp.includes("history")) return "History";
@@ -306,11 +304,16 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
   const iCfg = IMPACT_CONFIG[item.impact];
 
   const historyMeta = readHistoryMetadata(item);
-  const canRevert = item.status !== "reverted" &&
+  const retiredControl = isRetiredHistoryEntry(item);
+  const canRevert = !retiredControl && item.status !== "reverted" &&
     !item.action.toLowerCase().startsWith("reverted:") &&
     historyMeta?.reversible !== false;
 
   const handleRevert = async () => {
+    if (retiredControl) {
+      toast({ title: "Read-only history", description: "This control was retired. Windows settings and recovery records were preserved." });
+      return;
+    }
     setReverting(true);
 
     // Helper: notify other pages that a revert happened so they can refresh.
@@ -632,44 +635,6 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
         return;
       }
 
-    } else if (item.page === "NIC Tuning") {
-      // ── NIC Tuning — reset the property back to driver default ────────────
-      // Notes format: "propKey=value on adapterName" (applied) or "propKey restored … on adapterName" (reset)
-      // A Reset entry is already a revert — its own revert would be to re-apply the setting,
-      // which we don't have enough info for. We only support reverting "Applied" entries.
-      const eApi = (window as any).electronAPI;
-      const notes = item.notes ?? "";
-      const onIdx = notes.lastIndexOf(" on ");
-      if (onIdx === -1 || item.status === "Reset to Default") {
-        toast({ title: "No revert available", description: "NIC reset entries can't be reverted from history.", variant: "destructive" });
-        setReverting(false);
-        return;
-      }
-      const adapterName = notes.slice(onIdx + 4).trim();
-      const propKeyRaw  = notes.slice(0, onIdx).split("=")[0].trim();
-      if (eApi?.nic?.resetProperty) {
-        try {
-          const res = await eApi.nic.resetProperty(adapterName, propKeyRaw);
-          if (res?.ok) {
-            notifyRevert("NIC Tuning");
-            toast({ title: "NIC setting reverted", description: `${propKeyRaw} reset to driver default on ${adapterName}` });
-          } else {
-            toast({ title: "Revert failed", description: res?.error ?? "Could not reset NIC property", variant: "destructive" });
-            setReverting(false);
-            return;
-          }
-        } catch (e) {
-          console.warn("[History] NIC revert IPC error:", e);
-          toast({ title: "Revert failed", description: "Could not reset NIC property", variant: "destructive" });
-          setReverting(false);
-          return;
-        }
-      } else {
-        toast({ title: "Cannot revert", description: "History reverts require the Windows desktop app.", variant: "destructive" });
-        setReverting(false);
-        return;
-      }
-
     } else {
       // ── Genuinely non-reversible entries (scans, AI messages, BIOS reads, etc.)
       // Be specific about why so the user understands rather than seeing a generic error.
@@ -803,7 +768,7 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
                   )}
                 >
                   <RotateCcw className={cn("size-3", reverting && "animate-spin")} />
-                  {item.status === "reverted" ? t("Already reverted") : historyMeta?.reversible === false ? t("Not reversible") : t("Revert")}
+                  {retiredControl ? t("Read-only history") : item.status === "reverted" ? t("Already reverted") : historyMeta?.reversible === false ? t("Not reversible") : t("Revert")}
                 </Button>
               </div>
             </div>

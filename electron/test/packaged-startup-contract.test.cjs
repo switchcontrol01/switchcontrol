@@ -21,7 +21,6 @@ const routeNames = [
   "PowerPlan",
   "Debloater",
   "StartupApps",
-  "NicTuningPage",
   "BiosAdvisor",
   "AiAdvisor",
   "DriverIntelligence",
@@ -52,7 +51,6 @@ test("native modules are lazy and optional startup follows first-frame gates", (
     "tweak-executor",
     "slider-tweak-executor",
     "preset-tweak-executor",
-    "nic-executor",
     "network-tweak-executor",
     "power-plan-manager",
   ]) {

@@ -15,7 +15,6 @@ type DesktopRoute =
   | "power-plan"
   | "debloat"
   | "startup"
-  | "nic-tuning"
   | "bios-advisor"
   | "ai-advisor"
   | "driver-intel"
@@ -32,7 +31,6 @@ const loaders: Record<DesktopRoute, () => Promise<any>> = {
   "power-plan": () => import("@/pages/PowerPlan"),
   debloat: () => import("@/pages/Debloater"),
   startup: () => import("@/pages/StartupApps"),
-  "nic-tuning": () => import("@/pages/NicTuning"),
   "bios-advisor": () => import("@/pages/BiosAdvisor"),
   "ai-advisor": () => import("@/pages/AiAdvisor"),
   "driver-intel": () => import("@/pages/DriverIntelligence"),

@@ -43,7 +43,6 @@
       "network-tweak-executor.js",
       "slider-tweak-executor.js",
       "preset-tweak-executor.js",
-      "nic-executor.js",
       "power-plan-manager.js",
       "premium-revert-pipeline.js",
       "ownership-store.js",

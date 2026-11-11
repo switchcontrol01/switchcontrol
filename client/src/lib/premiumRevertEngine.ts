@@ -257,7 +257,7 @@ function delay(ms: number): Promise<void> {
 
 /**
  * The Electron pipeline is the single owner of premium expiry reverts. It
- * handles every ownership type (including sliders, presets, NIC properties,
+ * handles supported ownership types (including sliders, presets,
  * network tweaks, and power plans) and clears each ownership record after a
  * successful revert. Do not call the individual slider/preset IPC sweeps here:
  * doing so leaves the other ownership records behind and reopens the modal on
@@ -339,8 +339,6 @@ async function runPipelineRevert(
       for (const id of allNetworkCleanupIds) {
         mainStore.setTweak(id, false);
       }
-      // NIC RSS is bridged to the canonical tcp-rss card.
-      if (allNetworkCleanupIds.includes('tcp-rss')) mainStore.setTweak('nic-rss', false);
     } catch (e) {
       console.warn('[Revert:PIPELINE] network renderer cleanup failed:', e);
     }
@@ -594,7 +592,9 @@ function readEnabledNetworkTweakIdsFromLocalStorage(): string[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     return Object.entries(parsed)
-      .filter(([, v]) => v === 'enabled')
+      // Legacy RSS badges could come from adapter tuning, not Network Tweaks.
+      // Native ownership remains authoritative for real supported RSS changes.
+      .filter(([id, v]) => v === 'enabled' && id !== 'tcp-rss' && !id.startsWith('nic-'))
       .map(([id]) => id);
   } catch (_) {
     return [];

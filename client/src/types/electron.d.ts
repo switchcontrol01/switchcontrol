@@ -232,6 +232,10 @@ declare global {
          onCapabilitiesChanged: (callback: (payload: { reason: string; timestamp: number }) => void) => () => void;
          getAudioDevice: () => Promise<NativeProbeResult & { name: string | null }>;
          getBluetoothDevice: () => Promise<NativeProbeResult & { name: string | null }>;
+         getNetworkAdapters: () => Promise<{
+           adapters: Array<{ name: string; description: string; status: string }>;
+           error?: string;
+         }>;
          getMotherboard: () => Promise<NativeProbeResult & { manufacturer: string | null; model: string | null }>;
       };
       

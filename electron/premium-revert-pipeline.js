@@ -50,7 +50,6 @@ const LEGACY_NETWORK_IDS = new Map([
 // Lazy-require executors to avoid circular-dependency issues at module load.
 function getTweakExecutor()          { return require('./tweak-executor'); }
 function getNetworkTweakExecutor()   { return require('./network-tweak-executor'); }
-function getNicExecutor()            { return require('./nic-executor'); }
 function getPowerPlanManager()       { return require('./power-plan-manager'); }
 function getSliderTweakExecutor()    { return require('./slider-tweak-executor'); }
 function getPresetTweakExecutor()    { return require('./preset-tweak-executor'); }
@@ -228,54 +227,6 @@ async function revertNetworkTweak(record) {
     return { success: false, action, error: result.error || result.message || 'executeNetworkTweak failed' };
   } catch (e) {
     return { success: false, action, error: e.message };
-  }
-}
-
-async function revertNicProperty(record) {
-  const { itemId, adapterName, previousValue, scopeKey } = record;
-
-  if (!adapterName) {
-    return { skipped: true, reason: 'No adapterName stored in baseline.' };
-  }
-
-  const nicExec = getNicExecutor();
-  const registryValue = previousValue?.registryValue ?? null;
-
-  // Guard: if the stored registryValue is boolean false, String(false) === "false"
-  // which is not a valid registry string. Treat boolean false as "not set" and
-  // fall through to resetNicProperty (driver default) instead of writing "false".
-  const hasValidRegistryValue =
-    registryValue !== null &&
-    registryValue !== undefined &&
-    registryValue !== false;
-
-  if (hasValidRegistryValue) {
-    console.log(`[RevertPipeline] nic:${adapterName}:${itemId} → restoring registryValue="${registryValue}"`);
-    try {
-      const result = await nicExec.setNicProperty(adapterName, itemId, String(registryValue));
-      if (result.ok) {
-        ownershipStore.recordRevert(scopeKey);
-        return { success: true, action: 'restore_exact_value', registryValue, verified: result.verified };
-      }
-      return { success: false, action: 'restore_exact_value', registryValue, error: result.error || 'setNicProperty failed' };
-    } catch (e) {
-      return { success: false, action: 'restore_exact_value', registryValue, error: e.message };
-    }
-  } else {
-    if (registryValue === false) {
-      console.warn(`[RevertPipeline] nic:${adapterName}:${itemId} — registryValue is boolean false (invalid registry string), resetting to driver default instead`);
-    }
-    console.log(`[RevertPipeline] nic:${adapterName}:${itemId} → no registryValue in baseline, resetting to driver default`);
-    try {
-      const result = await nicExec.resetNicProperty(adapterName, itemId);
-      if (result.ok) {
-        ownershipStore.recordRevert(scopeKey);
-        return { success: true, action: 'reset_to_default', verified: result.verified };
-      }
-      return { success: false, action: 'reset_to_default', error: result.error || 'resetNicProperty failed' };
-    } catch (e) {
-      return { success: false, action: 'reset_to_default', error: e.message };
-    }
   }
 }
 
@@ -498,7 +449,7 @@ async function revertAllAppOwned(options = {}) {
   const details = {};
 
   // Split records into two groups:
-  //   1. Independent items (tweak / network_tweak / nic) — safe to run in parallel.
+  //   1. Independent supported items — safe to run in parallel.
   //   2. Power plan — must run last; has strict ordering requirements (see module header).
   const powerPlanRecords = owned.filter(r => r.itemType === 'power_plan');
   const otherRecords     = owned.filter(r => r.itemType !== 'power_plan');
@@ -510,7 +461,9 @@ async function revertAllAppOwned(options = {}) {
   const ownedScopeKeys = new Set(owned.map(r => r.scopeKey));
   const fallbackNetworkTweakIds = Array.isArray(options.fallbackNetworkTweakIds)
     ? options.fallbackNetworkTweakIds
-      .filter(id => typeof id === 'string' && /^[\w-]+$/.test(id))
+      // Old renderers inferred tcp-rss from retired adapter state. Only an
+      // actual network ownership record authorizes expiry writes for RSS.
+      .filter(id => typeof id === 'string' && /^[\w-]+$/.test(id) && !id.startsWith('nic-') && id !== 'tcp-rss')
       // Correlate legacy and canonical IDs before building recovery records.
       // A localStorage list containing both names represents one system item.
       .filter((id, index, ids) => {
@@ -570,6 +523,21 @@ async function revertAllAppOwned(options = {}) {
     otherRecords.map(async (record) => {
       const { scopeKey, itemType, baselineCaptured } = record;
 
+      // Retired adapter controls are historical evidence, never an expiry/reset
+      // instruction. Do this before baseline handling to preserve even incomplete
+      // records without claiming a revert succeeded or releasing ownership.
+      if (itemType === 'nic') {
+        return {
+          scopeKey,
+          result: {
+            skipped: true,
+            safeToProceed: true,
+            action: 'skipped_retired_control',
+            reason: 'Adapter tuning was retired; Windows settings and recovery records were preserved.',
+          },
+        };
+      }
+
       // Historical controls are not executable. Preserve their recovery records
       // and Windows settings rather than failing or silently reverting them.
       if (itemType === 'tweak' && !getTweakExecutor().isKnownTweak(record.itemId)) {
@@ -611,8 +579,6 @@ async function revertAllAppOwned(options = {}) {
           itemResult = await revertTweak(record);
         } else if (itemType === 'network_tweak') {
           itemResult = await revertNetworkTweak(record);
-        } else if (itemType === 'nic') {
-          itemResult = await revertNicProperty(record);
         } else {
           itemResult = { skipped: true, reason: `Unknown itemType: ${itemType}` };
         }
@@ -828,12 +794,15 @@ function previewRevert() {
     previousPlanGuid: record.previousPlanGuid || null,
     appliedValue:     record.appliedValue,
     lastAppliedAt:    record.lastAppliedAt,
-    willSkip:         (record.itemType === 'tweak' && !getTweakExecutor().isKnownTweak(record.itemId)) ||
+    willSkip:         record.itemType === 'nic' ||
+                      (record.itemType === 'tweak' && !getTweakExecutor().isKnownTweak(record.itemId)) ||
                       (!record.baselineCaptured && record.itemType !== 'power_plan'),
     // Power plan revert always forces Windows Balanced regardless of previousPlanGuid.
     // previousPlanGuid is shown above for informational context only — it will NOT
     // be restored. This note exists to prevent UI from promising GUID restoration.
-    revertNote:       record.itemType === 'power_plan'
+    revertNote:       record.itemType === 'nic'
+      ? 'Retired control: read-only recovery evidence; Windows settings will not be changed.'
+      : record.itemType === 'power_plan'
       ? 'Will activate Windows Balanced (built-in). previousPlanGuid is not restored — trial expiry policy.'
       : null,
   }));

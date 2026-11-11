@@ -350,7 +350,7 @@ const remainingTranslations: Record<"zh-CN" | "ja" | "ko", PublicCatalog> = {
     "We're actively improving SwitchControl based on real user feedback. Every update is focused on measurable performance gains.": "我们正根据真实用户反馈持续改进 SwitchControl，每次更新都专注于可衡量的性能提升。",
     "Live activity monitoring, CPU, RAM, GPU, disk, network": "实时监控 CPU、RAM、GPU、磁盘和网络活动", "free system tweaks, safe and explained": "安全且有说明的免费系统调整",
     "RAM cleanup tools": "RAM 清理工具", "Startup app manager": "启动应用管理器", "System cleaner and cleanup scans": "系统清理器与清理扫描",
-    "Debloater and Windows component cleanup": "冗余软件及 Windows 组件清理",  "NIC Tuning": "网卡调校",
+    "Debloater and Windows component cleanup": "冗余软件及 Windows 组件清理",
     "Full Settings customization": "完整设置自定义", "Change history": "更改历史",
     "Premium status is now instant on every launch, startup reliability is overhauled, GPU VRAM detection is fixed for modern cards, and Driver Intelligence is fully polished with AI-powered insights.": "每次启动都会立即显示 Premium 状态，启动可靠性全面提升，现代显卡的 GPU VRAM 检测已修复，驱动智能也已完善并加入 AI 分析。",
     "TikTok · SwitchTech": "TikTok · SwitchTech", "TikTok · SwitchControl": "TikTok · SwitchControl",
@@ -383,7 +383,7 @@ Object.assign(remainingTranslations.ja, {
   "We're actively improving SwitchControl based on real user feedback. Every update is focused on measurable performance gains.": "実際のユーザーフィードバックをもとに SwitchControl を継続的に改善しています。すべての更新は測定可能なパフォーマンス向上に重点を置いています。",
   "Live activity monitoring, CPU, RAM, GPU, disk, network": "CPU、RAM、GPU、ディスク、ネットワークのライブ監視", "free system tweaks, safe and explained": "安全で説明付きの無料システム調整",
   "RAM cleanup tools": "RAM クリーンアップツール", "Startup app manager": "スタートアップアプリ管理", "System cleaner and cleanup scans": "システムクリーナーとクリーンアップスキャン",
-  "Debloater and Windows component cleanup": "不要なアプリと Windows コンポーネントのクリーンアップ",  "NIC Tuning": "NIC チューニング",
+  "Debloater and Windows component cleanup": "不要なアプリと Windows コンポーネントのクリーンアップ",
   "Full Settings customization": "設定の完全なカスタマイズ", "Change history": "変更履歴",
   "Premium status is now instant on every launch, startup reliability is overhauled, GPU VRAM detection is fixed for modern cards, and Driver Intelligence is fully polished with AI-powered insights.": "起動のたびに Premium 状態が即座に表示されるようになり、起動時の信頼性を改善しました。新しいカードの GPU VRAM 検出を修正し、Driver Intelligence も AI による分析で大幅に強化しました。",
 });
@@ -409,7 +409,7 @@ Object.assign(remainingTranslations.ko, {
   "We're actively improving SwitchControl based on real user feedback. Every update is focused on measurable performance gains.": "실제 사용자 의견을 바탕으로 SwitchControl을 꾸준히 개선하고 있습니다. 모든 업데이트는 측정 가능한 성능 향상에 중점을 둡니다.",
   "Live activity monitoring, CPU, RAM, GPU, disk, network": "CPU, RAM, GPU, 디스크 및 네트워크 활동 실시간 모니터링", "free system tweaks, safe and explained": "안전하며 설명이 제공되는 무료 시스템 조정",
   "RAM cleanup tools": "RAM 정리 도구", "Startup app manager": "시작 프로그램 관리자", "System cleaner and cleanup scans": "시스템 정리 및 정리 검사",
-  "Debloater and Windows component cleanup": "불필요한 앱 및 Windows 구성 요소 정리",  "NIC Tuning": "NIC 조정",
+  "Debloater and Windows component cleanup": "불필요한 앱 및 Windows 구성 요소 정리",
   "Full Settings customization": "전체 설정 사용자 지정", "Change history": "변경 기록",
   "Premium status is now instant on every launch, startup reliability is overhauled, GPU VRAM detection is fixed for modern cards, and Driver Intelligence is fully polished with AI-powered insights.": "이제 실행할 때마다 Premium 상태가 즉시 표시됩니다. 시작 안정성을 개선했고 최신 카드의 GPU VRAM 감지를 수정했으며, Driver Intelligence도 AI 기반 분석으로 한층 완성되었습니다.",
 });

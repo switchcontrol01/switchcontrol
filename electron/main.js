@@ -77,7 +77,6 @@
   const tweakExecutor = lazyModule('./tweak-executor');
   const sliderTweakExecutor = lazyModule('./slider-tweak-executor');
   const presetTweakExecutor = lazyModule('./preset-tweak-executor');
-  const nicExecutor = lazyModule('./nic-executor');
   const networkTweakExecutor = lazyModule('./network-tweak-executor', (error) => {
     console.error('[BOOT] network-tweak-executor unavailable; using safe stub:', error.message);
     return {
@@ -2918,6 +2917,22 @@ Write-Output ('SCDRV:' + (ConvertTo-Json -InputObject $result -Compress -Depth 2
   // e.g. "Intel(R) Wireless Bluetooth(R)" or "Realtek Bluetooth Adapter".
   // This is far more accurate than guessing from the wireless NIC adapter name.
   // Returns { name: string | null }.
+  // Inventory only: no advanced-property reads, tuning controls, or backups.
+  ipcMain.handle('system:getNetworkAdapters', async () => {
+    if (process.platform !== 'win32') return { adapters: [], error: 'Windows required' };
+    const result = await runMainPsDetailed(
+      `Get-NetAdapter -Physical -ErrorAction Stop | Select-Object @{n='name';e={$_.Name}},@{n='description';e={$_.InterfaceDescription}},@{n='status';e={[string]$_.Status}} | ConvertTo-Json -Compress`,
+      { timeout: 4_000, label: 'system:getNetworkAdapters' },
+    );
+    if (!result.ok) return { adapters: [], error: result.stderr || result.error || 'Adapter inventory unavailable' };
+    try {
+      const data = JSON.parse(result.stdout || '[]');
+      return { adapters: Array.isArray(data) ? data : data ? [data] : [] };
+    } catch {
+      return { adapters: [], error: 'Invalid adapter inventory response' };
+    }
+  });
+
   ipcMain.handle('system:getBluetoothDevice', async () => {
     if (process.platform !== 'win32') {
       return { name: null, status: PROBE_STATUS.UNSUPPORTED, reason: 'not-windows' };
@@ -5617,20 +5632,6 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
             results.push({ id, applied: false, reason: 'No recommended option available' });
             failedCount++;
           }
-        } else if (mapped.type === 'nic') {
-          const { adapters = [] } = await nicExecutor.getNetAdapters();
-          const physical = adapters.find(a => a.status === 'Up' && !/loopback|bluetooth|hyper|virtual|tunnel|vpn/i.test(a.name));
-          if (!physical) {
-            console.log('[ExtremeLabsApply]', JSON.stringify({ id, applied: false, type: 'nic', reason: 'noAdapterFound' }));
-            results.push({ id, applied: false, reason: 'No suitable network adapter found' });
-            failedCount++;
-            continue;
-          }
-          const setResult = await nicExecutor.setNicProperty(physical.name, mapped.propertyKey, mapped.enabledValue);
-          const ok = setResult.ok && setResult.outcome === 'write_succeeded_verified';
-          if (ok) appliedCount++; else failedCount++;
-          console.log('[ExtremeLabsApply]', JSON.stringify({ id, applied: ok, type: 'nic', adapter: physical.name, outcome: setResult.outcome }));
-          results.push({ id, applied: ok, result: setResult });
         } else {
           const execResult = await tweakExecutor.executeTweak(mapped.tweakId, 'apply');
           const ok = execResult.success;
@@ -5673,8 +5674,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
         'global-timer-resolution', 'dynamic-tick', 'hpet-disable',
         'win32-priority-separation', 'system-responsiveness', 'mmcss-no-lazy', 'power-throttling-extreme',
         'disable-game-dvr', 'disable-xbox-capture', 'windowed-games-opt', 'fortnite-priority-booster',
-        'network-throttling-index', 'tcp-no-delay', 'rss-enable',
-        'interrupt-moderation', 'eee-disable', 'flow-control',
+        'network-throttling-index', 'tcp-no-delay',
         'windows-search-disable', 'sysmain-disable', 'print-spooler-disable',
         'xbox-services-disable', 'bluetooth-disable',
         'edge-update-disable', 'adobe-updater-disable', 'teams-startup-disable', 'vendor-updaters-disable',
@@ -5687,16 +5687,6 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
         ? ids.filter(id => allIds.includes(id))
         : allIds;
   
-      // Fetch NIC adapter once up-front so parallel NIC reverts share the result.
-      let physicalAdapter = null;
-      if (targetIds.some(id => _extremeLabsMapToRegistryTweak(id)?.type === 'nic')) {
-        try {
-          const { adapters = [] } = await nicExecutor.getNetAdapters();
-          physicalAdapter = adapters.find(
-            a => a.status === 'Up' && !/loopback|bluetooth|hyper|virtual|tunnel|vpn/i.test(a.name)
-          ) ?? null;
-        } catch { /* non-fatal — nic reverts will report no-adapter */ }
-      }
   
       // Run reverts in batches of 4 — independent registry/netsh operations but
       // batched to avoid spawning 24 PowerShell processes simultaneously which
@@ -5715,10 +5705,6 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
                 return { id, reverted: r.success, error: r.error };
               } else if (mapped.type === 'preset') {
                 const r = await presetTweakExecutor.resetPresetValue(mapped.tweakId);
-                return { id, reverted: r.ok, error: r.error };
-              } else if (mapped.type === 'nic') {
-                if (!physicalAdapter) return { id, reverted: false, reason: 'No adapter' };
-                const r = await nicExecutor.resetNicProperty(physicalAdapter.name, mapped.propertyKey);
                 return { id, reverted: r.ok, error: r.error };
               } else {
                 const r = await tweakExecutor.executeTweak(mapped.tweakId, 'revert');
@@ -5750,7 +5736,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   });
   
   // Live system-state check for all Extreme Labs tweaks.
-  // Reads the actual registry / NIC / service state — NOT the ownership JSON.
+  // Reads the actual registry / service state — NOT the ownership JSON.
   // Called on page mount so the UI correctly reflects applied tweaks even when
   // %appdata%\SwitchControl is deleted and localStorage is wiped.
   ipcMain.handle('extremeLabs:checkAllStatus', async () => {
@@ -5765,8 +5751,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
         'global-timer-resolution', 'dynamic-tick', 'hpet-disable',
         'win32-priority-separation', 'system-responsiveness', 'mmcss-no-lazy', 'power-throttling-extreme',
         'disable-game-dvr', 'disable-xbox-capture', 'windowed-games-opt', 'fortnite-priority-booster',
-        'network-throttling-index', 'tcp-no-delay', 'rss-enable',
-        'interrupt-moderation', 'eee-disable', 'flow-control',
+        'network-throttling-index', 'tcp-no-delay',
         'windows-search-disable', 'sysmain-disable', 'print-spooler-disable',
         'xbox-services-disable', 'bluetooth-disable',
         'edge-update-disable', 'adobe-updater-disable', 'teams-startup-disable', 'vendor-updaters-disable',
@@ -5809,30 +5794,6 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
         }
       }));
   
-      // ── Step 4: NIC-type tweaks ──────────────────────────────────────────────
-      const nicIds = allIds.filter(id => {
-        const m = _extremeLabsMapToRegistryTweak(id);
-        return m && m.type === 'nic';
-      });
-      const nicStatus = {};
-      if (nicIds.length > 0) {
-        let physicalAdapter = null;
-        try {
-          const { adapters = [] } = await nicExecutor.getNetAdapters();
-          physicalAdapter = adapters.find(a => a.status === 'Up' && !/loopback|bluetooth|hyper|virtual|tunnel|vpn/i.test(a.name)) ?? null;
-        } catch { /* non-fatal */ }
-  
-        await Promise.all(nicIds.map(async id => {
-          if (!physicalAdapter) { nicStatus[id] = null; return; }
-          const mapped = _extremeLabsMapToRegistryTweak(id);
-          try {
-            const r = await nicExecutor.readNicProperty(physicalAdapter.name, mapped.propertyKey);
-            nicStatus[id] = r.supported && r.registryValue === String(mapped.enabledValue);
-          } catch {
-            nicStatus[id] = null;
-          }
-        }));
-      }
   
       // ── Step 5: assemble final status map ───────────────────────────────────
       const status = {};
@@ -5846,8 +5807,6 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
           status[id] = sliderStatus[id] ?? null;
         } else if (mapped.type === 'preset') {
           status[id] = presetStatus[id] ?? null;
-        } else if (mapped.type === 'nic') {
-          status[id] = nicStatus[id] ?? null;
         } else {
           status[id] = null;
         }
@@ -5867,75 +5826,6 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   
   }
 
-  // NIC tuning IPC handlers
-  ipcMain.handle('nic:getAdapters', async () => {
-    return await nicExecutor.getNetAdapters();
-  });
-  
-  ipcMain.handle('nic:getCapabilities', async (event, adapterName) => {
-    if (typeof adapterName !== 'string' || !adapterName.trim()) {
-      return { capabilities: {}, error: 'adapterName required' };
-    }
-    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'nic:getCapabilities', reason: 'nic-caps' });
-    if (!_token) return psLimiter.skippedResult({ file: 'main.js', fn: 'nic:getCapabilities', reason: 'nic-caps' });
-    try {
-      return await nicExecutor.getAdapterCapabilities(adapterName);
-    } finally {
-      psLimiter.release(_token);
-    }
-  });
-  
-  ipcMain.handle('nic:invalidateCache', async (event, adapterName) => {
-    // adapterName === null → flush all; string → flush specific adapter
-    nicExecutor.invalidateCapabilityCache(typeof adapterName === 'string' ? adapterName : null);
-    return { ok: true };
-  });
-  
-  ipcMain.handle('nic:readProperty', async (event, adapterName, propertyKey) => {
-    if (typeof adapterName !== 'string' || typeof propertyKey !== 'string') {
-      return { value: null, supported: false, error: 'adapterName and propertyKey required' };
-    }
-    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'nic:readProperty', reason: 'nic-read' });
-    if (!_token) return psLimiter.skippedResult({ file: 'main.js', fn: 'nic:readProperty', reason: 'nic-read' });
-    try {
-      return await nicExecutor.readNicProperty(adapterName, propertyKey);
-    } finally {
-      psLimiter.release(_token);
-    }
-  });
-  
-  ipcMain.handle('nic:setProperty', async (event, adapterName, propertyKey, value) => {
-    if (typeof adapterName !== 'string' || typeof propertyKey !== 'string') {
-      return { ok: false, error: 'adapterName and propertyKey required' };
-    }
-    if (value === undefined || value === null) {
-      return { ok: false, error: 'value required' };
-    }
-    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'nic:setProperty', reason: 'nic-set' });
-    if (!_token) return psLimiter.skippedResult({ file: 'main.js', fn: 'nic:setProperty', reason: 'nic-set' });
-    try {
-      return await nicExecutor.setNicPropertyWithOwnership(adapterName, propertyKey, value);
-    } finally {
-      psLimiter.release(_token);
-    }
-  });
-  
-  ipcMain.handle('nic:resetProperty', async (event, adapterName, propertyKey) => {
-    if (typeof adapterName !== 'string' || typeof propertyKey !== 'string') {
-      return { ok: false, error: 'adapterName and propertyKey required' };
-    }
-    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'nic:resetProperty', reason: 'nic-reset' });
-    if (!_token) return psLimiter.skippedResult({ file: 'main.js', fn: 'nic:resetProperty', reason: 'nic-reset' });
-    try {
-      return await nicExecutor.resetNicProperty(adapterName, propertyKey);
-    } finally {
-      psLimiter.release(_token);
-    }
-  });
-  
-  ipcMain.handle('nic:getPropertyMeta', () => {
-    return nicExecutor.getNicPropertyMeta();
-  });
   
   // Power Plan handlers
   ipcMain.handle('powerPlans:getState', async () => {
@@ -6423,7 +6313,8 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   ipcMain.handle('premium:hasAppOwned', () => {
     try {
       const owned = ownershipStore.getAllAppOwned().filter(record =>
-        record.itemType !== 'tweak' || tweakExecutor.isKnownTweak(record.itemId)
+        record.itemType !== 'nic' &&
+        (record.itemType !== 'tweak' || tweakExecutor.isKnownTweak(record.itemId))
       );
       return { success: true, hasItems: owned.length > 0, count: owned.length };
     } catch (e) {

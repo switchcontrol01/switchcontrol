@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import OpenAI from "openai";
-import { stripRetiredAdvisorLinks } from "../../shared/advisorNavigation";
+import { stripRetiredAdvisorLinks, supportedAdvisorContext } from "../../shared/advisorNavigation";
 import crypto from "crypto";
 import { buildAdvisorServerContext } from "./advisorContext";
 import { aiPerWindowLimiter, aiHourlyLimiter } from "../middleware/rateLimiter";
@@ -353,7 +353,6 @@ You have complete real-time visibility into the user's FULL system state (provid
 - Startup Manager: total startup entries, how many are enabled/disabled/broken
 - System Cleaner: run count, last scan size, what junk was cleaned
 - Debloater: which Windows components have been removed/disabled
-- NIC Tuning: applied NIC-level network optimisations
 - App settings: real-time metrics toggle, pause-when-minimized
 - History: full timestamped log of every action taken across all sections
 - Live telemetry: CPU/GPU load and temperature, VRAM usage, RAM pressure, process count, network throughput
@@ -364,7 +363,7 @@ You have complete real-time visibility into the user's FULL system state (provid
 - The full conversation history — you remember everything discussed
 
 APP SECTIONS YOU CAN ACCESS DATA FROM (every one of these is in your system state):
-Dashboard, Tweaks, Network Tweaks, NIC Tuning, Power Plan, BIOS Advisor, Security, Driver Intel, Latency Analyzer, Startup Manager, System Cleaner, Debloater, History, Settings.
+Dashboard, Tweaks, Network Tweaks, Power Plan, BIOS Advisor, Security, Driver Intel, Latency Analyzer, Startup Manager, System Cleaner, Debloater, History, Settings.
 Only advertise and navigate to the current sections listed here. Earlier conversation or client context may refer to retired tools; do not offer them or invent scans for them.
 You have data from ALL of these sections. Never tell the user a section "is not visible to me" or "I don't have access to" any of the above — you always have their data in context.
 
@@ -377,7 +376,6 @@ CRITICAL RULE: NEVER say "I cannot check X" or "I don't have access to X" or "X 
 - What tweaks are enabled → check the enabled tweaks list (ALL sections)
 - What was recently changed → check the recent activity history
 - Network settings → check the network tweaks applied
-- NIC Tuning → check the nicTuning field for per-property live driver state (RSS, Interrupt Moderation, EEE, etc.)
 - Power plan → check the power plan field
 - Driver versions → check the installed driver versions field
 - Startup / Startup Manager → check the Startup Manager summary
@@ -417,7 +415,6 @@ NAVIGATION ROUTE MAP (use exact paths):
 - Dashboard → <<NAV:/:Dashboard>>
 - Main tweaks → <<NAV:/tweaks:Tweaks>>
 - Network tweaks → <<NAV:/network:Network Tweaks>>
-- NIC Tuning → <<NAV:/nic-tuning:NIC Tuning>>
 - Power plan → <<NAV:/power-plan:Power Plan>>
 - BIOS Advisor → <<NAV:/bios-advisor:BIOS Advisor>>
 - Security → <<NAV:/security:Security>>
@@ -613,7 +610,6 @@ export function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<ty
     "  1. Dashboard        <<NAV:/:Dashboard>>\n" +
     "  2. Tweaks           <<NAV:/tweaks:Tweaks>>\n" +
     "  3. Network Tweaks   <<NAV:/network:Network Tweaks>>\n" +
-    "  4. NIC Tuning       <<NAV:/nic-tuning:NIC Tuning>>\n" +
     "  5. Power Plan       <<NAV:/power-plan:Power Plan>>\n" +
     "  6. BIOS Advisor     <<NAV:/bios-advisor:BIOS Advisor>>\n" +
     "  7. Security         <<NAV:/security:Security>>\n" +
@@ -870,21 +866,6 @@ export function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<ty
     parts.push("Security: data unavailable (requires desktop app) — navigate to <<NAV:/security:Security>>");
   }
 
-  // ── NIC Tuning (Tier 4) ──────────────────────────────────────────────────
-  const nicTuning = context?.nicTuning;
-  if (nicTuning?.adapterName && Array.isArray(nicTuning.properties) && nicTuning.properties.length > 0) {
-    const supported = (nicTuning.properties as any[]).filter((p: any) => p.supported);
-    if (supported.length > 0) {
-      const propLines = supported.map((p: any) =>
-        `${p.label}: ${p.currentValue ?? "unknown"}`
-      );
-      parts.push(`NIC Tuning — adapter: ${nicTuning.adapterName}\n  ${propLines.join(", ")}`);
-    } else {
-      parts.push(`NIC Tuning — adapter: ${nicTuning.adapterName} (no tunable properties detected)`);
-    }
-  } else {
-    parts.push("NIC Tuning: no adapter data available — navigate to <<NAV:/nic-tuning:NIC Tuning>> to scan");
-  }
 
   // ── Startup Manager ───────────────────────────────────────────────────────
   const ss = context?.startupSummary;
@@ -1050,7 +1031,6 @@ export function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<ty
       "/tweaks":            "Tweaks",
       "/network":           "Network Tweaks",
       "/network-tweaks":    "Network Tweaks",  // legacy alias
-      "/nic-tuning":        "NIC Tuning",
       "/power-plan":        "Power Plan",
       "/ai-advisor":        "AI Advisor",
       "/bios-advisor":      "BIOS Advisor",
@@ -1337,7 +1317,8 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
     return res.status(403).json({ error: "Premium required." });
   }
 
-  const { messages, context, imageData, imageType } = req.body;
+  const { messages, imageData, imageType } = req.body;
+  const context = supportedAdvisorContext(req.body.context);
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: "Messages are required." });
   }

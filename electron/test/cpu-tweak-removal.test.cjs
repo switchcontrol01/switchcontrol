@@ -198,7 +198,7 @@ test("persisted selections cannot resurrect the card, change counts, or start ex
     const options = useStore.persist.getOptions();
     const history = [{ id: "historical", action: "Enabled CPU C-STATES | Core parking" }];
     storage.set(options.name, JSON.stringify({ version: options.version, state: {
-      tweaks: { [RETIRED]: true, "gaming-mode": true, "nic-rss": true },
+      tweaks: { [RETIRED]: true, "gaming-mode": true, "tcp-rss": true },
       sliderValues: { [RETIRED]: 100, "menu-show-delay": 20 },
       presetOptions: { [RETIRED]: "old", "io-optimization-profile": "default" },
       latestAIScan: { recommendations: [{ id: RETIRED }, { id: "gaming-mode" }] },
@@ -210,7 +210,7 @@ test("persisted selections cannot resurrect the card, change counts, or start ex
     assert.equal(state.tweaks[RETIRED], undefined);
     assert.equal(state.sliderValues[RETIRED], undefined);
     assert.equal(state.presetOptions[RETIRED], undefined);
-    assert.equal(state.tweaks["nic-rss"], true, "other feature state is preserved");
+    assert.equal(state.tweaks["tcp-rss"], true, "other feature state is preserved");
     assert.equal(state.account.stats.tweaksApplied, 2);
     assert.equal(state.account.stats.cleanersRun, 4);
     assert.deepEqual(state.history, history);

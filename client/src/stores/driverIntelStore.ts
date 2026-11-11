@@ -205,13 +205,10 @@ async function acquireHardware(): Promise<RawHardware> {
   // Web mode: window.electronAPI is undefined, conditions are false, no-op.
   const eApi = typeof window !== "undefined" ? (window as any).electronAPI : null;
 
-  // Network: ALWAYS query nic.getAdapters in Electron, si networkInterfaces()
-  // gives interface labels ("Ethernet"/"Wi-Fi"), not chip models. nic.getAdapters
-  // calls Get-NetAdapter which returns InterfaceDescription (the actual chip name
-  // needed for vendor detection). Runs unconditionally; no-op on web.
-  if (eApi?.nic?.getAdapters) {
+  // Read-only system inventory supplies chip descriptions, not interface labels.
+  if (eApi?.system?.getNetworkAdapters) {
     try {
-      const res = await eApi.nic.getAdapters();
+      const res = await eApi.system.getNetworkAdapters();
       if (res?.adapters?.length) {
         // Prefer an Up non-virtual non-BT physical adapter for the network chip name
         const active =

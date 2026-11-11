@@ -6,7 +6,6 @@ import Settings from "@/pages/Settings";
 import PowerPlan from "@/pages/PowerPlan";
 import Debloater from "@/pages/Debloater";
 import StartupApps from "@/pages/StartupApps";
-import NicTuningPage from "@/pages/NicTuning";
 import BiosAdvisor from "@/pages/BiosAdvisor";
 import AiAdvisor from "@/pages/AiAdvisor";
 import DriverIntelligence from "@/pages/DriverIntelligence";
@@ -23,7 +22,6 @@ export const desktopRoutes = {
   PowerPlan,
   Debloater,
   StartupApps,
-  NicTuningPage,
   BiosAdvisor,
   AiAdvisor,
   DriverIntelligence,

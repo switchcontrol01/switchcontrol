@@ -1615,8 +1615,8 @@ async function collectFast(): Promise<SystemIntelligenceProfile> {
 
   // Network interfaces: si.networkInterfaces("*") uses WMI on Windows and hangs
   // indefinitely on some AMD/X670/X870 systems (confirmed by 3s + 8s timeouts in
-  // production logs). Removed from Phase A — the Driver Intel store has an IPC
-  // fallback (nic:getAdapters → Get-NetAdapter, no WMI) that populates adapter
+  // production logs). Removed from Phase A — the Driver Intel store has a read-only
+  // system:getNetworkAdapters fallback that populates adapter
   // chip descriptions correctly. Leaving this call in Phase A only added 3+ seconds
   // to Phase A on affected systems, pushing it past the 6s client cap.
   const fastIfaces: SipNetworkInterface[] = [];

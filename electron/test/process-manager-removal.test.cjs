@@ -70,7 +70,7 @@ test("legacy sidebar preferences discard only the retired route", async () => {
   if (previousWindow === undefined) delete global.window;
   else global.window = previousWindow;
   const options = useUserPreferencesStore.persist.getOptions();
-  assert.equal(options.version, 4);
+  assert.equal(options.version, 5);
   const legacy = {
     language: "ja", theme: "oled", accent: "green", largerText: true,
     performanceProfileOverride: "efficiency",
@@ -83,7 +83,7 @@ test("legacy sidebar preferences discard only the retired route", async () => {
   await useUserPreferencesStore.persist.rehydrate();
   assert.deepEqual(useUserPreferencesStore.getState().sidebarOrder, ["/startup", "/cleaner", "/settings"]);
   assert.equal(useUserPreferencesStore.getState().theme, "oled");
-  assert.equal(JSON.parse(entries.get("sc-user-preferences")).version, 4);
+  assert.equal(JSON.parse(entries.get("sc-user-preferences")).version, 5);
   assert.deepEqual(migrated.sidebarOrder, ["/startup", "/cleaner", "/settings"]);
   assert.deepEqual(migrated.sidebarHidden, ["/history"]);
   for (const key of Object.keys(legacy).filter(k => !k.startsWith("sidebar"))) {
@@ -155,13 +155,13 @@ test("all supported catalogs remove feature claims without shifting adjacent tra
     assert.doesNotMatch(Object.keys(catalog).join("\n"), /Process Manager/, locale);
     assert.ok(catalog["Startup"], locale);
     assert.ok(catalog["AI Advisor"], locale);
-    assert.ok(catalog["NIC Tuning"], locale);
+    assert.ok(catalog["Network Tweaks"], locale);
     assert.ok(catalog["Settings"], locale);
     assert.ok(PUBLIC_PAGE_TRANSLATIONS[locale][faqKey], `${locale} FAQ translation`);
     assert.doesNotMatch(PUBLIC_PAGE_TRANSLATIONS[locale][faqKey], obsolete, locale);
   }
   assert.equal(translationCatalogs.hi["AI Advisor"], "एआई सलाहकार");
-  assert.equal(translationCatalogs.ja["NIC Tuning"], "NICのチューニング");
+  assert.equal(translationCatalogs.ja["NIC Tuning"], undefined);
   for (const file of ["Pricing", "Landing", "FAQ"]) {
     assert.doesNotMatch(read(`client/src/pages/${file}.tsx`), /Process Manager/);
   }

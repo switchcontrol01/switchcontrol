@@ -15,7 +15,6 @@ import {
   Loader2,
   Brain,
   Clock,
-  Network,
   ScanSearch,
   Timer,
 } from "lucide-react";
@@ -91,7 +90,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard", tourId: "dashboard" },
   { label: "Tweaks", icon: Settings, href: "/tweaks", tourId: "tweaks" },
   { label: "Network Tweaks", icon: Wifi, href: "/network", isPremium: true, tourId: "network" },
-  { label: "NIC Tuning", icon: Network, href: "/nic-tuning" },
   { label: "Power Plan", icon: Zap, href: "/power-plan", isPremium: true, tourId: "power-plan" },
   { label: "Cleaner", icon: Trash2, href: "/cleaner" },
   { label: "Debloat", icon: Shield, href: "/debloat" },

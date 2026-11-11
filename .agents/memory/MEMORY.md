@@ -104,3 +104,4 @@
 - [Dashboard RAM and alert copy](dashboard-ram-and-alert-copy.md) — use the top Clear RAM control, not a duplicate analysis panel; avoid panic-inducing status language.
 - [Retired process inspection](retired-process-inspection.md) — Process Manager removal must not become replacement Advisor enumeration; shared telemetry, Startup, and icons remain.
 - [Retired CPU tweak policy](retired-cpu-tweak-policy.md) — removing the CPU C-States/core-parking toggle must preserve existing Windows settings and recovery history.
+- [Retired adapter tuning policy](retired-adapter-tuning-policy.md) — NIC retirement preserves settings and recovery evidence; legacy RSS badges cannot authorize network expiry writes.

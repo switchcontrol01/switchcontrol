@@ -7,7 +7,6 @@ import {
   Zap, 
   Battery, 
   Wifi, 
-  Network, 
   Trash2, 
   ShieldCheck, 
   Shield,
@@ -44,15 +43,6 @@ const MODULES = [
     details: "Network stack optimizations to minimize ping and reduce packet loss. Includes DNS and routing tweaks.",
     color: "from-[hsl(190,90%,50%,0.2)] to-[hsl(190,90%,50%,0.1)]",
     preview: ["Nagle Algorithm", "TCP ACK Frequency", "DNS Cache"]
-  },
-  {
-    id: "nic-tuning",
-    name: "NIC Tuning",
-    icon: Network,
-    description: "Adapter-level network optimization",
-    details: "Fine-tune your network adapter at the driver level, interrupt moderation, RSS queues, and power management for lower latency.",
-    color: "from-indigo-500/20 to-indigo-600/10",
-    preview: ["Interrupt Moderation", "RSS Queues", "Offload Settings"]
   },
   {
     id: "cleaner",

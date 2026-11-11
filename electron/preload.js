@@ -216,6 +216,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onCapabilitiesChanged: (cb) => onEvent('system:capabilities-changed', cb),
     getAudioDevice:      () => ipcRenderer.invoke('system:getAudioDevice'),
     getBluetoothDevice: () => ipcRenderer.invoke('system:getBluetoothDevice'),
+    getNetworkAdapters: () => ipcRenderer.invoke('system:getNetworkAdapters'),
     getMotherboard:      () => ipcRenderer.invoke('system:getMotherboard'),
     onSpecsEnriched: (cb) => {
       // If specs were already enriched before this subscriber registered, replay
@@ -426,39 +427,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     checkCrashSentinel: () => ipcRenderer.invoke('presetTweaks:checkCrashSentinel'),
     revertAll: () => ipcRenderer.invoke('presetTweaks:revertAll'),
-  },
-  nic: {
-    getAdapters:      () => ipcRenderer.invoke('nic:getAdapters'),
-    getPropertyMeta:  () => ipcRenderer.invoke('nic:getPropertyMeta'),
-    getCapabilities: (adapterName) => {
-      assertString(adapterName, 'adapterName');
-      return ipcRenderer.invoke('nic:getCapabilities', adapterName);
-    },
-    invalidateCache: (adapterName) => {
-      if (adapterName != null && typeof adapterName !== 'string') {
-        throw new TypeError('nic.invalidateCache: adapterName must be a string or null');
-      }
-      return ipcRenderer.invoke('nic:invalidateCache', adapterName ?? null);
-    },
-    readProperty: (adapterName, propertyKey) => {
-      assertString(adapterName, 'adapterName');
-      assertString(propertyKey, 'propertyKey');
-      return ipcRenderer.invoke('nic:readProperty', adapterName, propertyKey);
-    },
-    setProperty: (adapterName, propertyKey, value) => {
-      assertString(adapterName, 'adapterName');
-      assertString(propertyKey, 'propertyKey');
-      if (value === undefined || value === null) throw new TypeError('nic.setProperty: value required');
-      if (!['string', 'number', 'boolean'].includes(typeof value)) {
-        throw new TypeError('nic.setProperty: value must be a string, number, or boolean');
-      }
-      return ipcRenderer.invoke('nic:setProperty', adapterName, propertyKey, String(value));
-    },
-    resetProperty: (adapterName, propertyKey) => {
-      assertString(adapterName, 'adapterName');
-      assertString(propertyKey, 'propertyKey');
-      return ipcRenderer.invoke('nic:resetProperty', adapterName, propertyKey);
-    },
   },
   memory: {
     clean: (mode) => {

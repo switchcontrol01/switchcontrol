@@ -26,11 +26,6 @@ export const BENEFITS_MAP: Array<[string, Benefits]> = [
     "Optimised TCP/IP stack tuned for competitive play",
     "Automatic traffic prioritisation for your game",
   ]],
-  ["NIC Tuning", [
-    "Adapter-level interrupt moderation for lower latency",
-    "RSS queue tuning matched to your CPU core count",
-    "Driver-level power management disabled for gaming",
-  ]],
   ["Startup", [
     "One-click disable for the slowest boot offenders",
     "Publisher trust scoring for unknown startup apps",

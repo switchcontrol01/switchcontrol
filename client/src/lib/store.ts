@@ -3,9 +3,10 @@ import { persist } from 'zustand/middleware';
 import { MOCK_STATS, SystemStats, TWEAKS_DATA, AIScanResult } from './mock-data';
 import { isElectronWithTweaks, isRealTweak } from '@/hooks/use-tweak-executor';
 
-// Active state is shared with Network/NIC controls, not just TWEAKS_DATA.
-// Retire this ID explicitly without discarding other feature state or history.
-const RETIRED_TWEAK_IDS = new Set(["maximum-cpu-responsiveness"]);
+// Retire controls without discarding other feature state or history.
+function isRetiredTweakId(id: string): boolean {
+  return id === "maximum-cpu-responsiveness" || id.startsWith("nic-");
+}
 
 export interface HistoryItem {
   id: string;
@@ -78,21 +79,21 @@ export const useStore = create<AppState>()(
       realtimeMetricsEnabled: true,
 
       setSliderValue: (id, value) => {
-        if (RETIRED_TWEAK_IDS.has(id)) return;
+        if (isRetiredTweakId(id)) return;
         set((state) => ({
           sliderValues: { ...state.sliderValues, [id]: value },
         }));
       },
 
       setPresetOption: (id, optionId) => {
-        if (RETIRED_TWEAK_IDS.has(id)) return;
+        if (isRetiredTweakId(id)) return;
         set((state) => ({
           presetOptions: { ...state.presetOptions, [id]: optionId },
         }));
       },
 
       toggleTweak: (id) => {
-        if (RETIRED_TWEAK_IDS.has(id)) return;
+        if (isRetiredTweakId(id)) return;
         const { tweaks } = get();
         const wasEnabled = !!tweaks[id];
         const isEnabled = !wasEnabled;
@@ -122,7 +123,7 @@ export const useStore = create<AppState>()(
       },
 
       setTweak: (id, enabled) => {
-        if (RETIRED_TWEAK_IDS.has(id)) return;
+        if (isRetiredTweakId(id)) return;
         console.log(`[Tweaks:SET] id="${id}" enabled=${enabled} (from system sync)`);
         set((state) => ({
           tweaks: {
@@ -302,7 +303,7 @@ export const useStore = create<AppState>()(
         } else {
           const sanitizedSliders: Record<string, number> = {};
           for (const [k, v] of Object.entries(state.sliderValues)) {
-            if (!RETIRED_TWEAK_IDS.has(k) && typeof v === 'number' && isFinite(v)) sanitizedSliders[k] = v;
+            if (!isRetiredTweakId(k) && typeof v === 'number' && isFinite(v)) sanitizedSliders[k] = v;
           }
           state.sliderValues = sanitizedSliders;
         }
@@ -313,7 +314,7 @@ export const useStore = create<AppState>()(
         } else {
           const sanitizedPresets: Record<string, string> = {};
           for (const [k, v] of Object.entries(state.presetOptions)) {
-            if (!RETIRED_TWEAK_IDS.has(k) && typeof v === 'string') sanitizedPresets[k] = v;
+            if (!isRetiredTweakId(k) && typeof v === 'string') sanitizedPresets[k] = v;
           }
           state.presetOptions = sanitizedPresets;
         }
@@ -327,7 +328,7 @@ export const useStore = create<AppState>()(
           // Remove retired active selections, but keep the audit history below.
           const sanitized: Record<string, boolean> = {};
           for (const [k, v] of Object.entries(state.tweaks)) {
-            if (!RETIRED_TWEAK_IDS.has(k) && typeof v === 'boolean') sanitized[k] = v;
+            if (!isRetiredTweakId(k) && typeof v === 'boolean') sanitized[k] = v;
           }
           state.tweaks = sanitized;
         }
@@ -341,7 +342,7 @@ export const useStore = create<AppState>()(
         if (Array.isArray(state.latestAIScan?.recommendations)) {
           state.latestAIScan = {
             ...state.latestAIScan,
-            recommendations: state.latestAIScan.recommendations.filter(rec => !RETIRED_TWEAK_IDS.has(rec.id)),
+            recommendations: state.latestAIScan.recommendations.filter(rec => !isRetiredTweakId(rec.id)),
           };
         }
 

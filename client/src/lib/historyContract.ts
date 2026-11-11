@@ -49,3 +49,9 @@ export function displayHistoryNotes(notes?: string): string | undefined {
 export function isValidTargetId(value: unknown): value is string {
   return typeof value === "string" && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(value);
 }
+
+export function isRetiredHistoryEntry(item: Pick<HistoryItem, "page" | "notes">): boolean {
+  const meta = readHistoryMetadata(item);
+  return item.page.trim().toLowerCase() === "nic tuning" ||
+    meta?.category === "nic" || Boolean(meta?.targetId?.startsWith("nic-"));
+}

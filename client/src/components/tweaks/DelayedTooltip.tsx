@@ -11,7 +11,7 @@ interface DelayedTooltipProps {
 /**
  * No-op passthrough — the hover tooltip has been removed app-wide.
  * Kept as a component (rather than deleting the file) so every existing
- * import site (TweakPresetCard, TweakSliderCard, TweakCard, NicTuning, etc.)
+ * import site (TweakPresetCard, TweakSliderCard, TweakCard, etc.)
  * keeps compiling with zero changes. It just renders its children directly.
  */
 export function DelayedTooltip({ children }: DelayedTooltipProps) {

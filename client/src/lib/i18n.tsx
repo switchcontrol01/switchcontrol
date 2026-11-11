@@ -49,7 +49,7 @@ export const LOCALES: Array<{ code: Locale; nativeName: string; englishName: str
 type MessageCatalog = Record<string, string>;
 
 const EN: MessageCatalog = {
-  Dashboard: "Dashboard", Tweaks: "Tweaks", "Network Tweaks": "Network Tweaks", "NIC Tuning": "NIC Tuning",
+  Dashboard: "Dashboard", Tweaks: "Tweaks", "Network Tweaks": "Network Tweaks",
   "Power Plan": "Power Plan", Cleaner: "Cleaner", Debloat: "Debloat", Startup: "Startup",
    "AI Advisor": "AI Advisor", "BIOS Advisor": "BIOS Advisor",
   Security: "Security", History: "History", "Driver Intel": "Driver Intel", "Latency Analyzer": "Latency Analyzer",
@@ -104,7 +104,7 @@ const EN: MessageCatalog = {
 const CATALOGS: Record<Locale, MessageCatalog> = {
   en: EN,
   "zh-CN": {
-    Dashboard: "仪表板", Tweaks: "调整", "Network Tweaks": "网络调整", "NIC Tuning": "网卡调优", "Power Plan": "电源计划",
+    Dashboard: "仪表板", Tweaks: "调整", "Network Tweaks": "网络调整", "Power Plan": "电源计划",
     Cleaner: "清理器", Debloat: "系统精简", Startup: "启动项",  "AI Advisor": "AI 顾问",
     "BIOS Advisor": "BIOS 顾问", Security: "安全", History: "历史记录", "Driver Intel": "驱动智能", "Latency Analyzer": "延迟分析器",
     Settings: "设置", Free: "免费", Premium: "高级版", "Sign out": "退出登录", General: "常规", Language: "语言",
@@ -128,7 +128,7 @@ const CATALOGS: Record<Locale, MessageCatalog> = {
     Paused: "已暂停", "Every 2 seconds": "每 2 秒", "Every 5 seconds": "每 5 秒", "Every 10 seconds": "每 10 秒",
   },
   es: {
-    Dashboard: "Panel", Tweaks: "Ajustes", "Network Tweaks": "Ajustes de red", "NIC Tuning": "Ajuste de NIC", "Power Plan": "Plan de energía",
+    Dashboard: "Panel", Tweaks: "Ajustes", "Network Tweaks": "Ajustes de red", "Power Plan": "Plan de energía",
     Cleaner: "Limpiador", Debloat: "Optimización", Startup: "Inicio",  "AI Advisor": "Asesor de IA",
     "BIOS Advisor": "Asesor de BIOS", Security: "Seguridad", History: "Historial", "Driver Intel": "Inteligencia de controladores", "Latency Analyzer": "Analizador de latencia",
     Settings: "Configuración", Free: "Gratis", Premium: "Premium", "Sign out": "Cerrar sesión", General: "General", Language: "Idioma",
@@ -152,7 +152,7 @@ const CATALOGS: Record<Locale, MessageCatalog> = {
     Paused: "En pausa", "Every 2 seconds": "Cada 2 segundos", "Every 5 seconds": "Cada 5 segundos", "Every 10 seconds": "Cada 10 segundos",
   },
   de: {
-    Dashboard: "Dashboard", Tweaks: "Optimierungen", "Network Tweaks": "Netzwerkoptimierungen", "NIC Tuning": "NIC-Tuning", "Power Plan": "Energieplan",
+    Dashboard: "Dashboard", Tweaks: "Optimierungen", "Network Tweaks": "Netzwerkoptimierungen", "Power Plan": "Energieplan",
     Cleaner: "Bereinigung", Debloat: "Systembereinigung", Startup: "Autostart",  "AI Advisor": "KI-Berater",
     "BIOS Advisor": "BIOS-Berater", Security: "Sicherheit", History: "Verlauf", "Driver Intel": "Treiber-Intelligenz", "Latency Analyzer": "Latenzanalyse",
     Settings: "Einstellungen", Free: "Kostenlos", Premium: "Premium", "Sign out": "Abmelden", General: "Allgemein", Language: "Sprache",
@@ -176,7 +176,7 @@ const CATALOGS: Record<Locale, MessageCatalog> = {
     Paused: "Pausiert", "Every 2 seconds": "Alle 2 Sekunden", "Every 5 seconds": "Alle 5 Sekunden", "Every 10 seconds": "Alle 10 Sekunden",
   },
   fr: {
-    Dashboard: "Tableau de bord", Tweaks: "Optimisations", "Network Tweaks": "Optimisations réseau", "NIC Tuning": "Réglage NIC", "Power Plan": "Mode d’alimentation",
+    Dashboard: "Tableau de bord", Tweaks: "Optimisations", "Network Tweaks": "Optimisations réseau", "Power Plan": "Mode d’alimentation",
     Cleaner: "Nettoyeur", Debloat: "Allègement", Startup: "Démarrage",  "AI Advisor": "Conseiller IA",
     "BIOS Advisor": "Conseiller BIOS", Security: "Sécurité", History: "Historique", "Driver Intel": "Intelligence des pilotes", "Latency Analyzer": "Analyseur de latence",
     Settings: "Paramètres", Free: "Gratuit", Premium: "Premium", "Sign out": "Se déconnecter", General: "Général", Language: "Langue",
@@ -219,26 +219,26 @@ const CATALOGS: Record<Locale, MessageCatalog> = {
 };
 
 const NAV_KEYS = [
-  "Dashboard", "Tweaks", "Network Tweaks", "NIC Tuning", "Power Plan", "Cleaner", "Debloat", "Startup",
+  "Dashboard", "Tweaks", "Network Tweaks", "Power Plan", "Cleaner", "Debloat", "Startup",
    "AI Advisor", "BIOS Advisor", "Security", "History", "Driver Intel", "Latency Analyzer", "Settings",
 ] as const;
 
 const NAV_LABELS: Partial<Record<Locale, string[]>> = {
-  hi: ["डैशबोर्ड", "ट्वीक", "नेटवर्क ट्वीक", "NIC ट्यूनिंग", "पावर प्लान", "क्लीनर", "डिब्लोट", "स्टार्टअप",  "AI सलाहकार", "BIOS सलाहकार", "सुरक्षा", "इतिहास", "ड्राइवर इंटेल", "लेटेंसी विश्लेषक", "सेटिंग्स"],
-  ar: ["لوحة التحكم", "التعديلات", "تعديلات الشبكة", "ضبط NIC", "خطة الطاقة", "التنظيف", "تبسيط النظام", "بدء التشغيل",  "مستشار الذكاء الاصطناعي", "مستشار BIOS", "الأمان", "السجل", "ذكاء برامج التشغيل", "محلل زمن الاستجابة", "الإعدادات"],
-  "pt-BR": ["Painel", "Ajustes", "Ajustes de rede", "Ajuste de NIC", "Plano de energia", "Limpador", "Otimização", "Inicialização",  "Consultor de IA", "Consultor de BIOS", "Segurança", "Histórico", "Inteligência de drivers", "Analisador de latência", "Configurações"],
-  bn: ["ড্যাশবোর্ড", "টুইক", "নেটওয়ার্ক টুইক", "NIC টিউনিং", "পাওয়ার প্ল্যান", "ক্লিনার", "ডিব্লোট", "স্টার্টআপ",  "AI উপদেষ্টা", "BIOS উপদেষ্টা", "নিরাপত্তা", "ইতিহাস", "ড্রাইভার ইন্টেল", "লেটেন্সি বিশ্লেষক", "সেটিংস"],
-  ru: ["Панель", "Твики", "Сетевые твики", "Настройка NIC", "План питания", "Очистка", "Оптимизация", "Автозагрузка",  "ИИ-советник", "Советник BIOS", "Безопасность", "История", "Интеллект драйверов", "Анализатор задержки", "Настройки"],
-  ja: ["ダッシュボード", "調整", "ネットワーク調整", "NIC チューニング", "電源プラン", "クリーナー", "デブロート", "スタートアップ",  "AI アドバイザー", "BIOS アドバイザー", "セキュリティ", "履歴", "ドライバーインテル", "レイテンシーアナライザー", "設定"],
-  pa: ["ਡੈਸ਼ਬੋਰਡ", "ਟਵੀਕ", "ਨੈੱਟਵਰਕ ਟਵੀਕ", "NIC ਟਿਊਨਿੰਗ", "ਪਾਵਰ ਪਲਾਨ", "ਕਲੀਨਰ", "ਡਿਬਲੋਟ", "ਸਟਾਰਟਅੱਪ",  "AI ਸਲਾਹਕਾਰ", "BIOS ਸਲਾਹਕਾਰ", "ਸੁਰੱਖਿਆ", "ਇਤਿਹਾਸ", "ਡਰਾਈਵਰ ਇੰਟੈਲ", "ਲੇਟੈਂਸੀ ਵਿਸ਼ਲੇਸ਼ਕ", "ਸੈਟਿੰਗਾਂ"],
-  id: ["Dasbor", "Penyesuaian", "Penyesuaian jaringan", "Penyetelan NIC", "Rencana daya", "Pembersih", "Debloat", "Startup",  "Penasihat AI", "Penasihat BIOS", "Keamanan", "Riwayat", "Intel driver", "Penganalisis latensi", "Pengaturan"],
-  ko: ["대시보드", "트윅", "네트워크 트윅", "NIC 튜닝", "전원 계획", "클리너", "디블로트", "시작 프로그램",  "AI 어드바이저", "BIOS 어드바이저", "보안", "기록", "드라이버 인텔", "지연 시간 분석기", "설정"],
-  te: ["డాష్‌బోర్డ్", "ట్వీక్స్", "నెట్‌వర్క్ ట్వీక్స్", "NIC ట్యూనింగ్", "పవర్ ప్లాన్", "క్లీనర్", "డీబ్లోట్", "స్టార్టప్",  "AI సలహాదారు", "BIOS సలహాదారు", "భద్రత", "చరిత్ర", "డ్రైవర్ ఇంటెల్", "లేటెన్సీ విశ్లేషకం", "సెట్టింగ్‌లు"],
-  tr: ["Gösterge paneli", "İnce ayarlar", "Ağ ayarları", "NIC ayarı", "Güç planı", "Temizleyici", "Debloat", "Başlangıç",  "Yapay zekâ danışmanı", "BIOS danışmanı", "Güvenlik", "Geçmiş", "Sürücü zekâsı", "Gecikme analizcisi", "Ayarlar"],
-  mr: ["डॅशबोर्ड", "ट्वीक", "नेटवर्क ट्वीक", "NIC ट्युनिंग", "पॉवर प्लॅन", "क्लीनर", "डीब्लोट", "स्टार्टअप",  "AI सल्लागार", "BIOS सल्लागार", "सुरक्षा", "इतिहास", "ड्रायव्हर इंटेल", "लेटन्सी विश्लेषक", "सेटिंग्ज"],
-  ta: ["டாஷ்போர்டு", "மாற்றங்கள்", "நெட்வொர்க் மாற்றங்கள்", "NIC டியூனிங்", "மின் திட்டம்", "க்ளீனர்", "டிப்ளோட்", "தொடக்கம்",  "AI ஆலோசகர்", "BIOS ஆலோசகர்", "பாதுகாப்பு", "வரலாறு", "இயக்கி நுண்ணறிவு", "தாமத பகுப்பாய்வி", "அமைப்புகள்"],
-  vi: ["Bảng điều khiển", "Tinh chỉnh", "Tinh chỉnh mạng", "Tinh chỉnh NIC", "Gói nguồn", "Trình dọn dẹp", "Tinh giản", "Khởi động",  "Cố vấn AI", "Cố vấn BIOS", "Bảo mật", "Lịch sử", "Thông tin trình điều khiển", "Trình phân tích độ trễ", "Cài đặt"],
-  ur: ["ڈیش بورڈ", "ترمیمات", "نیٹ ورک ترمیمات", "NIC ٹیوننگ", "پاور پلان", "کلینر", "ڈیبلاٹ", "اسٹارٹ اپ",  "AI مشیر", "BIOS مشیر", "سکیورٹی", "تاریخ", "ڈرائیور انٹیل", "لیٹنسی اینالائزر", "ترتیبات"],
+  hi: ["डैशबोर्ड", "ट्वीक", "नेटवर्क ट्वीक", "पावर प्लान", "क्लीनर", "डिब्लोट", "स्टार्टअप",  "AI सलाहकार", "BIOS सलाहकार", "सुरक्षा", "इतिहास", "ड्राइवर इंटेल", "लेटेंसी विश्लेषक", "सेटिंग्स"],
+  ar: ["لوحة التحكم", "التعديلات", "تعديلات الشبكة", "خطة الطاقة", "التنظيف", "تبسيط النظام", "بدء التشغيل",  "مستشار الذكاء الاصطناعي", "مستشار BIOS", "الأمان", "السجل", "ذكاء برامج التشغيل", "محلل زمن الاستجابة", "الإعدادات"],
+  "pt-BR": ["Painel", "Ajustes", "Ajustes de rede", "Plano de energia", "Limpador", "Otimização", "Inicialização",  "Consultor de IA", "Consultor de BIOS", "Segurança", "Histórico", "Inteligência de drivers", "Analisador de latência", "Configurações"],
+  bn: ["ড্যাশবোর্ড", "টুইক", "নেটওয়ার্ক টুইক", "পাওয়ার প্ল্যান", "ক্লিনার", "ডিব্লোট", "স্টার্টআপ",  "AI উপদেষ্টা", "BIOS উপদেষ্টা", "নিরাপত্তা", "ইতিহাস", "ড্রাইভার ইন্টেল", "লেটেন্সি বিশ্লেষক", "সেটিংস"],
+  ru: ["Панель", "Твики", "Сетевые твики", "План питания", "Очистка", "Оптимизация", "Автозагрузка",  "ИИ-советник", "Советник BIOS", "Безопасность", "История", "Интеллект драйверов", "Анализатор задержки", "Настройки"],
+  ja: ["ダッシュボード", "調整", "ネットワーク調整", "電源プラン", "クリーナー", "デブロート", "スタートアップ",  "AI アドバイザー", "BIOS アドバイザー", "セキュリティ", "履歴", "ドライバーインテル", "レイテンシーアナライザー", "設定"],
+  pa: ["ਡੈਸ਼ਬੋਰਡ", "ਟਵੀਕ", "ਨੈੱਟਵਰਕ ਟਵੀਕ", "ਪਾਵਰ ਪਲਾਨ", "ਕਲੀਨਰ", "ਡਿਬਲੋਟ", "ਸਟਾਰਟਅੱਪ",  "AI ਸਲਾਹਕਾਰ", "BIOS ਸਲਾਹਕਾਰ", "ਸੁਰੱਖਿਆ", "ਇਤਿਹਾਸ", "ਡਰਾਈਵਰ ਇੰਟੈਲ", "ਲੇਟੈਂਸੀ ਵਿਸ਼ਲੇਸ਼ਕ", "ਸੈਟਿੰਗਾਂ"],
+  id: ["Dasbor", "Penyesuaian", "Penyesuaian jaringan", "Rencana daya", "Pembersih", "Debloat", "Startup",  "Penasihat AI", "Penasihat BIOS", "Keamanan", "Riwayat", "Intel driver", "Penganalisis latensi", "Pengaturan"],
+  ko: ["대시보드", "트윅", "네트워크 트윅", "전원 계획", "클리너", "디블로트", "시작 프로그램",  "AI 어드바이저", "BIOS 어드바이저", "보안", "기록", "드라이버 인텔", "지연 시간 분석기", "설정"],
+  te: ["డాష్‌బోర్డ్", "ట్వీక్స్", "నెట్‌వర్క్ ట్వీక్స్", "పవర్ ప్లాన్", "క్లీనర్", "డీబ్లోట్", "స్టార్టప్",  "AI సలహాదారు", "BIOS సలహాదారు", "భద్రత", "చరిత్ర", "డ్రైవర్ ఇంటెల్", "లేటెన్సీ విశ్లేషకం", "సెట్టింగ్‌లు"],
+  tr: ["Gösterge paneli", "İnce ayarlar", "Ağ ayarları", "Güç planı", "Temizleyici", "Debloat", "Başlangıç",  "Yapay zekâ danışmanı", "BIOS danışmanı", "Güvenlik", "Geçmiş", "Sürücü zekâsı", "Gecikme analizcisi", "Ayarlar"],
+  mr: ["डॅशबोर्ड", "ट्वीक", "नेटवर्क ट्वीक", "पॉवर प्लॅन", "क्लीनर", "डीब्लोट", "स्टार्टअप",  "AI सल्लागार", "BIOS सल्लागार", "सुरक्षा", "इतिहास", "ड्रायव्हर इंटेल", "लेटन्सी विश्लेषक", "सेटिंग्ज"],
+  ta: ["டாஷ்போர்டு", "மாற்றங்கள்", "நெட்வொர்க் மாற்றங்கள்", "மின் திட்டம்", "க்ளீனர்", "டிப்ளோட்", "தொடக்கம்",  "AI ஆலோசகர்", "BIOS ஆலோசகர்", "பாதுகாப்பு", "வரலாறு", "இயக்கி நுண்ணறிவு", "தாமத பகுப்பாய்வி", "அமைப்புகள்"],
+  vi: ["Bảng điều khiển", "Tinh chỉnh", "Tinh chỉnh mạng", "Gói nguồn", "Trình dọn dẹp", "Tinh giản", "Khởi động",  "Cố vấn AI", "Cố vấn BIOS", "Bảo mật", "Lịch sử", "Thông tin trình điều khiển", "Trình phân tích độ trễ", "Cài đặt"],
+  ur: ["ڈیش بورڈ", "ترمیمات", "نیٹ ورک ترمیمات", "پاور پلان", "کلینر", "ڈیبلاٹ", "اسٹارٹ اپ",  "AI مشیر", "BIOS مشیر", "سکیورٹی", "تاریخ", "ڈرائیور انٹیل", "لیٹنسی اینالائزر", "ترتیبات"],
 };
 
 for (const [locale, labels] of Object.entries(NAV_LABELS) as Array<[Locale, string[]]>) {
@@ -2025,7 +2025,6 @@ const PUBLIC_TAMIL_COPY: MessageCatalog = {
   "Startup app manager": "தொடக்க செயலி மேலாளர்",
   "System cleaner and cleanup scans": "கணினி சுத்தப்படுத்தி மற்றும் சுத்தம் ஸ்கேன்கள்",
   "Debloater and Windows component cleanup": "தேவையற்ற கூறு நீக்கி மற்றும் Windows கூறு சுத்தம்",
-  "NIC Tuning": "NIC டியூனிங்",
   "Full Settings customization": "முழு Settings தனிப்பயனாக்கம்",
   "Change history": "மாற்ற வரலாறு",
   "Get Started Free": "இலவசமாகத் தொடங்குங்கள்",
@@ -2176,7 +2175,6 @@ export const PUBLIC_TECHNICAL_KEYS = Object.freeze([
   "Login",
   "Monitor",
   "N/A",
-  "NIC Tuning",
   "No",
   "Premium Plan",
   "RAM",

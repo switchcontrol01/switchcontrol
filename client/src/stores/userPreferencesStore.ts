@@ -24,7 +24,7 @@ export const ACCENT_COLORS: Record<Exclude<AccentName, "custom">, string> = {
 };
 
 export const DEFAULT_SIDEBAR_ORDER = [
-  "/dashboard", "/tweaks", "/network", "/nic-tuning", "/power-plan",
+  "/dashboard", "/tweaks", "/network", "/power-plan",
   "/cleaner", "/debloat", "/startup", "/ai-advisor",
   "/bios-advisor", "/security", "/driver-intel", "/latency-analyzer",
   "/settings",
@@ -172,18 +172,18 @@ export const useUserPreferencesStore = create<UserPreferencesState>()(
     }),
     {
       name: "sc-user-preferences",
-      version: 4,
+      version: 5,
       migrate: (persisted) => {
         const next = { ...DEFAULTS, ...(persisted as Partial<UserPreferences>) };
         if (!LOCALE_CODES.includes(next.language)) next.language = "en";
         if (!PERFORMANCE_PROFILE_OVERRIDES.includes(next.performanceProfileOverride)) {
           next.performanceProfileOverride = "automatic";
         }
-        // Retire only this route; preserve every other saved preference and order.
+        // Retire unsupported routes; preserve every other preference and order.
         next.sidebarHidden = (Array.isArray(next.sidebarHidden) ? next.sidebarHidden : [])
-          .filter((href) => href !== "/process-manager");
+          .filter((href) => href !== "/process-manager" && href !== "/nic-tuning");
         next.sidebarOrder = (Array.isArray(next.sidebarOrder) ? next.sidebarOrder : [...DEFAULT_SIDEBAR_ORDER])
-          .filter((href) => href !== "/process-manager");
+          .filter((href) => href !== "/process-manager" && href !== "/nic-tuning");
         return next;
       },
     },

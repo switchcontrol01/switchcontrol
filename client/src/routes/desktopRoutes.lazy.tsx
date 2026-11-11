@@ -10,7 +10,6 @@ export const desktopRoutes = {
   PowerPlan: lazy(() => loadDesktopRoute("power-plan")),
   Debloater: lazy(() => loadDesktopRoute("debloat")),
   StartupApps: lazy(() => loadDesktopRoute("startup")),
-  NicTuningPage: lazy(() => loadDesktopRoute("nic-tuning")),
   BiosAdvisor: lazy(() => loadDesktopRoute("bios-advisor")),
   AiAdvisor: lazy(() => loadDesktopRoute("ai-advisor")),
   DriverIntelligence: lazy(() => loadDesktopRoute("driver-intel")),
