@@ -1,0 +1,86 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1a1d2e"></stop>
+      <stop offset="0.5" stop-color="#2a2d45"></stop>
+      <stop offset="1" stop-color="#141627"></stop>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#3a3f5e"></stop>
+      <stop offset="1" stop-color="#232740"></stop>
+    </linearGradient>
+    <linearGradient id="cardTop" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4b5178"></stop>
+      <stop offset="1" stop-color="#2f3454"></stop>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffe9a8"></stop>
+      <stop offset="0.5" stop-color="#e3b15a"></stop>
+      <stop offset="1" stop-color="#a9793a"></stop>
+    </linearGradient>
+    <linearGradient id="goldShine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff4cf"></stop>
+      <stop offset="1" stop-color="#d8a94e"></stop>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.18"></stop>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"></stop>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.4" r="0.7">
+      <stop offset="0" stop-color="#6c74b0" stop-opacity="0.55"></stop>
+      <stop offset="1" stop-color="#6c74b0" stop-opacity="0"></stop>
+    </radialGradient>
+    
+      
+    
+    
+      
+    
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)"></rect>
+  <ellipse cx="512" cy="430" rx="460" ry="340" fill="url(#glow)" filter="url(#soft)"></ellipse>
+
+  
+  <text x="512" y="130" text-anchor="middle" font-family="Georgia, serif" font-size="26" letter-spacing="8" fill="#9aa0cc">PREMIUM COLLECTION</text>
+  <rect x="452" y="150" width="120" height="3" rx="1.5" fill="url(#gold)"></rect>
+
+  
+  <g filter="url(#drop)">
+    
+    <path d="M300 300 L724 300 L764 340 L764 724 L724 764 L300 764 Z" fill="#1b1e30"></path>
+    
+    <path d="M300 764 L724 764 L764 724 L724 724 L340 724 Z" fill="#15172a"></path>
+    
+    <path d="M724 300 L764 340 L764 724 L724 724 Z" fill="#2a2e4a"></path>
+    
+    <rect x="260" y="300" width="464" height="424" rx="28" fill="url(#card)"></rect>
+    <rect x="260" y="300" width="464" height="424" rx="28" fill="url(#glass)"></rect>
+    <rect x="260.5" y="300.5" width="463" height="423" rx="27.5" fill="none" stroke="url(#goldShine)" stroke-opacity="0.6" stroke-width="1.5"></rect>
+  </g>
+
+  
+  <g transform="translate(512 430)">
+    <circle r="78" fill="url(#cardTop)"></circle>
+    <circle r="78" fill="none" stroke="url(#gold)" stroke-width="4"></circle>
+    <circle r="60" fill="none" stroke="url(#goldShine)" stroke-width="2" stroke-opacity="0.7"></circle>
+    <path d="M0 -44 L13 -13 L46 -13 L19 8 L29 40 L0 21 L-29 40 L-19 8 L-46 -13 L-13 -13 Z" fill="url(#gold)"></path>
+  </g>
+
+  
+  <text x="512" y="560" text-anchor="middle" font-family="Georgia, serif" font-size="40" font-weight="bold" fill="#f3f1ff">Elite Access</text>
+  <text x="512" y="602" text-anchor="middle" font-family="Georgia, serif" font-size="20" fill="#9aa0cc">Crafted with precision &amp; depth</text>
+
+  
+  <g transform="translate(512 670)">
+    <rect x="-130" y="4" width="260" height="56" rx="28" fill="#8a6520"></rect>
+    <rect x="-130" y="-4" width="260" height="56" rx="28" fill="url(#gold)"></rect>
+    <rect x="-130" y="-4" width="260" height="28" rx="14" fill="#ffffff" fill-opacity="0.25"></rect>
+    <text x="0" y="30" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="bold" fill="#2a2411" letter-spacing="2">EXPLORE</text>
+  </g>
+
+  
+  <circle cx="210" cy="250" r="20" fill="url(#gold)" opacity="0.85"></circle>
+  <circle cx="820" cy="800" r="28" fill="url(#cardTop)" stroke="url(#gold)" stroke-width="2"></circle>
+  <circle cx="860" cy="260" r="12" fill="#9aa0cc" opacity="0.7"></circle>
+</svg>

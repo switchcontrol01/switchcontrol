@@ -1,0 +1,13 @@
+{
+  "name": "@workspace/switchcontrol-depth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./styles.css": "./styles.css",
+    "./components": "./components/index.ts"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  }
+}

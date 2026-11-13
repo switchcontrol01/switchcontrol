@@ -1,0 +1,27 @@
+:root {
+  color-scheme: dark;
+  --scd-ink: #101816;
+  --scd-ink-raised: #17211e;
+  --scd-surface: #1c2824;
+  --scd-surface-raised: #24312c;
+  --scd-surface-top: #2d3934;
+  --scd-line: rgba(222, 232, 220, 0.12);
+  --scd-line-strong: rgba(222, 232, 220, 0.22);
+  --scd-text: #e7ecdf;
+  --scd-text-soft: #b4c0b5;
+  --scd-text-dim: #7f9186;
+  --scd-acid: #d2f36b;
+  --scd-acid-ink: #1c2810;
+  --scd-amber: #efb66a;
+  --scd-coral: #df8571;
+  --scd-blue: #82c7c0;
+  --scd-shadow-1: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 12px 28px rgba(0, 0, 0, 0.16);
+  --scd-shadow-2: 0 1px 0 rgba(255, 255, 255, 0.075) inset, 0 24px 60px rgba(0, 0, 0, 0.30);
+  --scd-shadow-3: 0 1px 0 rgba(255, 255, 255, 0.09) inset, 0 38px 90px rgba(0, 0, 0, 0.42);
+  --scd-radius-sm: 8px;
+  --scd-radius-md: 14px;
+  --scd-radius-lg: 22px;
+  --scd-font-display: "Outfit", "Trebuchet MS", sans-serif;
+  --scd-font-body: "DM Sans", "Segoe UI", sans-serif;
+  --scd-font-mono: "IBM Plex Mono", "Consolas", monospace;
+}
