@@ -30,6 +30,18 @@ test("returns no plotted point for an empty native capture", () => {
   assert.deepEqual(buildSignalLanePoints([], "dpc"), []);
 });
 
+test("fractional native percentages produce distinct heights without fabricated motion", () => {
+  const samples = [
+    { ts: 1000, elapsed: 0, dpcPct: 0.125, intrPct: 0.025, pageFaultsSec: 512 },
+    { ts: 3000, elapsed: 2, dpcPct: 0.5, intrPct: 0.1, pageFaultsSec: 512 },
+  ];
+  for (const metric of ["dpc", "interrupt"] as const) {
+    const points = buildSignalLanePoints(samples, metric);
+    assert.ok(points[1].normalizedY > points[0].normalizedY);
+    assert.equal(points[0].rawValue, metric === "dpc" ? 0.125 : 0.025);
+  }
+});
+
 test("keeps the responsiveness summary behind its 30-sample threshold", () => {
   const thirtyMeasuredSamples = Array.from({ length: 30 }, (_, index) => ({
     ts: 10_000 + index * 2_000,

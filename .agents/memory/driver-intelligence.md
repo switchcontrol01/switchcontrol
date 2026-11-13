@@ -82,6 +82,11 @@ hardware. Preserve evidence-based driver states and the calm resting-state perfo
 policy when translating this visual direction into production.
 
 ## Entitlement
+Driver Intelligence should fill the Electron app's available content area rather
+than appear inset or minimized. Entry and exit should be slow, clean, and deliberate.
+
+**Why:** The user explicitly requested full-window content and unhurried transitions.
+
 Preserve the current entitlement policy during visual replacements; do not change
 access based on older descriptions of trial behavior.
 

@@ -53,4 +53,65 @@ function summarizeNetworkStats(stats) {
   };
 }
 
-module.exports = { resolveNetworkStatsSample, summarizeNetworkStats };
+function parseNetworkCounterRows(value) {
+  let parsed = value;
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch (_error) {
+      return [];
+    }
+  }
+
+  const rows = Array.isArray(parsed) ? parsed : parsed && typeof parsed === "object" ? [parsed] : [];
+  return rows.map((row) => {
+    const iface = String(row?.iface ?? row?.Name ?? row?.name ?? "").trim();
+    const rxRaw = row?.rx_bytes ?? row?.ReceivedBytes ?? row?.receivedBytes;
+    const txRaw = row?.tx_bytes ?? row?.SentBytes ?? row?.sentBytes;
+    const rxBytes = Number(rxRaw);
+    const txBytes = Number(txRaw);
+    if (!iface || rxRaw == null || txRaw == null ||
+        !Number.isFinite(rxBytes) || rxBytes < 0 ||
+        !Number.isFinite(txBytes) || txBytes < 0) {
+      return null;
+    }
+    return { iface, rx_bytes: rxBytes, tx_bytes: txBytes };
+  }).filter(Boolean);
+}
+
+function resolveNetworkCounterSample(candidate, cachedCounters, cachedAt, now) {
+  const counters = parseNetworkCounterRows(candidate);
+  if (counters.length === 0) {
+    return { stats: [], counters: [], sampledAt: null, available: false, refreshed: false };
+  }
+
+  const elapsedMs = Number.isFinite(cachedAt) ? now - cachedAt : 0;
+  const canCalculateRate =
+    Array.isArray(cachedCounters) &&
+    elapsedMs > 0 &&
+    elapsedMs <= MAX_NETWORK_SAMPLE_AGE_MS;
+  const previousByInterface = new Map(
+    parseNetworkCounterRows(cachedCounters).map((row) => [row.iface.toLowerCase(), row]),
+  );
+  const elapsedSeconds = canCalculateRate ? elapsedMs / 1000 : 0;
+  const stats = counters.map((row) => {
+    const previous = previousByInterface.get(row.iface.toLowerCase());
+    const hasBaseline = canCalculateRate && previous;
+    const rxDelta = hasBaseline ? Math.max(0, row.rx_bytes - previous.rx_bytes) : 0;
+    const txDelta = hasBaseline ? Math.max(0, row.tx_bytes - previous.tx_bytes) : 0;
+    return {
+      iface: row.iface,
+      rx_sec: elapsedSeconds > 0 ? rxDelta / elapsedSeconds : 0,
+      tx_sec: elapsedSeconds > 0 ? txDelta / elapsedSeconds : 0,
+    };
+  });
+
+  return { stats, counters, sampledAt: now, available: true, refreshed: true };
+}
+
+module.exports = {
+  resolveNetworkStatsSample,
+  summarizeNetworkStats,
+  parseNetworkCounterRows,
+  resolveNetworkCounterSample,
+};

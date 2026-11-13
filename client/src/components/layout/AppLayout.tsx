@@ -171,9 +171,11 @@ function BackendStartingBanner() {
 export function AppLayout({
   children,
   noPageAnimation = false,
+  immersiveContent = false,
 }: {
   children: React.ReactNode;
   noPageAnimation?: boolean;
+  immersiveContent?: boolean;
 }) {
   const { prefersReducedMotion } = useMotion();
   const [location] = useLocation();
@@ -228,7 +230,7 @@ export function AppLayout({
         animate={{ paddingLeft: isDriverIntel ? 0 : largeSidebar ? 288 : 256 }}
         transition={isDriverIntel ? SIDEBAR_SPRING : { duration: 0 }}
       >
-        <div className="container max-w-7xl mx-auto p-8">{children}</div>
+        <div className={immersiveContent ? "w-full min-h-full" : "container max-w-7xl mx-auto p-8"}>{children}</div>
       </motion.main>
       <Toaster />
     </div>

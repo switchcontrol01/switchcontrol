@@ -16,8 +16,10 @@
 }
 
 .la-signal-bench {
-  width: min(100%, 1240px);
-  margin-inline: auto;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
   padding: 28px 22px 40px;
   display: flex;
   flex-direction: column;
@@ -25,7 +27,6 @@
   background:
     radial-gradient(ellipse at 76% 3%, rgba(137, 87, 49, 0.1), transparent 44%),
     var(--la-bench-bg);
-  border-radius: 14px;
 }
 
 .la-bench-intro {

@@ -5,7 +5,7 @@
  * SwitchControl Latency Analyzer — Windows user-mode backend.
  *
  * Collects system-wide DPC CPU-time %, interrupt CPU-time %, and total page faults/sec using
- * Windows' locale-independent formatted performance-data CIM classes.
+ * Windows' locale-independent raw processor and formatted memory CIM classes.
  * Also scans installed drivers (driverquery) and audio devices (WMI).
  *
  * Per-driver execution timing, scheduler delay, audio dropout risk, and input
@@ -104,32 +104,75 @@ function parseCounterOutput(output, now = Date.now()) {
   };
 }
 
-async function collectSample() {
-  // The formatted CIM classes expose stable property names regardless of the
+function parseRawCounterOutput(output, previous = null, now = Date.now()) {
+  const value = JSON.parse(output);
+  if (!value || value.source !== 'Windows PerfOS' ||
+      !Number.isFinite(value.sampledAt) || value.sampledAt <= 0 ||
+      value.sampledAt > now + 5000 || now - value.sampledAt > 10000 ||
+      !Number.isFinite(value.pageFaultsPerSec) || value.pageFaultsPerSec < 0 ||
+      value.pageFaultsPerSec > 10000000) {
+    throw new Error('Windows returned invalid or stale raw performance data.');
+  }
+  const counter = key => {
+    // Preserve 64-bit counters and timestamps across the JSON boundary.
+    if (typeof value[key] !== 'string' || !/^\d{1,20}$/.test(value[key])) {
+      throw new Error(`Windows returned a missing or invalid ${key} counter.`);
+    }
+    const parsed = BigInt(value[key]);
+    if (parsed > 18446744073709551615n) throw new Error('Windows counter exceeded uint64.');
+    return parsed;
+  };
+  const current = {
+    timestamp100ns: counter('timestamp100ns'),
+    dpc100ns: counter('dpc100ns'),
+    interrupt100ns: counter('interrupt100ns'),
+    sampledAt: value.sampledAt,
+  };
+  if (current.timestamp100ns === 0n) throw new Error('Windows returned no counter timestamp.');
+  const baseline = { current, sample: null };
+  if (!previous) return baseline;
+  const elapsed = current.timestamp100ns - previous.timestamp100ns;
+  const dpc = current.dpc100ns - previous.dpc100ns;
+  const interrupt = current.interrupt100ns - previous.interrupt100ns;
+  // First reads, provider resets, duplicate ticks and long gaps are baselines,
+  // never synthetic zero activity. PERF_100NSEC_TIMER uses Sys100NS deltas.
+  if (elapsed <= 0n || elapsed > 300000000n || dpc < 0n || interrupt < 0n ||
+      current.sampledAt <= previous.sampledAt) return baseline;
+  return {
+    current,
+    sample: parseCounterOutput(JSON.stringify({
+      source: value.source,
+      sampledAt: value.sampledAt,
+      dpcPct: Number(dpc) / Number(elapsed) * 100,
+      interruptPct: Number(interrupt) / Number(elapsed) * 100,
+      pageFaultsPerSec: value.pageFaultsPerSec,
+    }), now),
+  };
+}
+
+async function collectSample(counterState) {
+  // The CIM classes expose stable property names regardless of the
   // display language. Get-Counter paths such as "% DPC Time" are localized on
   // some Windows installations, which previously made the analyzer fail before
   // it could produce its first sample.
   const script = `
 try {
-  $p = Get-CimInstance -ClassName Win32_PerfFormattedData_PerfOS_Processor -Filter "Name='_Total'" -ErrorAction Stop
+  $p = Get-CimInstance -ClassName Win32_PerfRawData_PerfOS_Processor -Filter "Name='_Total'" -ErrorAction Stop
   $m = Get-CimInstance -ClassName Win32_PerfFormattedData_PerfOS_Memory -ErrorAction Stop
-  if ($null -eq $p -or $null -eq $m) { throw 'Windows returned no formatted performance data.' }
-   if ($null -eq $p.PercentDPCTime -or $null -eq $p.PercentInterruptTime -or $null -eq $m.PageFaultsPerSec) {
+  if ($null -eq $p -or $null -eq $m) { throw 'Windows returned no performance data.' }
+   if ($null -eq $p.PercentDPCTime -or $null -eq $p.PercentInterruptTime -or $null -eq $p.Timestamp_Sys100NS -or $null -eq $m.PageFaultsPerSec) {
      throw 'One or more Windows performance counter properties are missing.'
    }
-  $dpc = [double]$p.PercentDPCTime
-  $intr = [double]$p.PercentInterruptTime
   $faults = [double]$m.PageFaultsPerSec
-   if ([double]::IsNaN($dpc) -or [double]::IsInfinity($dpc) -or $dpc -lt 0 -or $dpc -gt 100 -or
-       [double]::IsNaN($intr) -or [double]::IsInfinity($intr) -or $intr -lt 0 -or $intr -gt 100 -or
-       [double]::IsNaN($faults) -or [double]::IsInfinity($faults) -or $faults -lt 0) {
+   if ([double]::IsNaN($faults) -or [double]::IsInfinity($faults) -or $faults -lt 0) {
      throw 'Windows returned out-of-range performance data.'
   }
    [PSCustomObject]@{
      source = 'Windows PerfOS'
      sampledAt = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-     dpcPct = $dpc
-     interruptPct = $intr
+     timestamp100ns = [string]$p.Timestamp_Sys100NS
+     dpc100ns = [string]$p.PercentDPCTime
+     interrupt100ns = [string]$p.PercentInterruptTime
      pageFaultsPerSec = $faults
    } | ConvertTo-Json -Compress
 } catch {
@@ -143,7 +186,9 @@ try {
     if (out.startsWith('ERROR')) {
       throw new Error(out.slice('ERROR:'.length).trim() || 'Performance counter query failed.');
     }
-    return parseCounterOutput(out);
+    const result = parseRawCounterOutput(out, counterState.previous);
+    counterState.previous = result.current;
+    return result.sample;
   } catch (err) {
     const detail = err && err.message ? err.message : String(err);
     const wrapped = new Error(`Unable to collect Windows performance counters: ${detail}`);
@@ -279,6 +324,7 @@ async function startAnalysis(onSample, onError) {
   _lastError      = null;
   _consecutiveFailures = 0;
   const generation = ++_generation;
+  const counterState = { previous: null };
   _lifecycleLog('analysis_started', { sampleIntervalMs: SAMPLE_INTERVAL_MS });
 
   async function poll() {
@@ -289,7 +335,7 @@ async function startAnalysis(onSample, onError) {
       return;
     }
     try {
-      const sample = await collectSample();
+      const sample = await collectSample(counterState);
       if (_sessionActive && generation === _generation && sample) {
         _sampleCount++;
         _lastError = null;
@@ -371,4 +417,5 @@ module.exports = {
   isActive,
   getStatus,
   parseCounterOutput,
+  parseRawCounterOutput,
 };

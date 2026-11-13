@@ -8,3 +8,12 @@ Load-based CPU/RAM/process heuristics and DPC/interrupt/page-fault counters must
 **Why:** Neither signal captures the complete mouse-to-photon path, and presenting either as measured input latency overstates what the instrumentation can support. The dashboard estimator previously used a hard-coded 1.5 ms floor, so the first request during Electron startup could report exactly 1.5 ms on unrelated machines while telemetry was still unavailable.
 
 **How to apply:** Keep direct input-latency wording only for a future feature that actually measures the input-to-display path; otherwise label the source signals and their limitations explicitly. Treat loading, missing CPU cores/RAM totals, or missing process counts as insufficient data in the backend response, and render an explicit unavailable state rather than `0.0` or the minimum estimate.
+
+Preserve fractional DPC/interrupt percentages using raw 100ns counter deltas, with
+64-bit values transported as strings. Never add artificial fluctuation.
+
+**Why:** Windows formatted CIM percentage properties are whole-number values;
+casting them to double after collection cannot recover activity below 1%.
+
+**How to apply:** Use consecutive native counter timestamps as the denominator.
+First reads and provider resets establish a baseline, not a zero measurement.

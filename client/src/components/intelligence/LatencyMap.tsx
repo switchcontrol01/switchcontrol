@@ -6,12 +6,12 @@ interface Stage {
   label: string;
   sublabel: string;
   value: string;
-  status: "good" | "warn" | "bad" | "idle";
+  status: "good" | "warn" | "bad" | "idle" | "connectedIdle";
   load: number;
 }
 
 function getNetworkStatus(kbps: number): Stage["status"] {
-  if (kbps === 0) return "idle";
+  if (kbps === 0) return "connectedIdle";
   if (kbps > 10240) return "bad";
   if (kbps > 2048) return "warn";
   return "good";
@@ -28,6 +28,7 @@ const STATUS_COLOR: Record<Stage["status"], string> = {
   warn: "text-amber-400 border-amber-500/30 bg-amber-500/5",
   bad:  "text-red-400 border-red-500/30 bg-red-500/5",
   idle: "text-muted-foreground border-[#2A313A] bg-[#1A1F26]",
+  connectedIdle: "text-sky-300 border-sky-500/30 bg-sky-500/5",
 };
 
 const STATUS_DOT: Record<Stage["status"], string> = {
@@ -35,6 +36,7 @@ const STATUS_DOT: Record<Stage["status"], string> = {
   warn: "bg-amber-400",
   bad:  "bg-red-400",
   idle: "bg-[#1A1F26]0",
+  connectedIdle: "bg-sky-300",
 };
 
 const PARTICLE_COLOR: Record<Stage["status"], string> = {
@@ -42,6 +44,7 @@ const PARTICLE_COLOR: Record<Stage["status"], string> = {
   warn: "bg-amber-400",
   bad:  "bg-red-500",
   idle: "bg-[#1A1F26]0",
+  connectedIdle: "bg-sky-300",
 };
 
 const CONNECTOR_GLOW: Record<Stage["status"], string> = {
@@ -49,12 +52,13 @@ const CONNECTOR_GLOW: Record<Stage["status"], string> = {
   warn: "from-amber-500/50 via-amber-400/20 to-transparent",
   bad:  "from-red-500/60 via-red-400/25 to-transparent",
   idle: "from-white/10 to-transparent",
+  connectedIdle: "from-sky-500/40 via-sky-400/20 to-transparent",
 };
 
 const PARTICLE_DELAY_SETS = [0, 0.55, 1.1] as const;
 
 function FlowParticles({ status }: { status: Stage["status"] }) {
-  if (status === "idle") return null;
+  if (status === "idle" || status === "connectedIdle") return null;
   const speed = status === "bad" ? 0.7 : status === "warn" ? 1.0 : 1.35;
   return (
     <>
@@ -215,6 +219,7 @@ export function LatencyMap({ className, compact = false }: LatencyMapProps) {
                   stage.status === "good" ? "text-emerald-400/60"
                   : stage.status === "warn" ? "text-amber-400/60"
                   : stage.status === "bad"  ? "text-red-400/60"
+                  : stage.status === "connectedIdle" ? "text-sky-400/60"
                   : "text-[#6B7380]/50"
                 )}
                 viewBox="0 0 8 8"

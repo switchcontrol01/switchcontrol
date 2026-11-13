@@ -6,7 +6,7 @@
   --di-blue: #8ecde7; --di-copper: #e9b47d;
   background: radial-gradient(ellipse at 82% 20%, #22436140, transparent 46%), var(--di-bg);
   color: var(--di-text); font-family: "Manrope", "Segoe UI", sans-serif;
-  padding: 0 clamp(18px, 2.6vw, 36px) 38px; min-height: calc(100vh - 64px);
+  padding: 0 clamp(18px, 2.6vw, 36px) 38px; min-height: 100%;
 }
 .driver-intel-page *, .driver-intel-page *::before, .driver-intel-page *::after { box-sizing: border-box; }
 .driver-intel-page button { cursor: pointer; }

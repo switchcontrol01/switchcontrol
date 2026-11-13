@@ -246,7 +246,7 @@ export default function LatencyAnalyzer() {
 
   if (locked) return <LockedState />;
   return (
-    <AppLayout noPageAnimation>
+    <AppLayout noPageAnimation immersiveContent>
         <div className="la-signal-bench">
         <header className="la-bench-intro">
           <div className="la-bench-kicker">{t("Diagnostics / Windows performance")}</div>

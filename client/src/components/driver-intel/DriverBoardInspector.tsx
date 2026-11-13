@@ -79,7 +79,7 @@ export function DriverBoardInspector({
           <div className="di-stage-head"><div><span className="di-label">{t("COMPONENT INSPECTOR")}</span><h3>X870E AORUS PRO ICE</h3></div><span className="di-manufacturer"><i /> GIGABYTE</span></div>
           <div className="di-board-viewport">
             <div className="di-board-art">
-              <img src="/images/driver-intel/aorus-ice-holographic-render.png" alt={t("X870E AORUS PRO ICE motherboard, white and silver.")} fetchPriority="high" decoding="async" draggable={false} />
+              <img src={`${import.meta.env.BASE_URL}images/driver-intel/aorus-ice-holographic-render.png`} alt={t("X870E AORUS PRO ICE motherboard, white and silver.")} fetchPriority="high" decoding="async" draggable={false} />
               {ordered.map(component => {
                 const point = HOTSPOTS[component.kind];
                 if (!point) return null;

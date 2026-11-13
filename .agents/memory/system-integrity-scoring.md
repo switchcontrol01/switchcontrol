@@ -17,3 +17,12 @@ and startup results were painted as healthy.
 changing probes or scoring. Explain the heuristic to users; do not claim it is a
 benchmark or malware verdict. Compare historical scores only across matching scoring
 policies and coverage, so a policy update or partial scan does not create a false alert.
+
+Concurrent page hydration and explicit Smart Scan must await the same in-flight
+read-only protection probes. Limiter-busy feedback is not unavailable device evidence.
+
+**Why:** Smart Scan can start before automatic page checks complete; rejecting the
+duplicate loses valid protection results and produces a false partial scan.
+
+**How to apply:** Coalesce pending reads without caching completed results, allow
+bounded waits for capacity, and never share or retry destructive actions this way.

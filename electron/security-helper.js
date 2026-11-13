@@ -12,6 +12,7 @@ const os = require('os');
 const psLimiter = require('./powershell-limiter');
 const { normalizeFirewallProbe } = require('./firewall-status');
 const { classifyPowerShellFailure } = require('./probe-status');
+const { createSharedReadProbe } = require('./shared-read-probe');
 const {
   resolveStartupEntry, startupApprovedPath, buildStartupStatusScript,
   buildSetEnabledScript, buildSetDelayScript, parseStartupCommand,
@@ -140,7 +141,10 @@ function classifyProcess(name) {
   'security:runDefenderAction',
 ].forEach(ch => ipcMain.removeHandler(ch));
 
-ipcMain.handle('security:getStatus', async () => {
+const registerSharedRead = (channel, probe) =>
+  ipcMain.handle(channel, createSharedReadProbe(probe));
+
+registerSharedRead('security:getStatus', async () => {
   if (process.platform !== 'win32') {
     return { available: false, reason: 'unsupported' };
   }
@@ -303,7 +307,7 @@ ipcMain.handle('security:getStatus', async () => {
 // Returns startup items from WMI
 // ---------------------------------------------------------------------------
 
-ipcMain.handle('security:getStartupApps', async () => {
+registerSharedRead('security:getStartupApps', async () => {
   if (process.platform !== 'win32') {
     return { available: false, reason: 'unsupported' };
   }
@@ -363,7 +367,7 @@ ipcMain.handle('security:getStartupApps', async () => {
 // Returns top processes sorted by CPU time
 // ---------------------------------------------------------------------------
 
-ipcMain.handle('security:getTopProcesses', async () => {
+registerSharedRead('security:getTopProcesses', async () => {
   if (process.platform !== 'win32') {
     return { available: false, reason: 'unsupported' };
   }
@@ -570,7 +574,7 @@ ipcMain.handle('startup:verifyState', async (event, { name, registryKey }) => {
 // Extended Defender intelligence: cloud, PUA, SmartScreen, signature/scan age
 // ---------------------------------------------------------------------------
 
-ipcMain.handle('security:getAdvancedProtection', async () => {
+registerSharedRead('security:getAdvancedProtection', async () => {
   if (process.platform !== 'win32') return { available: false, reason: 'unsupported' };
   const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getAdvancedProtection', reason: 'security-adv-protection' });
   if (!token) return { available: false, reason: 'temporarily_failed', detail: 'The PowerShell probe queue is busy.' };
@@ -875,7 +879,7 @@ ipcMain.handle('security:getAdvancedAudit', async () => {
 // Enriched process list: path, trust classification by location
 // ---------------------------------------------------------------------------
 
-ipcMain.handle('security:getProcessDetails', async () => {
+registerSharedRead('security:getProcessDetails', async () => {
   if (process.platform !== 'win32') return { available: false, reason: 'unsupported' };
   const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getProcessDetails', reason: 'security-proc-details' });
   if (!token) return { available: false, reason: 'temporarily_failed', detail: 'The PowerShell probe queue is busy.' };

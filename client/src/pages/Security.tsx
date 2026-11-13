@@ -1193,10 +1193,10 @@ export default function Security() {
       let processesCollected = false;
       if (type === "smart" && hasSecurity) {
         setScanStage(3);
-        const r = await eAPI().security.getProcessDetails().catch(async () => {
-          const r2 = await eAPI().security.getTopProcesses().catch(() => null);
-          return r2;
-        });
+        let r = await eAPI().security.getProcessDetails().catch(() => null);
+        if (!r?.available || !Array.isArray(r.data)) {
+          r = await eAPI().security.getTopProcesses().catch(() => null);
+        }
         if (r?.available && Array.isArray(r.data)) { processes = r.data; processesCollected = true; }
       }
       setProcessTrust(processes);

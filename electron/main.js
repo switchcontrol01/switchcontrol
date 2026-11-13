@@ -35,7 +35,11 @@
   const path = require('path');
   const os = require('os');
   const fs = require('fs'); // top-level — never undefined, never lost inside a closure
-  const { resolveNetworkStatsSample, summarizeNetworkStats } = require('./network-telemetry');
+  const {
+    resolveNetworkStatsSample,
+    summarizeNetworkStats,
+    resolveNetworkCounterSample,
+  } = require('./network-telemetry');
   // These modules are large and/or initialize native-facing state at require
   // time. Keep one stable proxy per module, but do not pay that initialization
   // cost until the first operation that actually needs the feature.
@@ -562,6 +566,7 @@ function Write-SwitchControlProbe($status, $data, $message) {
   
   // Network stats TTL — prevents slow NIC drivers from blocking the loop
   const NET_STATS_TTL_MS = 5_000;
+  const NETWORK_COUNTER_FALLBACK_MAX_AGE_MS = 15_000;
   
   // ─── GPU VRAM lookup table ─────────────────────────────────────────────────
   // WMI Win32_VideoController.AdapterRAM is a 32-bit signed integer that caps at
@@ -632,6 +637,12 @@ function Write-SwitchControlProbe($status, $data, $message) {
   let _netStatsLastTs = 0;
   let _netStatsCache = null;
   let _netStatsCacheAt = 0;
+  let _networkCounterBaseline = null;
+  let _networkCounterBaselineAt = 0;
+  let _networkCounterFallbackSample = null;
+  let _networkCounterFallbackLastAttempt = 0;
+  let _networkCounterFallbackFlight = null;
+  let _networkCounterFallbackLoggedInterface = null;
   
   // Approved si.* callers — documentation only, not runtime-enforced.
   // Approved direct callers of systeminformation (si.*).
@@ -881,6 +892,76 @@ function Write-SwitchControlProbe($status, $data, $message) {
     verboseLog('[telemetry:poll] async loop exited loopCount=' + _telemetryLoopCount);
   }
   
+  function getFreshNetworkCounterFallback(now = Date.now()) {
+    const sample = _networkCounterFallbackSample;
+    if (
+      !sample?.available ||
+      !Number.isFinite(sample.sampledAt) ||
+      now < sample.sampledAt ||
+      now - sample.sampledAt > NETWORK_COUNTER_FALLBACK_MAX_AGE_MS
+    ) {
+      return null;
+    }
+    return sample;
+  }
+
+  function refreshWindowsNetworkCounterFallback() {
+    const now = Date.now();
+    if (
+      process.platform !== 'win32' ||
+      _networkCounterFallbackFlight ||
+      now - _networkCounterFallbackLastAttempt < NET_STATS_TTL_MS
+    ) {
+      return;
+    }
+
+    _networkCounterFallbackLastAttempt = now;
+    const script = [
+      "$ErrorActionPreference = 'Stop';",
+      "$adapters = @(Get-NetAdapter -Physical -ErrorAction Stop | Where-Object { $_.Status -eq 'Up' });",
+      "$rows = @(foreach ($adapter in $adapters) { try {",
+      "$stats = Get-NetAdapterStatistics -Name $adapter.Name -ErrorAction Stop;",
+      "[pscustomobject]@{ iface = [string]$adapter.Name; rx_bytes = [double]$stats.ReceivedBytes; tx_bytes = [double]$stats.SentBytes }",
+      "} catch {} });",
+      "ConvertTo-Json -InputObject $rows -Compress -Depth 3",
+    ].join(' ');
+
+    const flight = runMainPs(script, {
+      timeout: 2_500,
+      label: 'telemetry:network-counter-fallback',
+    }).then((stdout) => {
+      const sampledAt = Date.now();
+      const sample = resolveNetworkCounterSample(
+        stdout,
+        _networkCounterBaseline,
+        _networkCounterBaselineAt,
+        sampledAt,
+      );
+      if (!sample.available) return;
+
+      _networkCounterBaseline = sample.counters;
+      _networkCounterBaselineAt = sample.sampledAt;
+      _networkCounterFallbackSample = sample;
+      const interfaceName = summarizeNetworkStats(sample.stats).interfaceName;
+      if (interfaceName && interfaceName !== _networkCounterFallbackLoggedInterface) {
+        _networkCounterFallbackLoggedInterface = interfaceName;
+        console.info(`[Telemetry] Windows adapter counters active: ${interfaceName}`);
+      }
+      if (liveTelemetryCache) {
+        liveTelemetryCache = {
+          ...liveTelemetryCache,
+          netStats: sample.stats,
+          networkAvailable: true,
+        };
+      }
+    }).catch((error) => {
+      console.warn('[telemetry:poll] Windows network counter fallback failed:', error?.message || error);
+    }).finally(() => {
+      if (_networkCounterFallbackFlight === flight) _networkCounterFallbackFlight = null;
+    });
+    _networkCounterFallbackFlight = flight;
+  }
+
   async function pollTelemetry() {
     // NOTE: pollTelemetry does NOT use PowerShell. It only calls si.currentLoad(),
     // si.mem(), si.networkStats() — fast OS reads. No psLimiter needed.
@@ -923,7 +1004,7 @@ function Write-SwitchControlProbe($status, $data, $message) {
           : Promise.resolve(null),
       ]);
       if (netStatsRaw !== null) _netStatsLastTs = now;
-      const networkSample = resolveNetworkStatsSample(
+      let networkSample = resolveNetworkStatsSample(
         netStatsRaw,
         _netStatsCache,
         _netStatsCacheAt,
@@ -932,6 +1013,10 @@ function Write-SwitchControlProbe($status, $data, $message) {
       if (networkSample.refreshed) {
         _netStatsCache = networkSample.stats;
         _netStatsCacheAt = networkSample.sampledAt;
+      }
+      if (!networkSample.available) {
+        refreshWindowsNetworkCounterFallback();
+        networkSample = getFreshNetworkCounterFallback(Date.now()) || networkSample;
       }
       const netStats = networkSample.stats;
       verboseLog(
@@ -1090,10 +1175,13 @@ function Write-SwitchControlProbe($status, $data, $message) {
         ? diskIO
         : (liveTelemetryCache?.diskIO ?? diskIO);
   
+      const latestNetworkSample = !networkSample.available
+        ? getFreshNetworkCounterFallback(Date.now()) || networkSample
+        : networkSample;
       const sampleCompletedAt = Date.now();
       liveTelemetryCache = {
-        load, mem, temps: _temps, fsData: _fsSizeCache || [], netStats: netStats || [], diskIO: _diskResult,
-        networkAvailable: networkSample.available,
+        load, mem, temps: _temps, fsData: _fsSizeCache || [], netStats: latestNetworkSample.stats || [], diskIO: _diskResult,
+        networkAvailable: latestNetworkSample.available,
         timestamp: sampleCompletedAt,
         cpuSampledAt: sampleCompletedAt,
         ramSampledAt: sampleCompletedAt,
