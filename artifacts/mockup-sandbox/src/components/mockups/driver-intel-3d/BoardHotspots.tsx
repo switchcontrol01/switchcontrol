@@ -23,14 +23,14 @@ const ICONS: Partial<Record<ComponentKind, typeof Cpu>> = {
 };
 
 const HOTSPOTS: Record<string, { x: number; y: number; side: string }> = {
-  cpu: { x: 48, y: 31, side: "top" },
-  monitor: { x: 15, y: 42, side: "left" },
-  gpu: { x: 47, y: 64, side: "bottom" },
-  ssd: { x: 31, y: 70, side: "left" },
-  network: { x: 87, y: 27, side: "right" },
-  chipset: { x: 68, y: 71, side: "right" },
-  audio: { x: 23, y: 84, side: "left" },
-  bluetooth: { x: 84, y: 45, side: "right" },
+  cpu: { x: 52, y: 35, side: "top" },
+  monitor: { x: 19, y: 38, side: "left" },
+  gpu: { x: 44, y: 57, side: "right" },
+  ssd: { x: 55, y: 71, side: "right" },
+  network: { x: 21, y: 45, side: "left" },
+  chipset: { x: 69, y: 73, side: "right" },
+  audio: { x: 20, y: 83, side: "left" },
+  bluetooth: { x: 24, y: 54, side: "left" },
 };
 
 const displayOrder = ["cpu", "monitor", "gpu", "ssd", "network", "chipset", "audio", "bluetooth"];
@@ -81,7 +81,6 @@ export function BoardHotspots() {
   const SelectedIcon = ICONS[selected.kind] ?? CircleHelp;
   const selectedMeta = getHealthMeta(selected.health);
   const healthColor = previewScore.overall >= 85 ? "#78d9b2" : "#d7b265";
-
   return (
     <main className="bh-shell">
       <div className="bh-grain" aria-hidden="true" />
@@ -139,47 +138,58 @@ export function BoardHotspots() {
         </section>
 
         <section className="bh-workbench" aria-label="Motherboard component inspector">
-          <div className={`bh-board-stage ${scanning ? "bh-is-scanning" : ""}`}>
+            <div className={`bh-board-stage ${scanning ? "bh-is-scanning" : ""}`}>
             <div className="bh-stage-head">
-              <div><span className="bh-label">COMPONENT INSPECTOR</span><strong>Motherboard view</strong></div>
-              <div className="bh-stage-key"><span className="bh-key-dot" /> Select a marker to inspect</div>
+              <div><span className="bh-label">COMPONENT INSPECTOR</span><strong>X870E AORUS PRO ICE</strong></div>
+              <div className="bh-stage-tools">
+                <span className="bh-fixed-palette"><i /> GIGABYTE</span>
+              </div>
             </div>
-            <div className="bh-board-viewport">
-              <div className="bh-board-orbit bh-orbit-one" />
-              <div className="bh-board-orbit bh-orbit-two" />
-              <div className="bh-board-shadow" />
-              <div className="bh-board-image-wrap">
+            <div
+              className="bh-board-viewport"
+              aria-label="X870E AORUS PRO ICE motherboard component map"
+            >
+              <div
+                className="bh-board-model"
+                aria-label="X870E AORUS PRO ICE"
+              >
                 <img
+                  className="bh-authentic-board-render"
                   src="/__mockup/images/aorus-ice-holographic-render.png"
-                  alt="Concept render of a white X870E AORUS PRO ICE-inspired motherboard"
-                  className="bh-board-image"
+                  alt="X870E AORUS PRO ICE motherboard, white and silver."
+                  fetchPriority="high"
+                  decoding="async"
                   draggable={false}
                 />
-                <div className="bh-board-tint" />
                 {orderedComponents.map((component) => {
                   const point = HOTSPOTS[component.kind];
                   const meta = getHealthMeta(component.health);
-                  const Icon = ICONS[component.kind] ?? CircleHelp;
                   const active = selectedKind === component.kind;
                   return (
                     <button
                       key={component.kind}
-                      className={`bh-hotspot bh-hotspot-${point.side} ${active ? "is-active" : ""} ${scanning ? "is-probed" : ""}`}
-                      style={{ left: `${point.x}%`, top: `${point.y}%`, "--status": meta.color } as CSSProperties}
+                      className={`bh-hotspot bh-hotspot-${component.kind} bh-hotspot-${point.side} ${active ? "is-active" : ""} ${scanning ? "is-probed" : ""}`}
+                      style={{
+                        left: `${point.x}%`,
+                        top: `${point.y}%`,
+                        "--status": meta.color,
+                         "--node": "var(--bh-accent)",
+                      } as CSSProperties}
                       onClick={() => setSelectedKind(component.kind)}
                       aria-pressed={active}
                       aria-label={`${component.title}, ${meta.label}. Show driver details.`}
                       title={`${component.title} · ${meta.label}`}
                     >
-                      <span className="bh-hotspot-core"><Icon size={13} strokeWidth={1.8} /></span>
-                      <span className="bh-hotspot-label">{component.title}</span>
+                      <span className="bh-hotspot-core"><i /></span>
+                      <span className="bh-hotspot-line" aria-hidden="true" />
+                      <span className="bh-hotspot-label"><b>{component.title}</b><small>{meta.label}</small></span>
                       <span className="bh-hotspot-ping" />
                     </button>
                   );
                 })}
-                <div className="bh-xray-sweep" aria-hidden="true" />
+                <div className="bh-scan-sweep" aria-hidden="true" />
               </div>
-              <div className="bh-image-caption"><span>REFERENCE RENDER</span><i /> Concept hardware · not a detected board model</div>
+              <div className="bh-image-caption"><span>X870E AORUS PRO ICE</span><i /> DRIVER INTELLIGENCE</div>
             </div>
             {scanning && <div className="bh-scan-ribbon" aria-live="polite"><Waves size={14} /> SAMPLE PASS IN PROGRESS <span>01—08</span></div>}
           </div>
@@ -200,7 +210,7 @@ export function BoardHotspots() {
             </div>
             <div className="bh-version-block">
               <VersionLine label="Installed version" value={selected.current} />
-              <VersionLine label="Reference version" value={selected.latest} />
+              <VersionLine label="Latest version" value={selected.latest} />
             </div>
             <div className="bh-rationale">
               <div className="bh-rationale-label"><Sparkles size={13} /> EVIDENCE & GUIDANCE</div>
@@ -254,7 +264,7 @@ export function BoardHotspots() {
             <div className="bh-notice-icon"><Info size={18} /></div>
             <span className="bh-label">DESIGN PREVIEW</span>
             <h2 id="bh-notice-title">A visual concept, not a live scan.</h2>
-            <p>This mockup uses illustrative hardware and fixture driver data to demonstrate the inspection experience. The reference motherboard render does not identify your actual hardware.</p>
+            <p>This preview shows the X870E AORUS PRO ICE product render with sample driver data. It does not inspect your hardware.</p>
             <p>In the product, driver updates are reviewed at official sources and remain under your control.</p>
             <button className="bh-scan-button bh-notice-done" onClick={() => setNoticeOpen(false)}><Check size={14} /> Understood</button>
           </section>
