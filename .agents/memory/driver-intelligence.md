@@ -82,8 +82,30 @@ hardware. Preserve evidence-based driver states and the calm resting-state perfo
 policy when translating this visual direction into production.
 
 ## Entitlement
-- Free → full-page premium overlay. Trial (`status === "trial_active"`) → READ-ONLY:
-  can scan, but action/AI buttons are disabled and route to the upgrade modal.
+Preserve the current entitlement policy during visual replacements; do not change
+access based on older descriptions of trial behavior.
+
+**Why:** The user requested a page replacement, not a change to Premium/trial access.
+
+**How to apply:** Check the current production controller and entitlement helpers
+before making access changes; historical trial-read-only notes are not authoritative.
+
+## Approved design replacement scope
+The user clarified: "just replace the driver intel page with this. ill tel you
+what to adjust aftert". Replace the existing page, not the project structure or
+a separate app. Keep the original white X870E AORUS PRO ICE artwork.
+
+Apply the approved marine-ink, glacier-blue and copper palette to the entire
+Driver Intelligence section, not just the motherboard. Use one fixed palette,
+not a color picker. Never replace the authentic board artwork with a fabricated
+CSS board and describe it as restored. An image is not a genuinely rotatable 3D asset.
+
+**Why:** The user repeatedly corrected whole-page color scope and rejected both
+procedural replacement boards and claims that a tilted image was real 3D.
+
+**How to apply:** Graduate the selected BoardHotspots design into the existing
+production page while preserving real scan evidence and actions. Do not restart
+the earlier separate-artifact migration proposal for this design.
 
 ## Auto-fetch scheduler
 - `server/lib/driverFetcher.ts` — daily background job; fires 60s after startup then every 24h.

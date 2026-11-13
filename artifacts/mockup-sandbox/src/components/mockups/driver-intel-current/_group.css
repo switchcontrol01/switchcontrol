@@ -1,0 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap");
+
+/* Scope this extracted production component; never change the sandbox globals. */
+.di-preview { --preview-background: #0d1420; --preview-panel: #151f2d; --preview-text: #e8edf4; }
