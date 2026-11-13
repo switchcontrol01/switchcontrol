@@ -36,6 +36,7 @@ import {
   useAuthStore,
   validateToken,
   exchangeToken,
+  reportAppActive,
   AuthUser,
   refreshEntitlements,
   retryRefreshEntitlements,
@@ -276,15 +277,15 @@ function ElectronAppRoutes() {
   useEffect(() => {
     const path = location.split("?")[0];
     const mode =
-      path === "/" || path === "/dashboard"
+      path === "/" || path === "/dashboard" || path === "/network"
         ? "full"
         : path === "/tweaks"
           ? "intelligence"
           : "paused";
     telemetryManager.setDemandMode(mode);
-    // Dashboard analytics are visible product UI, not an optional background
-    // service. Keep the dashboard route polling so Storage Activity, Memory
-    // Pressure, and System Rhythm receive real values. Static routes remain
+    // Dashboard analytics and Network Tweaks traffic are visible product UI,
+    // not optional background services. Keep their telemetry current while
+    // these routes are active. Static routes remain
     // paused; the preference still controls non-dashboard consumers.
     if (mode === "paused") {
       telemetryManager.pause();
@@ -481,6 +482,27 @@ function ElectronAppContent() {
       (hasIncompleteFirstRunSequence(user.id) ||
         (user.hasInstalledApp === false && phase !== "authenticated")),
   );
+  const appActiveReportingUserRef = React.useRef<string | null>(null);
+
+  useEffect(() => {
+    if (
+      phase !== "authenticated" ||
+      !user?.loggedIn ||
+      !user.id ||
+      firstRunSequencePending ||
+      appActiveReportingUserRef.current === user.id
+    ) {
+      return;
+    }
+
+    const userId = user.id;
+    appActiveReportingUserRef.current = userId;
+    void reportAppActive(userId).then((reported) => {
+      if (!reported && appActiveReportingUserRef.current === userId) {
+        appActiveReportingUserRef.current = null;
+      }
+    });
+  }, [phase, user?.loggedIn, user?.id, firstRunSequencePending]);
 
   // The language gate is rendered in a portal, outside the phase AnimatePresence.
   // Start the same cover/swap/reveal handoff when login gives way to that gate;
@@ -2366,6 +2388,11 @@ function ElectronAppContent() {
                 isPremium={user?.isPremium}
                 introDelay={0.4}
                 onComplete={() => {
+                  const uid = user?.id;
+                  if (uid) {
+                    localStorage.setItem(`sc_welcomed_${uid}`, "true");
+                    clearFirstRunPending(uid);
+                  }
                   console.log(
                     "[Handoff] intro exit complete, mounting dashboard",
                   );
@@ -2550,7 +2577,6 @@ function ElectronAppContent() {
             const uid = user?.id;
             if (uid) {
               localStorage.setItem(`sc_disclaimer_seen_${uid}`, "true");
-              clearFirstRunPending(uid);
             }
             console.log("[FirstRunDisclaimer] dismissed, transitioning to welcome");
             setShowDisclaimer(false);

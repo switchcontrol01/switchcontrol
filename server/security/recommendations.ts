@@ -7,6 +7,7 @@ import {
   SystemAnalysisRequest,
   SystemAnalysisResult,
 } from "./types";
+import { scoreIntegrity, isHeavyProcess, type ScanCoverage } from "../../shared/securityScore";
 
 const LAUNCHER_PATTERNS = ["steam", "epic", "origin", "battlenet", "gog", "ubisoft", "ea app", "riot", "rockstar"];
 const OVERLAY_PATTERNS = ["discord", "geforce", "nvidiaoverlay", "shadowplay", "afterburner", "obs", "fraps", "xsplit", "overwolf"];
@@ -56,10 +57,11 @@ export function classifyStartup(name: string, command: string): {
 
 export function generateRecommendations(data: SystemAnalysisRequest): SystemAnalysisResult {
   const recs: SecurityRecommendation[] = [];
-  const { status, startupItems, topProcesses } = data;
+  const { startupItems, topProcesses } = data;
+  const status = data.status?.source === "unavailable" ? null : data.status;
 
   // ── Protection status ─────────────────────────────────────────────────────
-  if (status?.realtimeProtection === true) {
+  if (status?.defenderAvailable !== false && status?.realtimeProtection === true) {
     recs.push({
       id: "realtime-active",
       title: "Real-time protection is active",
@@ -71,11 +73,11 @@ export function generateRecommendations(data: SystemAnalysisRequest): SystemAnal
       actionLabel: null,
       actionType: "info",
     });
-  } else if (status?.realtimeProtection === false) {
+  } else if (status?.defenderAvailable !== false && status?.realtimeProtection === false) {
     recs.push({
       id: "realtime-off",
       title: "Real-time protection is disabled",
-      summary: "Windows Defender real-time protection is off. While this eliminates scan overhead, your system is exposed to active threats.",
+      summary: "Windows Defender reports real-time protection is off. Confirm protection in Windows Security, including any third-party antivirus. This observation is not a detected malware threat.",
       severity: "high",
       category: "protection",
       performanceImpact: "none",
@@ -157,12 +159,12 @@ export function generateRecommendations(data: SystemAnalysisRequest): SystemAnal
   }
 
   // ── Background process overhead ───────────────────────────────────────────
-  const heavyProcs = topProcesses.filter(p => p.impact === "high" || (p.cpuSec !== null && p.cpuSec > 10));
+  const heavyProcs = topProcesses.filter(isHeavyProcess);
   if (heavyProcs.length > 0) {
     recs.push({
       id: "background-load",
-      title: "High-impact background processes detected",
-      summary: `${heavyProcs.slice(0, 3).map(p => p.name).join(", ")} ${heavyProcs.length === 1 ? "is" : "are"} consuming significant CPU resources. Close them before starting a gaming session for the best performance.`,
+      title: "Sampled processes worth reviewing",
+      summary: `${heavyProcs.slice(0, 3).map(p => p.name).join(", ")} have a high impact classification or at least 1 GB of sampled memory each. This is not a measurement of current CPU load; review whether you need these applications open.`,
       severity: "medium",
       category: "performance",
       performanceImpact: "high",
@@ -190,9 +192,26 @@ export function generateRecommendations(data: SystemAnalysisRequest): SystemAnal
     }
   }
 
-  // ── All-clear ─────────────────────────────────────────────────────────────
+  const summary = computeSummary(recs, status, startupItems, topProcesses, data.scanCoverage);
+  const disabledControls = status?.defenderAvailable === false ? [] :
+    [status?.tamperProtection === false ? "tamper protection" : null,
+      status?.antispywareEnabled === false ? "antispyware protection" : null].filter(Boolean);
+  if (disabledControls.length) recs.push({
+    id: "protection-controls-off", title: "Protection controls need review",
+    summary: `Windows reports ${disabledControls.join(" and ")} disabled. Review the observed settings in Windows Security.`,
+    severity: "medium", category: "protection", performanceImpact: "none", securityImpact: "medium",
+    actionLabel: "Open Windows Security", actionType: "external",
+  });
+  if (summary.coveragePercent < 100) recs.push({
+    id: "scan-incomplete", title: "Some scan evidence is unavailable",
+    summary: `${summary.coveragePercent}% of weighted checks returned usable data. Unknown checks are excluded from the score, not treated as healthy. Quick Scan checks protection only; use Smart Scan for startup and process evidence.`,
+    severity: "info", category: "configuration", performanceImpact: "none", securityImpact: "none",
+    actionLabel: null, actionType: "info",
+  });
+
+  // All-clear requires complete evidence.
   const hasIssues = recs.some(r => r.severity === "medium" || r.severity === "high");
-  if (!hasIssues && (status !== null || startupItems.length > 0)) {
+  if (!hasIssues && summary.systemState === "secure") {
     recs.push({
       id: "all-clear",
       title: "System integrity looks healthy",
@@ -206,7 +225,6 @@ export function generateRecommendations(data: SystemAnalysisRequest): SystemAnal
     });
   }
 
-  const summary = computeSummary(recs, status, startupItems, topProcesses);
   return { recommendations: recs, summary };
 }
 
@@ -214,22 +232,8 @@ export function computeSummary(
   recs: SecurityRecommendation[],
   status: SecurityStatus | null,
   startupItems: StartupItem[],
-  processes: ProcessItem[]
+  processes: ProcessItem[],
+  scanCoverage?: ScanCoverage,
 ): ScanSummary {
-  const threatCount =
-    (status?.realtimeProtection === false ? 1 : 0) +
-    (status?.firewallEnabled === false ? 1 : 0);
-  const startupIssues = startupItems.filter(i => i.recommendation !== "keep").length;
-  const backgroundIssues = processes.filter(p => p.impact === "high").length;
-
-  const highCount = recs.filter(r => r.severity === "high").length;
-  const medCount = recs.filter(r => r.severity === "medium").length;
-  const healthScore = Math.max(20, Math.min(100, 100 - highCount * 20 - medCount * 8 - Math.min(backgroundIssues * 5, 20)));
-
-  const systemState: ScanSummary["systemState"] =
-    highCount > 0 ? "attention" :
-    medCount > 0 ? "optimize" :
-    "secure";
-
-  return { threatCount, startupIssues, backgroundIssues, healthScore, systemState };
+  return scoreIntegrity({ status, startupItems, topProcesses: processes, scanCoverage });
 }

@@ -6,6 +6,7 @@ id = "t0Pc8Yf00ksFdaU2ua5w3"
 uri = "file://release_asar/app.asar.tar.gz"
 type = "unspecified"
 title = "app.asar.tar.gz — login UI fix + protocol logging"
+logical_id = "cdc3c7cf-7a5e-4db8-bdc2-95ee35ba7cae"
 
 [[outputs]]
 id = "zSsDe6T7o6HOYsnu9iw2l"
@@ -13,3 +14,4 @@ uri = "file://electron/dist/SwitchControl-1.2.7-fixed-win-unpacked.zip"
 type = "unspecified"
 title = "SwitchControl 1.2.7 storage telemetry fix"
 description = "Rebuilt Windows package with disk-counter validation and PowerShell fallback for Storage Activity, plus the previous startup and route-loading fixes. Extract and launch SwitchControl.exe."
+logical_id = "9765ac00-d404-4fc7-bc1e-8c01ca6c297b"

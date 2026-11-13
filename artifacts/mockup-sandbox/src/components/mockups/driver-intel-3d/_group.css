@@ -1,0 +1,78 @@
+:root {
+  color-scheme: dark;
+
+  /* ── SwitchControl v2, Matte, structured, purposeful ── */
+  --background: 215 18% 10%;      /* #14181D, main app bg */
+  --foreground: 220 20% 92%;     /* #E6EAF0, main text */
+
+  /* Cards, layered matte greys */
+  --card: 215 16% 15%;             /* #21262D, primary card */
+  --card-foreground: 220 20% 92%;
+
+  /* Popovers, slightly elevated */
+  --popover: 215 16% 17%;
+  --popover-foreground: 220 20% 92%;
+
+  /* Primary: Cyan, active, interactive, action */
+  --primary: 193 100% 50%;
+  --primary-foreground: 210 25% 7%;   /* near-black on cyan */
+
+  /* Secondary: Amber, warning, attention, highlight */
+  --secondary: 38 92% 50%;
+  --secondary-foreground: 210 25% 7%;
+
+  /* Muted, section bg, subtle surfaces */
+  --muted: 215 16% 12%;            /* #1A1F26, section bg */
+  --muted-foreground: 220 12% 55%;  /* #6B7380, muted text */
+
+  /* Accent: same as primary (cyan) */
+  --accent: 193 100% 50%;
+  --accent-foreground: 210 25% 7%;
+
+  /* Destructive: red, only for actual danger */
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 210 20% 98%;
+
+  /* Borders, subtle, structural */
+  --border: 215 14% 17%;           /* #2A313A */
+  --input: 215 14% 17%;
+  --ring: 193 100% 50%;
+
+  /* Charts, cyan primary, amber secondary */
+  --chart-1: 193 100% 50%;
+  --chart-2: 38 92% 50%;
+  --chart-3: 160 60% 45%;
+  --chart-4: 0 72% 51%;
+  --chart-5: 220 12% 55%;
+
+  /* Sidebar, same as app bg, matte */
+  --sidebar: 215 18% 10%;
+  --sidebar-foreground: 220 20% 92%;
+  --sidebar-primary: 193 100% 50%;
+  --sidebar-primary-foreground: 210 25% 7%;
+  --sidebar-accent: 215 16% 15%;
+  --sidebar-accent-foreground: 220 20% 92%;
+  --sidebar-border: 215 14% 17%;
+  --sidebar-ring: 193 100% 50%;
+
+  /* Legacy brand colors, keep for gradual migration */
+  --brand-purple: 270 60% 55%;
+  --brand-purple-light: 270 65% 65%;
+  --brand-purple-dark: 270 55% 45%;
+  --brand-purple-glow: 270 70% 60%;
+
+  /* Cyan accent - for CTAs and performance only */
+  --cyan-accent: 190 90% 50%;
+  --cyan-accent-light: 185 85% 60%;
+  --cyan-accent-dark: 190 85% 40%;
+
+  /* Structural color - hierarchy, clarity, trust */
+  /* #E6EAF0 = hsl(216 25% 92%) */
+  --structural: 216 25% 92%;
+  --structural-dim: 216 20% 75%;
+
+  --radius: 0.75rem;
+}
+body { margin:0; background:#14181D; color:#E6EAF0; font-family:"Segoe UI",sans-serif; }
+.driver-preview { min-height:100vh; background:#14181D; color:#E6EAF0; }
+button { cursor:pointer; }

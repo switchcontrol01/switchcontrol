@@ -42,6 +42,7 @@
       "file-logger.js",
       "tweak-executor.js",
       "network-tweak-executor.js",
+      "network-telemetry.js",
       "slider-tweak-executor.js",
       "preset-tweak-executor.js",
       "power-plan-manager.js",

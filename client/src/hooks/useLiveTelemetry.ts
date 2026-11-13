@@ -27,7 +27,13 @@ export interface LiveTelemetry {
   status: TelemetryStatus;
   cpu: { load: number; speed: number; cores: number };
   ram: { totalGB: number; usedGB: number; usedPercent: number };
-  network: { rx_sec: number; tx_sec: number; latency_ms: number };
+  network: {
+    rx_sec: number;
+    tx_sec: number;
+    latency_ms: number;
+    available?: boolean;
+    interfaceName?: string | null;
+  };
   temps: { cpu: number | null; gpu: number | null };
   gpu: GpuTelemetry;
   disk: DiskTelemetry;

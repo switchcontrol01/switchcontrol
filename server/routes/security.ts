@@ -73,6 +73,7 @@ const analyzeRequestSchema = z.object({
   status: securityStatusSchema,
   startupItems: z.array(startupItemSchema).max(100).default([]),
   topProcesses: z.array(processItemSchema).max(50).default([]),
+  scanCoverage: z.object({ startup: z.boolean(), background: z.boolean() }).optional(),
   systemInfo: z.object({
     cpu: z.string().max(200).optional(),
     ram: z.string().max(100).optional(),
@@ -142,13 +143,14 @@ securityRouter.post("/analyze", requireJwt, requirePremium, async (req: Request,
     });
   }
 
-  const { status, startupItems, topProcesses, systemInfo } = parsed.data;
+  const { status, startupItems, topProcesses, systemInfo, scanCoverage } = parsed.data;
 
   const analysisData: SystemAnalysisRequest = {
     status: (status as SecurityStatus | null | undefined) ?? null,
     startupItems: (startupItems as StartupItem[]) ?? [],
     topProcesses: (topProcesses as ProcessItem[]) ?? [],
     systemInfo,
+    scanCoverage,
   };
 
   try {

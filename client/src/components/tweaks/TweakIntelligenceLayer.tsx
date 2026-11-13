@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, type FC, type ReactNode } from "react";
 import {
-  Brain, ChevronUp, ChevronDown, RefreshCw, AlertCircle,
+  Brain, ChevronUp, ChevronDown, RefreshCw, AlertCircle, Info,
   TrendingUp, TrendingDown, Minus, Cpu, HardDrive, Activity,
   Wifi, Sparkles, Target,
 } from "lucide-react";
@@ -422,10 +422,10 @@ export function TweakIntelligenceLayer() {
           <span className="text-sm font-semibold text-[#E6EAF0]">{t("Performance Intelligence")}</span>
           <motion.span
             className="text-[9px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20"
-            animate={{ opacity: [0.6, 1, 0.6] }}
+            animate={{ opacity: intel.availability === "ready" ? [0.6, 1, 0.6] : 1 }}
             transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
           >
-            {t("Live")}
+            {t(intel.availability === "ready" ? "Live" : intel.availability === "loading" ? "Loading" : intel.availability === "partial" ? "Partial" : intel.availability === "stale" ? "Last snapshot" : "Waiting for data")}
           </motion.span>
           {intel.loadTrend === "rising" && (
             <span className="text-[9px] font-medium flex items-center gap-0.5 text-orange-400">
@@ -479,23 +479,28 @@ export function TweakIntelligenceLayer() {
                     {t("Loading system intelligence…")}
                   </motion.div>
                 )}
-                {intel.error && !intel.loading && (
+                {intel.availability !== "ready" && !intel.loading && (
                   <motion.div
-                    key="intel-error"
+                    key="intel-status"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.25 }}
-                    className="flex items-center justify-between gap-3 text-xs text-red-400/80 bg-red-500/10 border border-red-500/15 rounded-xl px-3 py-2"
+                    role="status"
+                    className="flex items-center justify-between gap-3 text-xs text-muted-foreground bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2"
                   >
                     <span className="flex items-center gap-2 min-w-0">
-                      <AlertCircle className="size-3.5 shrink-0" />
-                      <span>{intel.error}</span>
+                      <Info className="size-3.5 shrink-0" />
+                      <span>{intel.availability === "stale"
+                        ? t("Showing the last available snapshot. Live updates will resume automatically.")
+                        : intel.availability === "partial"
+                        ? t("Available intelligence is shown. Remaining signals are still waiting for data.")
+                        : t("Live intelligence is waiting for data. Your tweaks remain available.")}</span>
                     </span>
                     <button
                       type="button"
                       onClick={intel.refresh}
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-red-400/25 bg-red-400/10 px-2 py-1 text-[10px] font-medium text-red-300 transition-colors hover:bg-red-400/20 hover:text-red-200"
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 px-2 py-1 text-[10px] font-medium transition-colors hover:bg-white/5 hover:text-foreground"
                       data-testid="button-refresh-intelligence"
                     >
                       <RefreshCw className="size-3" />

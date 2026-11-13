@@ -5,9 +5,9 @@ description: The installed Windows app can remain on an older renderer even when
 
 The development preview and the packaged Electron renderer are separate artifacts. A UI string that no longer exists in client source or dist-electron proves the user is running an older installed package, not that the current fix failed.
 
-**Why:** Restarting the web workflow does not update an installed Windows executable; lazy-route and startup fixes must be copied into electron/dist-frontend and included in a fresh Windows build.
+**Why:** Restarting the web workflow does not update an installed Windows executable; renderer fixes must be included in a fresh packaged Windows build.
 
-**How to apply:** After Electron UI changes, run the frontend build, synchronize with electron/scripts/ensure-dist.js, build the Windows package, and verify the packaged output before concluding the user-facing issue is fixed.
+**How to apply:** After Electron UI changes, build the renderer and prepare assets using the current packaging scripts, then build and inspect the Windows package before claiming installed-app verification. Check the scripts for the current output directory rather than assuming a historical renderer-copy path.
 
 Native helper modules required by electron/main.js must also be explicitly listed in the Electron build `files` contract; a source `require()` alone does not guarantee the module enters app.asar.
 

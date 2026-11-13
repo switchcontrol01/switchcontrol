@@ -320,12 +320,6 @@ export async function exchangeToken(token: string, signal?: AbortSignal): Promis
         // Don't store it, but auth can still proceed via session cookie
       } else {
         useAuthStore.getState().setJwt(data.jwt);
-        // Fire-and-forget activity ping (non-critical)
-        fetch(`${AUTH_DOMAIN}/api/activity/app-active`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${data.jwt}`, 'Content-Type': 'application/json' },
-          credentials: 'include',
-        }).catch(() => {});
       }
     } else {
       if (isDebug) console.warn('[AuthClient] exchangeToken: no JWT in exchange response');
@@ -345,6 +339,41 @@ export async function exchangeToken(token: string, signal?: AbortSignal): Promis
   } catch (err) {
     console.error('[AuthClient] exchangeToken error:', (err as Error).message);
     return null;
+  }
+}
+
+/**
+ * Mark the app as installed only after the authenticated first-run sequence has
+ * completed. Calling this during OAuth exchange can race /api/me and make a
+ * brand-new account look like a returning installation before its required gates.
+ */
+export async function reportAppActive(userId: string): Promise<boolean> {
+  const store = useAuthStore.getState();
+  const jwt = safeGetJwt();
+  if (!jwt || !store.user?.loggedIn || store.user.id !== userId) return false;
+
+  try {
+    const response = await fetch(`${AUTH_DOMAIN}/api/activity/app-active`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+    if (!response.ok) return false;
+
+    const currentUser = useAuthStore.getState().user;
+    if (currentUser?.loggedIn && currentUser.id === userId) {
+      useAuthStore.getState().setUser({
+        ...currentUser,
+        hasInstalledApp: true,
+      });
+    }
+    return true;
+  } catch (error) {
+    console.warn('[AuthClient] app-active report failed:', (error as Error).message);
+    return false;
   }
 }
 

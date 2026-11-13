@@ -11,6 +11,7 @@ const modal = read("client/src/components/FirstRunLanguageModal.tsx");
 const transition = read("client/src/lib/firstRunTransition.ts");
 const i18n = read("client/src/lib/i18n.tsx");
 const authRoutes = read("server/auth/google.ts");
+const authClient = read("client/src/lib/authClient.ts");
 
 test("first-run language gate is only mounted for an authenticated user", () => {
   assert.match(
@@ -52,6 +53,24 @@ test("first-run language gate is only mounted for an authenticated user", () => 
     authRoutes,
     /hasInstalledApp: dbUserForExchange\?\.hasInstalledApp \|\| false/,
     "the OAuth exchange must expose the server installation marker",
+  );
+  assert.doesNotMatch(
+    authClient.slice(
+      authClient.indexOf("export async function exchangeToken"),
+      authClient.indexOf("export async function reportAppActive"),
+    ),
+    /\/api\/activity\/app-active/,
+    "OAuth exchange must not mark a new account installed before first-run gates",
+  );
+  assert.match(
+    authClient,
+    /export async function reportAppActive\(userId: string\)[\s\S]*?hasInstalledApp: true/,
+    "the app-installed marker must be reported after first-run completes",
+  );
+  assert.match(
+    app,
+    /phase !== "authenticated"[\s\S]*?firstRunSequencePending[\s\S]*?reportAppActive\(userId\)/,
+    "app activity must wait until required first-run gates are complete",
   );
 });
 

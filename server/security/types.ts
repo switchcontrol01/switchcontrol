@@ -54,18 +54,14 @@ export interface SecurityRecommendation {
   actionType: "info" | "review" | "disable" | "external";
 }
 
-export interface ScanSummary {
-  threatCount: number;
-  startupIssues: number;
-  backgroundIssues: number;
-  healthScore: number;
-  systemState: "secure" | "attention" | "optimize";
-}
+export type { IntegritySummary as ScanSummary } from "../../shared/securityScore";
+import type { IntegritySummary as ScanSummary, ScanCoverage } from "../../shared/securityScore";
 
 export interface SystemAnalysisRequest {
   status: SecurityStatus | null;
   startupItems: StartupItem[];
   topProcesses: ProcessItem[];
+  scanCoverage?: ScanCoverage;
   systemInfo?: {
     cpu?: string;
     ram?: string;

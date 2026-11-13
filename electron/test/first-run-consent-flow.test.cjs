@@ -116,9 +116,20 @@ test("an interrupted first-run sequence resumes before dashboard startup surface
     /open=\{revertModalOpen && !firstRunSequencePending\}/,
     "premium revert must remain hidden while the restarted first-run sequence is pending",
   );
+  const welcomeStart = app.indexOf("<WelcomeAnimation");
+  const welcomeBlock = app.slice(
+    welcomeStart,
+    app.indexOf('{phase === "authenticated"', welcomeStart),
+  );
   assert.match(
-    app,
-    /sc_disclaimer_seen_[^]*?clearFirstRunPending\(uid\)/,
-    "the pending marker must only clear after the final required gate",
+    welcomeBlock,
+    /<WelcomeAnimation[\s\S]*?onComplete=\{\(\) => \{[\s\S]*?clearFirstRunPending\(uid\)[\s\S]*?setPhase\("authenticated"\)/,
+    "an interrupted welcome animation must keep first-run pending until completion",
+  );
+  const disclaimerStart = app.indexOf("<FirstRunDisclaimer");
+  assert.doesNotMatch(
+    app.slice(disclaimerStart, app.indexOf("{!isResetting", disclaimerStart)),
+    /clearFirstRunPending/,
+    "dismissing the disclaimer must not clear first-run before Welcome finishes",
   );
 });

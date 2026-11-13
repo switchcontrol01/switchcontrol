@@ -95,8 +95,9 @@ interface LatencyMapProps {
 export function LatencyMap({ className, compact = false }: LatencyMapProps) {
   const { telemetry } = useLiveTelemetryValues();
 
-  const rxKbps  = telemetry ? telemetry.network.rx_sec / 1024 : 0;
-  const txKbps  = telemetry ? telemetry.network.tx_sec / 1024 : 0;
+  const networkAvailable = Boolean(telemetry) && telemetry?.network.available !== false;
+  const rxKbps  = networkAvailable && telemetry ? telemetry.network.rx_sec / 1024 : 0;
+  const txKbps  = networkAvailable && telemetry ? telemetry.network.tx_sec / 1024 : 0;
   const cpuLoad = telemetry?.cpu.load ?? 0;
   const ramPct  = telemetry?.ram.usedPercent ?? 0;
 
@@ -117,17 +118,17 @@ export function LatencyMap({ className, compact = false }: LatencyMapProps) {
     },
     {
       label:    "NIC",
-      sublabel: "Interface",
-      value:    telemetry ? formatKbps(rxKbps) : "—",
-      status:   telemetry ? getNetworkStatus(rxKbps) : "idle",
-      load:     Math.min(100, (rxKbps / 10240) * 100),
+      sublabel: telemetry?.network.interfaceName || "Interface",
+      value:    networkAvailable ? formatKbps(rxKbps) : "—",
+      status:   networkAvailable ? getNetworkStatus(rxKbps) : "idle",
+      load:     networkAvailable ? Math.min(100, (rxKbps / 10240) * 100) : 0,
     },
     {
       label:    "Network",
       sublabel: "Upload",
-      value:    telemetry ? formatKbps(txKbps) : "—",
-      status:   telemetry ? getNetworkStatus(txKbps) : "idle",
-      load:     Math.min(100, (txKbps / 10240) * 100),
+      value:    networkAvailable ? formatKbps(txKbps) : "—",
+      status:   networkAvailable ? getNetworkStatus(txKbps) : "idle",
+      load:     networkAvailable ? Math.min(100, (txKbps / 10240) * 100) : 0,
     },
   ];
 
@@ -180,7 +181,7 @@ export function LatencyMap({ className, compact = false }: LatencyMapProps) {
                 {stage.label}
               </span>
             </div>
-            <span className="text-[11px] text-muted-foreground leading-none pl-3">
+            <span className="text-[11px] text-muted-foreground leading-none pl-3 truncate" title={stage.sublabel}>
               {stage.sublabel}
             </span>
             <AnimatePresence mode="wait">

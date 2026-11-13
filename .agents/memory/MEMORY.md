@@ -63,6 +63,7 @@
 - [Windows disk telemetry fallback](windows-disk-telemetry-fallback.md) — validate disk counters, not just truthy probe objects; fall back to PowerShell for incomplete Windows samples.
 - [Cleaner accuracy boundary](cleaner-accuracy.md) — cleanup totals are post-delete facts, Recycle Bin is verified by before/after scope, and active navigation must be cancellable.
 - [Electron intelligence telemetry bridge](electron-intelligence-telemetry-bridge.md) — embedded backend skips its scheduler; intelligence routes must consume the authenticated renderer’s existing main-process live snapshot.
+- [Tweak Intelligence recovery](tweak-intelligence-recovery.md) — no repeated red error banner; preserve evidence, handle skipped results, and pace polling after completion.
 - [Route-aware telemetry demand](route-aware-telemetry-demand.md) — one central mode policy: Dashboard full, Tweaks intelligence, static paused; Electron and web polling must follow it.
 - [Electron offline auth boundary](electron-offline-auth-boundary.md) — loopback Electron requests use the renderer identity plus local entitlement headers when no cloud DB exists; native focus must resume telemetry.
 - [Premium revert cycle guard](premium-revert-cycle-guard.md) — automatic expiry reverts run once per inactive entitlement cycle; retained failures require explicit Retry.
@@ -73,6 +74,7 @@
 - [Cleaner navigation modal](cleaner-navigation-modal.md) — active-operation confirmation must render at body level with explicit pointer handling to avoid freezing the Electron shell.
 - [Windows display connection enum](windows-display-connection-enum.md) — HDMI is enum 6; external DisplayPort is 11; preserve unknown raw values instead of guessing.
 - [Windows firewall profile status](windows-firewall-profile-status.md) — derive firewall health from the active profile, not a hard-coded Private-only check.
+- [System Integrity scoring](system-integrity-scoring.md) — score device evidence, not recommendation counts; unknown probes and partial scans must stay explicit.
 - [Latency measurement honesty](latency-measurement-honesty.md) — load heuristics and DPC counters are system-responsiveness signals, not mouse-to-screen input-latency measurements.
 - [Free customization settings](free-customization-settings.md) — appearance, layout, accessibility, behavior, startup, and privacy preferences are available to every account.
 - [Customization audit safeguards](customization-audit-safeguards.md) — Settings stays unhideable and graph-only animation is independent from reduced motion.

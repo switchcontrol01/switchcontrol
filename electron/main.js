@@ -35,6 +35,7 @@
   const path = require('path');
   const os = require('os');
   const fs = require('fs'); // top-level — never undefined, never lost inside a closure
+  const { resolveNetworkStatsSample, summarizeNetworkStats } = require('./network-telemetry');
   // These modules are large and/or initialize native-facing state at require
   // time. Keep one stable proxy per module, but do not pay that initialization
   // cost until the first operation that actually needs the feature.
@@ -630,6 +631,7 @@ function Write-SwitchControlProbe($status, $data, $message) {
   }
   let _netStatsLastTs = 0;
   let _netStatsCache = null;
+  let _netStatsCacheAt = 0;
   
   // Approved si.* callers — documentation only, not runtime-enforced.
   // Approved direct callers of systeminformation (si.*).
@@ -917,17 +919,25 @@ function Write-SwitchControlProbe($status, $data, $message) {
         // "used" value on some Windows builds.
         Promise.resolve({ total: os.totalmem(), available: os.freemem() }),
         _shouldPollNet
-          ? si.networkStats().catch(e => { console.warn('[telemetry:poll] networkStats error:', e.message); return []; })
+          ? si.networkStats('*').catch(e => { console.warn('[telemetry:poll] networkStats error:', e.message); return []; })
           : Promise.resolve(null),
       ]);
-      const netStats = netStatsRaw || _netStatsCache || [];
-      if (netStatsRaw) {
-        _netStatsCache = netStatsRaw;
-        _netStatsLastTs = now;
-        verboseLog('[Telemetry] net_poll=executed items=' + netStatsRaw.length);
-      } else {
-        verboseLog('[Telemetry] net_poll=cached items=' + (_netStatsCache || []).length);
+      if (netStatsRaw !== null) _netStatsLastTs = now;
+      const networkSample = resolveNetworkStatsSample(
+        netStatsRaw,
+        _netStatsCache,
+        _netStatsCacheAt,
+        now,
+      );
+      if (networkSample.refreshed) {
+        _netStatsCache = networkSample.stats;
+        _netStatsCacheAt = networkSample.sampledAt;
       }
+      const netStats = networkSample.stats;
+      verboseLog(
+        `[Telemetry] net_poll=${netStatsRaw === null ? 'cached' : 'executed'} ` +
+        `items=${netStats.length} available=${networkSample.available}`,
+      );
       _recordTiming('lightweight', _t0Light);
   
       // ── 3. Low-end mode detection ─────────────────────────────────────────────
@@ -1083,6 +1093,7 @@ function Write-SwitchControlProbe($status, $data, $message) {
       const sampleCompletedAt = Date.now();
       liveTelemetryCache = {
         load, mem, temps: _temps, fsData: _fsSizeCache || [], netStats: netStats || [], diskIO: _diskResult,
+        networkAvailable: networkSample.available,
         timestamp: sampleCompletedAt,
         cpuSampledAt: sampleCompletedAt,
         ramSampledAt: sampleCompletedAt,
@@ -1254,12 +1265,24 @@ function Write-SwitchControlProbe($status, $data, $message) {
     // differential disk probe on constrained machines. CPU and RAM priming
     // remain unchanged.
     _detectLowEndHardware('prime');
-    const [primeCpuLoad, , primeDisksIO, primeMem] = await Promise.allSettled([
+    const [primeCpuLoad, primeNetStats, primeDisksIO, primeMem] = await Promise.allSettled([
       si.currentLoad(),
-      si.networkStats(),
+      si.networkStats('*'),
       _lowEndMode ? Promise.resolve(null) : si.disksIO(),
       si.mem(),
     ]);
+    if (primeNetStats.status === 'fulfilled') {
+      const primeNetworkSample = resolveNetworkStatsSample(
+        primeNetStats.value,
+        null,
+        0,
+        Date.now(),
+      );
+      if (primeNetworkSample.available) {
+        _netStatsCache = primeNetworkSample.stats;
+        _netStatsCacheAt = primeNetworkSample.sampledAt;
+      }
+    }
     if (primeDisksIO.status === 'fulfilled' && primeDisksIO.value) {
       const d = primeDisksIO.value;
       const rIO = typeof d.rIO === 'number' ? d.rIO : null;
@@ -1281,7 +1304,8 @@ function Write-SwitchControlProbe($status, $data, $message) {
         mem: primeMem.value,
         temps: { main: null, max: null },
         fsData: [],
-        netStats: [],
+        netStats: _netStatsCache || [],
+        networkAvailable: Boolean(_netStatsCache),
         diskIO: { available: false, source: 'warming' },
         timestamp: Date.now(),
         cpuSampledAt: null,
@@ -4499,7 +4523,7 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
           ram:     { usedGb: 0, totalGb: 0, usagePct: 0 },
           gpu:     { available: gpuExistsOnHardware, model: null, usagePct: null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },
           disk:    { selectedMount: null, usagePct: 0, activeTimePct: null, readKBps: null, writeKBps: null, available: false, source: 'warming' },
-          network: { rxKBps: 0, txKBps: 0 },
+          network: { rxKBps: 0, txKBps: 0, available: false, interfaceName: null },
           processes: liveProcessCount,
           ssds:    [],
         };
@@ -4548,15 +4572,10 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
       const diskReadKBps      = diskIO.available ? diskIO.readKBps      : null;
       const diskWriteKBps     = diskIO.available ? diskIO.writeKBps     : null;
   
-      // --- Network: always return 0 (not null) when idle ---
-      let netRxSec = 0;
-      let netTxSec = 0;
-      for (const iface of (netStats || [])) {
-        netRxSec += safeNum(iface.rx_sec || 0, 0);
-        netTxSec += safeNum(iface.tx_sec || 0, 0);
-      }
-      const netRxKBs = Math.round(netRxSec / 1024);
-      const netTxKBs = Math.round(netTxSec / 1024);
+      // Keep sub-KB/s traffic and identify the interface producing the reading.
+      // An empty/failed sample is unavailable, not a real zero-rate sample.
+      const networkSummary = summarizeNetworkStats(netStats || []);
+      const networkAvailable = liveTelemetryCache.networkAvailable ?? networkSummary.available;
   
       // gpuExistsOnHardware is set true as soon as si.graphics() returns a controller
       // at startup (fast path, ~300–600ms). This lets us flag the GPU as "available"
@@ -4618,8 +4637,10 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
           source:         diskIO.source || 'none',
         },
         network: {
-          rxKBps: netRxKBs,
-          txKBps: netTxKBs,
+          rxKBps: networkAvailable ? networkSummary.rxKBps : 0,
+          txKBps: networkAvailable ? networkSummary.txKBps : 0,
+          available: networkAvailable,
+          interfaceName: networkAvailable ? networkSummary.interfaceName : null,
         },
         processes,
         ssds: (disks)
@@ -4647,7 +4668,7 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
         ram:     { usedGb: 0, totalGb: 0, usagePct: 0 },
         gpu:     { available: false, model: null, usagePct: null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },
         disk:    { selectedMount: null, usagePct: 0, activeTimePct: null, readKBps: null, writeKBps: null, available: false, source: 'unavailable' },
-        network: { rxKBps: 0, txKBps: 0 },
+        network: { rxKBps: 0, txKBps: 0, available: false, interfaceName: null },
         processes: liveProcessCount,
         ssds:    [],
       };

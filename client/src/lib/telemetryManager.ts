@@ -453,7 +453,13 @@ async function _ipcPollTick(): Promise<void> {
       status: "ready",
       cpu:     { load: cpuLoad, speed: 0, cores: cpuCores },
       ram:     { totalGB: ramTotalGB, usedGB: ramUsedGB, usedPercent: ramUsedPct },
-      network: { rx_sec: rxKBps * 1024, tx_sec: txKBps * 1024, latency_ms: 0 },
+      network: {
+        rx_sec: rxKBps * 1024,
+        tx_sec: txKBps * 1024,
+        latency_ms: 0,
+        available: live.network?.available !== false,
+        interfaceName: typeof live.network?.interfaceName === "string" ? live.network.interfaceName : null,
+      },
       temps:   { cpu: cpuTemp, gpu: gpuTemp },
       gpu: {
         load: gpuLoadRaw, vramUsedMb: gpuVramUsed, vramTotalMb: gpuVramTotal,

@@ -42,6 +42,7 @@ export {
   refreshEntitlements,
   retryRefreshEntitlements,
   exchangeToken,
+  reportAppActive,
   performFullLogout,
   logoutServerSession,
   postUnlockSeen,

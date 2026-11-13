@@ -68,6 +68,19 @@ driver/firmware versions against a server-maintained cloud DB.
 - Animate heavily DURING the scan, then settle to a calm static page. **Why:** the
   app's value prop is not competing with the user's game for GPU/CPU.
 
+## Requested visual direction
+Replace the flat hub-and-spokes map with a realistic, high-detail X870E AORUS PRO ICE
+holographic board, tilted toward the upper right, with an airport X-ray-like reveal
+and clickable Processor, Display, Graphics, Storage, Network, Chipset, Audio, and
+Bluetooth callouts. Avoid a low-poly or flat wireframe appearance.
+
+**Why:** The user explicitly dislikes the current 2D spider-web map and wants convincing
+modeled depth, component-selection effects, and driver details.
+
+**How to apply:** Treat a reference motherboard as illustrative unless it matches detected
+hardware. Preserve evidence-based driver states and the calm resting-state performance
+policy when translating this visual direction into production.
+
 ## Entitlement
 - Free → full-page premium overlay. Trial (`status === "trial_active"`) → READ-ONLY:
   can scan, but action/AI buttons are disabled and route to the upgrade modal.

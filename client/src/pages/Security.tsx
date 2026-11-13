@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { generateRecommendations } from "@/lib/securityAnalysis";
+import type { IntegritySummary } from "@shared/securityScore";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { Switch } from "@/components/ui/switch";
@@ -105,18 +106,14 @@ export interface SecurityRecommendation {
   actionType: "info" | "review" | "disable" | "external";
 }
 
-export interface ScanSummary {
-  threatCount: number;
-  startupIssues: number;
-  backgroundIssues: number;
-  healthScore: number;
-  systemState: "secure" | "attention" | "optimize";
-}
+export type ScanSummary = IntegritySummary;
 
 export interface ScanHistoryEntry {
   timestamp: string;
-  healthScore: number;
-  protectionScore: number;
+  healthScore: number | null;
+  protectionScore: number | null;
+  scoringVersion?: number;
+  coveragePercent?: number;
   startupIssueCount: number;
   backgroundIssueCount: number;
   suspiciousItemCount: number;
@@ -179,7 +176,8 @@ function detectChanges(prev: ScanHistoryEntry | null, curr: ScanHistoryEntry): S
   if (!prev) return [];
   const changes: SecurityChange[] = [];
   const ts = new Date().toISOString();
-  if (prev.protectionScore !== curr.protectionScore && curr.protectionScore < prev.protectionScore) {
+  const comparable = prev.scoringVersion === curr.scoringVersion && prev.coveragePercent === curr.coveragePercent;
+  if (comparable && prev.protectionScore !== null && curr.protectionScore !== null && curr.protectionScore < prev.protectionScore) {
     changes.push({ type: "defender_changed", title: "Protection score decreased", timestamp: ts, severity: "high", description: "A security control may have been disabled or degraded." });
   }
   if (prev.startupIssueCount < curr.startupIssueCount) {
@@ -188,7 +186,7 @@ function detectChanges(prev: ScanHistoryEntry | null, curr: ScanHistoryEntry): S
   if (prev.suspiciousItemCount < curr.suspiciousItemCount) {
     changes.push({ type: "process_new_unsigned", title: "New suspicious processes detected", timestamp: ts, severity: "high", description: `${curr.suspiciousItemCount - prev.suspiciousItemCount} new suspicious process(es) appeared.` });
   }
-  if (prev.healthScore > curr.healthScore + 5) {
+  if (comparable && prev.healthScore !== null && curr.healthScore !== null && prev.healthScore > curr.healthScore + 5) {
     changes.push({ type: "score_drop", title: "Health score dropped", timestamp: ts, severity: "medium", description: `Score fell from ${prev.healthScore} to ${curr.healthScore}.` });
   }
   return changes;
@@ -210,7 +208,7 @@ export function StatusRow({ label, value, state }: { label: string; value: strin
 }
 
 function HealthScoreRing({ score, state }: { score: number; state: ScanSummary["systemState"] }) {
-  const color = state === "secure" ? "#34d399" : state === "optimize" ? "#f59e0b" : "#f87171";
+  const color = state === "secure" ? "#34d399" : state === "optimize" ? "#f59e0b" : state === "unknown" ? "#94a3b8" : "#f87171";
   const r = 36; const circ = 2 * Math.PI * r;
   return (
     <svg width="96" height="96" viewBox="0 0 96 96" className="rotate-[-90deg] shrink-0">
@@ -224,16 +222,16 @@ function HealthScoreRing({ score, state }: { score: number; state: ScanSummary["
   );
 }
 
-function PostureBar({ label, score, color }: { label: string; score: number; color: string }) {
+function PostureBar({ label, score, color }: { label: string; score: number | null; color: string }) {
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-xs">
         <span className="text-muted-foreground">{label}</span>
-        <span className={color}>{score}</span>
+        <span className={color}>{score ?? "Not checked"}</span>
       </div>
       <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
         <motion.div className={cn("h-full rounded-full", color.replace("text-", "bg-"))}
-          initial={{ width: 0 }} animate={{ width: `${score}%` }}
+          initial={{ width: 0 }} animate={{ width: `${score ?? 0}%` }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} />
       </div>
     </div>
@@ -286,28 +284,16 @@ function OverviewTab({
 }) {
   const chartData = scanHistory.slice(-20).map((e, i) => ({
     label: new Date(e.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    health: e.healthScore,
+    health: e.scoringVersion === 2 ? e.healthScore : null,
     cpu: Math.round(e.backgroundCpu),
     ram: Math.round(e.ramPressure),
   }));
 
   const highIssues = recommendations.filter(r => r.severity === "high" || r.severity === "medium").slice(0, 5);
 
-  const protectionScore = scanSummary
-    ? Math.max(0, 100 - (scanSummary.threatCount * 30))
-    : advancedProtection
-    ? (advancedProtection.defenderServiceRunning ? 50 : 0) + (advancedProtection.cloudProtection ? 15 : 0) + (advancedProtection.signatureAge !== null && advancedProtection.signatureAge < 3 ? 20 : 0) + (advancedProtection.smartScreen ? 15 : 0)
-    : 0;
-
-  const startupScore = scanSummary
-    ? Math.max(0, 100 - scanSummary.startupIssues * 12)
-    : startupItems.length === 0 ? 100 : Math.max(0, 100 - startupItems.filter(i => i.recommendation !== "keep").length * 12);
-
-  const bgScore = scanSummary
-    ? Math.max(0, 100 - scanSummary.backgroundIssues * 15)
-    : processTrust.length === 0 ? 100 : Math.max(0, 100 - processTrust.filter(p => p.suspiciousLocation).length * 15);
-
-  const configScore = healthScore ?? 0;
+  const protectionScore = scanSummary?.scores.protection ?? null;
+  const startupScore = scanSummary?.scores.startup ?? null;
+  const bgScore = scanSummary?.scores.background ?? null;
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-5">
@@ -329,14 +315,15 @@ function OverviewTab({
                     <p className="text-xs text-muted-foreground">
                       {systemState === "secure" ? "Your system is well-configured for gaming."
                       : systemState === "attention" ? "Security issues require your attention."
+                      : systemState === "unknown" ? "Partial scan: some checks are unavailable or were not run."
                       : "Performance optimizations are available."}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      { label: "Threats",    value: String(scanSummary.threatCount),          bad: scanSummary.threatCount > 0 },
-                      { label: "Startup",    value: `${scanSummary.startupIssues} to review`, bad: scanSummary.startupIssues > 0 },
-                      { label: "Background", value: `${scanSummary.backgroundIssues} heavy`,  bad: scanSummary.backgroundIssues > 0 },
+                      { label: "Protection issues", value: protectionScore === null ? "Not checked" : String(scanSummary.threatCount), bad: scanSummary.threatCount > 0 },
+                      { label: "Startup",    value: startupScore === null ? "Not checked" : `${scanSummary.startupIssues} to review`, bad: scanSummary.startupIssues > 0 },
+                      { label: "Processes", value: bgScore === null ? "Not checked" : `${scanSummary.backgroundIssues} to review`, bad: scanSummary.backgroundIssues > 0 },
                       { label: "Score",      value: `${healthScore}/100`,                     bad: healthScore < 60 },
                     ].map(item => (
                       <div key={item.label} className="bg-[#1A1F26] rounded-lg p-2.5">
@@ -354,7 +341,7 @@ function OverviewTab({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">No data yet</p>
-                  <p className="text-xs text-muted-foreground mt-1">Run a scan to calculate your system health score.</p>
+                  <p className="text-xs text-muted-foreground mt-1">{scanSummary ? "No usable checks returned. Run a Smart Scan on Windows to retry." : "Run a scan to calculate your system health score."}</p>
                 </div>
               </motion.div>
             )}
@@ -370,10 +357,18 @@ function OverviewTab({
           <div className="space-y-3">
             <PostureBar label="Protection" score={protectionScore} color="text-emerald-400" />
             <PostureBar label="Startup hygiene" score={startupScore} color="text-cyan-400" />
-            <PostureBar label="Background processes" score={bgScore} color="text-[#00D4FF]" />
-            <PostureBar label="Configuration" score={configScore} color="text-amber-400" />
+            <PostureBar label="Sampled process footprint" score={bgScore} color="text-[#00D4FF]" />
           </div>
-          <p className="text-[10px] text-muted-foreground/50 mt-3">Based on last completed scan</p>
+          <p className="text-[10px] text-muted-foreground mt-3">
+            Protection 50% · Startup 30% · Process footprint 20%.
+            {scanSummary ? ` Known scan coverage: ${scanSummary.coveragePercent}%. Unknown checks are excluded, not counted as healthy.` : " Run a scan to collect evidence."}
+          </p>
+          <p className="text-[10px] text-muted-foreground/70 mt-2">
+            Protection uses observed real-time, firewall, tamper, and antispyware controls (40/35/15/10).
+            Startup deducts 3/6/10 per low/medium/high review item (×1.5 for disable).
+            Process footprint deducts 1 per 512 MB sampled, plus 8 per high-impact item.
+            Each category is clamped to 0–100. This is a scan-based heuristic, not a malware verdict or performance benchmark.
+          </p>
         </GlassCard>
 
         {/* Health trend */}
@@ -1143,7 +1138,7 @@ export default function Security() {
 
     try {
       // Stage 0: Core status
-      let status: SecurityStatus | null = securityStatus;
+      let status: SecurityStatus | null = null;
       if (hasSecurity) {
         const r = await eAPI().security.getStatus().catch(() => null);
         if (r?.available && r.data) status = r.data;
@@ -1180,10 +1175,11 @@ export default function Security() {
 
       // Stage 2: Startup
       let startup: StartupItem[] = [];
+      let startupCollected = false;
       if (type === "smart" && hasSecurity) {
         setScanStage(2);
         const r = await eAPI().security.getStartupApps().catch(() => null);
-        if (r?.available && Array.isArray(r.data)) startup = r.data;
+        if (r?.available && Array.isArray(r.data)) { startup = r.data; startupCollected = true; }
       }
       setStartupItems(startup);
       if (scanAbort.current) { setScanStatus("idle"); return; }
@@ -1191,13 +1187,14 @@ export default function Security() {
 
       // Stage 3: Processes
       let processes: ProcessTrustItem[] = [];
+      let processesCollected = false;
       if (type === "smart" && hasSecurity) {
         setScanStage(3);
         const r = await eAPI().security.getProcessDetails().catch(async () => {
           const r2 = await eAPI().security.getTopProcesses().catch(() => null);
           return r2;
         });
-        if (r?.available && Array.isArray(r.data)) processes = r.data;
+        if (r?.available && Array.isArray(r.data)) { processes = r.data; processesCollected = true; }
       }
       setProcessTrust(processes);
       if (scanAbort.current) { setScanStatus("idle"); return; }
@@ -1206,7 +1203,10 @@ export default function Security() {
       // Stage 4: Recommendations
       setScanStage(4);
       const legacyProcs = processes.map(p => ({ name: p.name, pid: p.pid, cpuSec: p.cpuSec, memMb: p.memMb, category: p.category, impact: p.impact }));
-      const result = generateRecommendations({ status, startupItems: startup, topProcesses: legacyProcs as any });
+      const result = generateRecommendations({
+        status, startupItems: startup, topProcesses: legacyProcs as any,
+        scanCoverage: { startup: startupCollected, background: processesCollected },
+      });
       setRecommendations(result.recommendations ?? []);
       setScanSummary(result.summary ?? null);
 
@@ -1214,10 +1214,12 @@ export default function Security() {
       const suspiciousCount = processes.filter(p => p.suspiciousLocation).length;
       const newEntry: ScanHistoryEntry = {
         timestamp: new Date().toISOString(),
-        healthScore: result.summary?.healthScore ?? 0,
-        protectionScore: status?.realtimeProtection ? (status.firewallEnabled ? 100 : 70) : 0,
-        startupIssueCount: startup.filter(i => i.recommendation !== "keep").length,
-        backgroundIssueCount: processes.filter(p => p.impact === "high").length,
+        healthScore: result.summary.healthScore,
+        protectionScore: result.summary.scores.protection,
+        scoringVersion: result.summary.scoringVersion,
+        coveragePercent: result.summary.coveragePercent,
+        startupIssueCount: result.summary.startupIssues,
+        backgroundIssueCount: result.summary.backgroundIssues,
         suspiciousItemCount: suspiciousCount,
         processCount: processes.length,
         backgroundCpu: liveTel?.cpu.load ?? 0,
@@ -1236,7 +1238,7 @@ export default function Security() {
         `Security Scan (${type === "smart" ? "Smart" : "Quick"})`,
         "Security",
         result.summary?.systemState === "attention" ? "Needs Attention" : result.summary?.systemState === "secure" ? "Secure" : "Completed",
-        newEntry.healthScore !== undefined ? `Health score: ${newEntry.healthScore}/100` : undefined
+        newEntry.healthScore !== null ? `Health score: ${newEntry.healthScore}/100 (${result.summary.coveragePercent}% coverage)` : "Score unavailable: no usable checks"
       );
 
       setLastScan(new Date());
@@ -1247,13 +1249,13 @@ export default function Security() {
     }
   }, [hasSecurity, scanStatus, securityStatus, advancedProtection, liveTel]);
 
-  const systemState = scanSummary?.systemState ?? "secure";
+  const systemState = scanSummary?.systemState ?? "unknown";
   const healthScore = scanSummary?.healthScore ?? null;
   const scanning = scanStatus === "scanning";
   const StateIcon = systemState === "secure" ? ShieldCheck : systemState === "attention" ? ShieldAlert : Shield;
-  const stateColor = systemState === "secure" ? "text-emerald-400" : systemState === "attention" ? "text-red-400" : "text-amber-400";
-  const stateBg    = systemState === "secure" ? "bg-emerald-500/10 border-emerald-500/25" : systemState === "attention" ? "bg-red-500/10 border-red-500/25" : "bg-amber-500/10 border-amber-500/25";
-  const stateLabel = systemState === "secure" ? "Secure" : systemState === "attention" ? "Needs Attention" : "Optimize";
+  const stateColor = systemState === "secure" ? "text-emerald-400" : systemState === "attention" ? "text-red-400" : systemState === "unknown" ? "text-slate-400" : "text-amber-400";
+  const stateBg    = systemState === "secure" ? "bg-emerald-500/10 border-emerald-500/25" : systemState === "attention" ? "bg-red-500/10 border-red-500/25" : systemState === "unknown" ? "bg-slate-500/10 border-slate-500/25" : "bg-amber-500/10 border-amber-500/25";
+  const stateLabel = systemState === "secure" ? "Secure" : systemState === "attention" ? "Needs Attention" : systemState === "unknown" ? scanSummary ? "Partial scan" : "Not scanned" : "Optimize";
 
   return (
     <AppLayout>
@@ -1317,9 +1319,9 @@ export default function Security() {
               {scanStatus === "complete" && scanSummary && (
                 <div className="flex items-center gap-2 ml-auto flex-wrap">
                   {[
-                    { label: `${scanSummary.threatCount} threat${scanSummary.threatCount !== 1 ? "s" : ""}`, active: scanSummary.threatCount > 0, cls: "text-red-400 border-red-500/25 bg-red-500/10", Icon: ShieldAlert },
-                    { label: `${scanSummary.startupIssues} startup issue${scanSummary.startupIssues !== 1 ? "s" : ""}`, active: scanSummary.startupIssues > 0, cls: "text-amber-400 border-amber-500/25 bg-amber-500/10", Icon: MonitorPlay },
-                    { label: `${scanSummary.backgroundIssues} background`, active: scanSummary.backgroundIssues > 0, cls: "text-orange-400 border-orange-500/25 bg-orange-500/10", Icon: Cpu },
+                    { label: scanSummary.scores.protection === null ? "Protection not checked" : `${scanSummary.threatCount} protection issue${scanSummary.threatCount !== 1 ? "s" : ""}`, active: scanSummary.threatCount > 0, cls: "text-red-400 border-red-500/25 bg-red-500/10", Icon: ShieldAlert },
+                    { label: scanSummary.scores.startup === null ? "Startup not checked" : `${scanSummary.startupIssues} startup issue${scanSummary.startupIssues !== 1 ? "s" : ""}`, active: scanSummary.startupIssues > 0, cls: "text-amber-400 border-amber-500/25 bg-amber-500/10", Icon: MonitorPlay },
+                    { label: scanSummary.scores.background === null ? "Processes not checked" : `${scanSummary.backgroundIssues} processes to review`, active: scanSummary.backgroundIssues > 0, cls: "text-orange-400 border-orange-500/25 bg-orange-500/10", Icon: Cpu },
                   ].map(chip => (
                     <Badge key={chip.label} variant="outline" className={cn("gap-1.5 py-1 px-2.5 text-xs font-medium", chip.active ? chip.cls : "text-muted-foreground border-[#2A313A] bg-[#21262D]")}>
                       <chip.Icon className="size-3" />{chip.label}

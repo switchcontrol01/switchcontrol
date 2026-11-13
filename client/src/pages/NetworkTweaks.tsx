@@ -1158,7 +1158,9 @@ function NetworkTweaksContent() {
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-xs font-medium text-muted-foreground">{t("Live network activity")}</span>
                 <span className="ml-auto text-[10px] font-mono text-muted-foreground/60">
-                  ↓ {formatKbps(liveTel.network.rx_sec)} &nbsp; ↑ {formatKbps(liveTel.network.tx_sec)}
+                  {liveTel.network.available === false
+                    ? <>↓ — &nbsp; ↑ —</>
+                    : <>↓ {formatKbps(liveTel.network.rx_sec / 1024)} &nbsp; ↑ {formatKbps(liveTel.network.tx_sec / 1024)}</>}
                 </span>
               </div>
               <LatencyMap />

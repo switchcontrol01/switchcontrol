@@ -39,6 +39,7 @@ export interface TweakIntelligenceState {
   networkKbs: number;
   loadTrend: "rising" | "falling" | "stable";
   loading: boolean;
+  availability: "loading" | "ready" | "partial" | "stale" | "unavailable";
   error: string | null;
   lastUpdated: number | null;
 }
@@ -54,14 +55,23 @@ const DEFAULT_STATE: TweakIntelligenceState = {
   networkKbs: 0,
   loadTrend: "stable",
   loading: true,
+  availability: "loading",
   error: null,
   lastUpdated: null,
 };
 
-// After this many consecutive first-load failures we stop hiding the error.
-// Without a cap, a misconfigured or permanently-down backend shows an
-// infinite loading spinner with no user-facing signal that anything is wrong.
-const MAX_SILENT_FIRST_LOAD_FAILURES = 3;
+// Bound IPC, HTTP and JSON work, including transports that ignore cancellation.
+function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const onAbort = () => reject(new DOMException("Request cancelled", "AbortError"));
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(
+      value => { signal.removeEventListener("abort", onAbort); resolve(value); },
+      error => { signal.removeEventListener("abort", onAbort); reject(error); },
+    );
+    if (signal.aborted) onAbort();
+  });
+}
 
 export function useTweakIntelligence(pollIntervalMs = 5_000) {
   const tweaks = useStore((s) => s.tweaks);
@@ -70,8 +80,8 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
   const abortRef              = useRef<AbortController | null>(null);
   const timerRef              = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef            = useRef(true);
-  // Counts consecutive failures that occurred while lastUpdated === null (first load).
-  const firstLoadFailuresRef  = useRef(0);
+  const failuresRef = useRef(0);
+  const postureNeededRef = useRef(true);
 
   // Fix #4: memoize so the filter doesn't run on every render — only when
   // `tweaks` actually changes.
@@ -107,6 +117,9 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
     if (abortRef.current) abortRef.current.abort();
     const ac = new AbortController();
     abortRef.current = ac;
+    let timedOut = false;
+    const deadline = setTimeout(() => { timedOut = true; ac.abort(); }, 12_000);
+    const isCurrent = () => !isStale() && mountedRef.current && abortRef.current === ac;
 
     try {
       // In Electron, the main process owns the live telemetry loop while the
@@ -117,7 +130,7 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
       let liveQuery = "";
       const electronAPI = (window as any).electronAPI;
       if (electronAPI?.isElectron && electronAPI.telemetry?.getLive) {
-        const live = await electronAPI.telemetry.getLive().catch(() => null);
+        const live: any = await abortable(electronAPI.telemetry.getLive().catch(() => null), ac.signal);
         const cpuLoad = live?.cpu?.usagePct;
         const memPct = live?.ram?.usagePct;
         const networkKbs = (Number(live?.network?.rxKBps) || 0) + (Number(live?.network?.txKBps) || 0);
@@ -135,45 +148,51 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
       // doesn't discard perfectly good signals/category scores from the other
       // two.  Each result is merged independently — partial data is better
       // than a blank dashboard.
-      const [stateResult, scoresResult, postureResult] = await Promise.allSettled([
+      const [stateResult, scoresResult, postureResult] = await abortable(Promise.allSettled([
         apiFetch(`/tweak-intelligence/system-state?${liveQuery.slice(1)}`, {}, { signal: ac.signal }),
         apiFetch(`/tweak-intelligence/category-scores?applied=${encodeURIComponent(param)}&gpu=${gpu}${liveQuery}`, {}, { signal: ac.signal }),
         fetchPosture
           ? apiFetch(`/tweak-intelligence/posture?applied=${encodeURIComponent(param)}`, {}, { signal: ac.signal })
           : Promise.resolve(null),
-      ]);
+      ]), ac.signal);
 
       // Guard immediately after the await — if the effect was cleaned up while
       // the fetches were in flight, abort.
-      if (isStale() || !mountedRef.current) return;
+      if (!isCurrent() || ac.signal.aborted) return;
 
       // Resolve each response independently.  A rejected or non-ok result
       // leaves that slice as null; the setState below falls back to the
       // previous slice value so existing good data isn't blanked.
-      const toJson = async (result: PromiseSettledResult<Response> | null) => {
+      const toJson = async (result: PromiseSettledResult<Response | null> | null) => {
         if (!result) return null;
         if (result.status === "rejected") return null;
-        if (!result.value.ok) return null;
+        if (!result.value?.ok) return null;
         try { return await result.value.json(); } catch { return null; }
       };
 
-      const [systemState, scoreData, postureData] = await Promise.all([
+      const parsed = await abortable(Promise.all([
         toJson(stateResult),
         toJson(scoresResult),
         toJson(postureResult),
-      ]);
+      ]), ac.signal);
+      const systemState = Array.isArray(parsed[0]?.signals) ? parsed[0] : null;
+      const scoreData = Array.isArray(parsed[1]?.scores) ? parsed[1] : null;
+      const postureData = Array.isArray(parsed[2]?.dimensions) && Number.isFinite(parsed[2]?.overallCoverage) ? parsed[2] : null;
 
       // Second guard after the .json() round-trip.
-      if (isStale() || !mountedRef.current) return;
+      if (!isCurrent() || ac.signal.aborted) return;
 
       // Track whether at least one endpoint succeeded.
       const anySucceeded = systemState !== null || scoreData !== null || postureData !== null;
       if (!anySucceeded) {
-        throw new Error("All three intelligence endpoints failed");
+        const statuses = [stateResult, scoresResult, postureResult].map(r =>
+          r.status === "fulfilled" ? r.value?.status ?? "not-requested" : "transport-error");
+        throw new Error(`Intelligence unavailable (endpoint statuses: ${statuses.join(", ")})`);
       }
 
       // Reset the first-load failure counter on any partial success.
-      firstLoadFailuresRef.current = 0;
+      failuresRef.current = 0;
+      if (postureData !== null) postureNeededRef.current = false;
 
       setState((prev: TweakIntelligenceState) => ({
         signals:         systemState?.signals       ?? prev.signals,
@@ -186,40 +205,36 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
         networkKbs:      systemState?.networkKbs    ?? prev.networkKbs,
         loadTrend:       systemState?.loadTrend     ?? prev.loadTrend,
         loading:         false,
+        availability: systemState && scoreData && (!fetchPosture || postureData) ? "ready" : "partial",
         error:           null,
         lastUpdated:     Date.now(),
       }));
     } catch (e: any) {
-      if (e.name === "AbortError") return;
-      if (isStale() || !mountedRef.current) return;
+      if (e.name === "AbortError" && !timedOut) return;
+      if (!isCurrent()) return;
+      failuresRef.current += 1;
+      if (failuresRef.current === 1) {
+        console.info("[TweakIntelligence] Keeping available data; retrying with backoff.", timedOut ? "Request deadline reached." : e.message);
+      }
 
       setState((prev: TweakIntelligenceState) => {
-        if (prev.lastUpdated === null) {
-          // Fix #2: cap the number of times we silently suppress a first-load
-          // error.  After MAX_SILENT_FIRST_LOAD_FAILURES consecutive failures
-          // we surface a real error so the user knows something is wrong
-          // rather than seeing an infinite loading spinner.
-          firstLoadFailuresRef.current += 1;
-          if (firstLoadFailuresRef.current <= MAX_SILENT_FIRST_LOAD_FAILURES) {
-            // Still within tolerance — keep loading:true, suppress error banner.
-            // The poll will retry automatically.
-            return { ...prev, loading: true, error: null };
-          }
-          // Exceeded tolerance — surface the error so the user can act.
-          return { ...prev, loading: false, error: "Could not load system intelligence." };
-        }
-        // Subsequent failure after we had real data — show the error.
-        return { ...prev, loading: false, error: "Could not load system intelligence." };
+        // Optional intelligence must never raise a repeated red error banner.
+        // Keep evidence, stop the spinner, and expose a quiet, honest status.
+        return { ...prev, loading: false, error: null,
+          availability: prev.lastUpdated === null ? "unavailable" : "stale" };
       });
+    } finally {
+      clearTimeout(deadline);
+      if (abortRef.current === ac) abortRef.current = null;
     }
   }, []);
 
   const refresh = useCallback(() => {
-    // A manual retry is an explicit recovery action after the bounded
-    // first-load failure policy has surfaced the error banner.
-    firstLoadFailuresRef.current = 0;
-    setState((prev) => ({ ...prev, loading: true, error: null }));
-    fetchAll(appliedParam, gpuParam, () => false, true);
+    // Coalesce repeated clicks; do not abort an already-running recovery.
+    if (abortRef.current) return;
+    failuresRef.current = 0;
+    setState((prev) => ({ ...prev, loading: prev.lastUpdated === null, error: null }));
+    void fetchAll(appliedParam, gpuParam, () => false, true);
   }, [appliedParam, fetchAll, gpuParam]);
 
   // Poll on mount and whenever applied IDs change.
@@ -232,26 +247,26 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
     // cleanup fired (the window where abort() is a no-op).
     let cancelled = false;
     const isStale = () => cancelled;
+    postureNeededRef.current = true;
 
-    fetchAll(appliedParam, gpuParam, isStale, true);
-
-    const schedule = () => {
+    const poll = async () => {
       if (cancelled) return;
-      timerRef.current = setTimeout(() => {
-        if (cancelled) return;
-        // System state remains live at the five-second cadence. Posture is
-        // derived solely from applied IDs, so it is fetched on the initial
-        // request and when this effect restarts because those IDs changed.
-        fetchAll(appliedParam, gpuParam, isStale, false);
-        schedule();
-      }, pollIntervalMs);
+      // A manual refresh may own the current request. Never cancel it.
+      if (!abortRef.current) {
+        await fetchAll(appliedParam, gpuParam, isStale, postureNeededRef.current);
+      }
+      if (cancelled) return;
+      const backoff = Math.min(60_000, pollIntervalMs * 2 ** Math.min(failuresRef.current, 4));
+      // Schedule only after completion, not while the previous request runs.
+      timerRef.current = setTimeout(poll, Math.max(pollIntervalMs, backoff));
     };
-    schedule();
+    void poll();
 
     return () => {
       cancelled = true;
       mountedRef.current = false;
       if (abortRef.current) abortRef.current.abort();
+      abortRef.current = null;
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
