@@ -10,7 +10,7 @@ const router = Router();
 export type CleanMode = "safe" | "advanced";
 export type CleanCategory = "storage" | "privacy" | "latency" | "performance" | "gaming" | "apps" | "browsers" | "windows_system" | "storage_cleanup";
 export type CleanItemRisk = "safe" | "moderate" | "advanced";
-export type CleanStatus = "cleaned" | "partial" | "nothing" | "failed" | "verification-failed" | "unsupported";
+export type CleanStatus = "cleaned" | "partial" | "nothing" | "failed" | "verification-failed" | "unsupported" | "not-applicable";
 
 export interface CleanItemDef {
   id: string;
@@ -129,7 +129,7 @@ const ITEM_REGISTRY: CleanItemDef[] = [
   {
     id: "shader_cache",
     name: "GPU Shader Caches",
-    description: "NVIDIA DXCache, GLCache, AMD DxCache, and D3D shader caches. Recompiled on next game launch. Moderate risk — may cause stutters on first run after cleaning.",
+    description: "AMD DxCache and the shared Direct3D shader cache. NVIDIA-specific shader cache paths remain protected. Caches rebuild on use and may cause brief first-run stutters.",
     category: "latency",
     risk: "moderate",
     impactRam: 0, impactBootSec: 0,
@@ -174,7 +174,7 @@ const ITEM_REGISTRY: CleanItemDef[] = [
   {
     id: "event_logs_old",
     name: "Non-Critical Event Log Archives",
-    description: "Archived Windows event log files (excluding System, Application, Security, Setup). Safe on most systems.",
+    description: "Archived Windows event logs are protected to preserve diagnostic history; this item is informational only.",
     category: "performance",
     risk: "advanced",
     impactRam: 0, impactBootSec: 0,
@@ -424,7 +424,7 @@ const ITEM_REGISTRY: CleanItemDef[] = [
     impactRam: 0, impactBootSec: 0,
     requiresAdmin: true, requiresRestart: false,
     estimateBasis: "Real file sizes of *.dat files in LocalService FontCache folder.",
-    diskBased: false,
+    diskBased: true,
   },
   {
     id: "windows_icon_cache",
@@ -435,7 +435,7 @@ const ITEM_REGISTRY: CleanItemDef[] = [
     impactRam: 0, impactBootSec: 0,
     requiresAdmin: false, requiresRestart: false,
     estimateBasis: "Real file sizes of IconCache.db and iconcache*.db files.",
-    diskBased: false,
+    diskBased: true,
   },
   {
     id: "windows_installer_leftovers",
@@ -501,7 +501,7 @@ const ITEM_REGISTRY: CleanItemDef[] = [
     impactRam: 0, impactBootSec: 0,
     requiresAdmin: true, requiresRestart: false,
     estimateBasis: "Real file sizes from SoftwareDistribution/DeliveryOptimization.",
-    diskBased: false,
+    diskBased: true,
   },
   {
     id: "wer_queue",
@@ -574,7 +574,7 @@ const ITEM_REGISTRY: CleanItemDef[] = [
   {
     id: "nvidia_driver_cache",
     name: "NVIDIA Driver Install Cache",
-    description: "NVIDIA driver installer leftovers in C:\\NVIDIA and Temp. Safe to remove after drivers are installed.",
+    description: "NVIDIA installer and driver-recovery files are protected and are never removed by Cleaner.",
     category: "storage_cleanup",
     risk: "safe",
     impactRam: 0, impactBootSec: 0,
@@ -688,7 +688,8 @@ router.post("/scan", async (req: any, res) => {
     mode?: CleanMode;
     electronResults?: Record<string, {
       sizeBytes?: number; fileCount?: number; found?: boolean; error?: string;
-      notApplicable?: boolean; unsupported?: boolean;
+      notApplicable?: boolean; notApplicableReason?: string;
+      unsupported?: boolean; unsupportedReason?: string;
     }>;
   };
 
@@ -709,7 +710,9 @@ router.post("/scan", async (req: any, res) => {
     if (!er) {
       findings[item.id] = {
         id: item.id, sizeBytes: 0, fileCount: 0, found: false,
-        scanStatus: "pending", impactBootSec: 0, impactRamMb: 0,
+        scanStatus: "scanned", impactBootSec: 0, impactRamMb: 0,
+        unsupported: true,
+        unsupportedReason: "Native Windows scanning is only available in the SwitchControl desktop app.",
       };
       continue;
     }
@@ -717,17 +720,26 @@ router.post("/scan", async (req: any, res) => {
       return res.status(400).json({ ok: false, error: `Invalid scan result for ${item.id}` });
     }
 
-    const sizeBytes = er.sizeBytes ?? 0;
-    const fileCount = er.fileCount ?? 0;
-    if ((typeof sizeBytes !== "number" || !Number.isFinite(sizeBytes) || sizeBytes < 0) ||
-        (typeof fileCount !== "number" || !Number.isFinite(fileCount) || fileCount < 0 || !Number.isInteger(fileCount)) ||
-        (er.found !== undefined && typeof er.found !== "boolean")) {
-      return res.status(400).json({ ok: false, error: `Invalid numeric scan result for ${item.id}` });
-    }
-    const found     = er.found ?? (fileCount > 0 || sizeBytes > 0);
-    const hasError  = !!er.error;
     const notApplicable = er.notApplicable === true;
     const unsupported = er.unsupported === true;
+    const hasError = !!er.error;
+    const rawSizeBytes = er.sizeBytes ?? 0;
+    const rawFileCount = er.fileCount ?? 0;
+    if ((typeof rawSizeBytes !== "number" || !Number.isFinite(rawSizeBytes) || rawSizeBytes < 0) ||
+        (typeof rawFileCount !== "number" || !Number.isFinite(rawFileCount) || rawFileCount < 0 || !Number.isInteger(rawFileCount)) ||
+        (er.found !== undefined && typeof er.found !== "boolean") ||
+        (er.error !== undefined && typeof er.error !== "string") ||
+        (er.unsupported !== undefined && typeof er.unsupported !== "boolean") ||
+        (er.notApplicable !== undefined && typeof er.notApplicable !== "boolean") ||
+        (er.unsupportedReason !== undefined && typeof er.unsupportedReason !== "string") ||
+        (er.notApplicableReason !== undefined && typeof er.notApplicableReason !== "string")) {
+      return res.status(400).json({ ok: false, error: `Invalid numeric scan result for ${item.id}` });
+    }
+    const sizeBytes = unsupported || notApplicable || hasError ? 0 : rawSizeBytes;
+    const fileCount = unsupported || notApplicable || hasError ? 0 : rawFileCount;
+    const found     = unsupported || notApplicable || hasError
+      ? false
+      : er.found ?? (fileCount > 0 || sizeBytes > 0);
 
     let impactBootSec = 0, impactRamMb = 0;
     if (item.id === "dead_startup_entries" && found) impactBootSec = +(fileCount * item.impactBootSec).toFixed(1);
@@ -737,7 +749,8 @@ router.post("/scan", async (req: any, res) => {
     findings[item.id] = {
       id: item.id, sizeBytes, fileCount, found,
       scanStatus: hasError ? "error" : "scanned",
-      error: er.error, notApplicable, unsupported, impactBootSec, impactRamMb,
+      error: er.error, notApplicable, notApplicableReason: er.notApplicableReason,
+      unsupported, unsupportedReason: er.unsupportedReason, impactBootSec, impactRamMb,
     };
   }
 
@@ -791,7 +804,11 @@ router.post("/clean", async (req: any, res) => {
   const { mode = "safe", itemIds = [], electronResults = {} } = req.body as {
     mode?: CleanMode;
     itemIds?: string[];
-    electronResults?: Record<string, { bytesRemoved?: number; filesRemoved?: number; failed?: number; error?: string }>;
+    electronResults?: Record<string, {
+      bytesRemoved?: number; filesRemoved?: number; failed?: number; error?: string;
+      unsupported?: boolean; unsupportedReason?: string;
+      notApplicable?: boolean; notApplicableReason?: string;
+    }>;
   };
 
   if (!Array.isArray(itemIds) || itemIds.length === 0) {
@@ -816,7 +833,7 @@ router.post("/clean", async (req: any, res) => {
   for (const itemId of itemIds) {
     const def = ITEM_REGISTRY.find(i => i.id === itemId);
     if (!def) {
-      results[itemId] = { id: itemId, status: "unsupported", bytesRemoved: 0, filesRemoved: 0 };
+      results[itemId] = { id: itemId, status: "unsupported", bytesRemoved: 0, filesRemoved: 0, error: "Unknown Cleaner item; no cleanup handler is registered." };
       continue;
     }
 
@@ -829,13 +846,19 @@ router.post("/clean", async (req: any, res) => {
         status: "unsupported",
         bytesRemoved: 0,
         filesRemoved: 0,
+        error: "Native Windows cleanup is only available in the SwitchControl desktop app.",
       };
       continue;
     }
-    if (!def.diskBased && (er.error === "unsupported-item" || er.error === "unknown-item")) {
+    if (er.unsupported === true || er.notApplicable === true) {
       results[itemId] = {
-        id: itemId, status: "unsupported", bytesRemoved: 0, filesRemoved: 0,
-        error: "This cleanup requires a supported Windows maintenance flow.",
+        id: itemId,
+        status: er.notApplicable === true ? "not-applicable" : "unsupported",
+        bytesRemoved: 0,
+        filesRemoved: 0,
+        error: er.notApplicable === true
+          ? er.notApplicableReason ?? "This item does not apply to the detected system."
+          : er.unsupportedReason ?? "No safe native cleanup handler is available for this item.",
       };
       continue;
     }
@@ -857,9 +880,9 @@ router.post("/clean", async (req: any, res) => {
         return res.status(400).json({ ok: false, error: `Invalid error value for ${itemId}` });
       }
 
-      if (error || (failed > 0 && filesRemoved === 0)) { status = "failed"; errors++; }
+      if ((error || failed > 0) && filesRemoved === 0) { status = "failed"; errors++; }
+      else if (failed > 0 || error) { status = "partial"; errors++; }
       else if (filesRemoved === 0 && bytesRemoved === 0) status = "nothing";
-      else if (failed > 0) status = "partial";
       else status = "cleaned";
     }
 

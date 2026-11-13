@@ -46,9 +46,15 @@ test("generic Installed Apps protects NVIDIA identities by name or publisher", (
   assert.match(debloat, /isAppProtected\(trusted\.name, trusted\.publisher\)/);
 });
 
-test("Cleaner blocks NVIDIA shader and driver-cache deletion", () => {
-  assert.match(cleaner, /'shader_cache', 'nvidia_driver_cache'/);
-  assert.match(cleaner, /for \(const id of UNSUPPORTED_SCAN_IDS\) delete SCAN_DEFS\[id\]/);
+test("Cleaner never targets NVIDIA shader or installer cache paths", () => {
+  const shaderPaths = cleaner.match(/function getShaderCachePaths\(gpuCapabilities\) \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(shaderPaths, "shader cache paths should be selected by detected GPU capabilities");
+  assert.match(shaderPaths, /D3DSCache/);
+  assert.match(shaderPaths, /AMD\\\\DxCache/);
+  assert.doesNotMatch(shaderPaths, /NVIDIA\\\\(?:DXCache|GLCache)/i);
+  assert.match(cleaner, /NVIDIA installer and driver-recovery files are protected/);
+  assert.match(cleaner, /NVIDIA-specific DXCache\/GLCache are intentionally never included/);
+  assert.match(cleaner, /windows_installer_leftovers: 'Windows Installer patch files are protected/);
 });
 
 test("GPU MSI actions protect NVIDIA display adapters", () => {

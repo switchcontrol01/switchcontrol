@@ -7,15 +7,17 @@
 
 const { ipcMain } = require('electron');
 const { execFile } = require('child_process');
+const fs = require('fs');
 const os = require('os');
 const path = require('path');
 // P2-C1: use global limiter so cleaner never exceeds system-wide PS process cap
 const psLimiter = require('./powershell-limiter');
 let cleanerCancelRequested = false;
 const activeCleanerProcesses = new Set();
+const cleanerCancelFlagPath = path.join(os.tmpdir(), `switchcontrol-cleaner-cancel-${process.pid}.flag`);
 
 // ── PowerShell runner ─────────────────────────────────────────────────────────
-function runPS(cmd, timeoutMs = 20000) {
+function runPS(cmd, timeoutMs = 20000, { cancellationAware = false } = {}) {
   return new Promise((resolve, reject) => {
     if (process.platform !== 'win32') return reject(new Error('Windows only'));
     const child = execFile(
@@ -29,6 +31,7 @@ function runPS(cmd, timeoutMs = 20000) {
         resolve(stdout?.trim() ?? '');
       }
     );
+    child.cleanerCancellationAware = cancellationAware;
     activeCleanerProcesses.add(child);
   });
 }
@@ -89,6 +92,7 @@ function getCleanerAvailability(id, gpuCapabilities) {
     if (!gpuCapabilities.nvidia) {
       return { notApplicable: true, notApplicableReason: 'No NVIDIA GPU was detected.' };
     }
+    return { unsupported: true, unsupportedReason: 'NVIDIA installer and driver-recovery files are protected from cleanup.' };
   }
   if (id === 'amd_driver_cache') {
     if (!gpuCapabilities.known) {
@@ -100,11 +104,17 @@ function getCleanerAvailability(id, gpuCapabilities) {
   }
   if (id === 'shader_cache') {
     if (!gpuCapabilities.known) {
-      return { unsupported: true, unsupportedReason: 'GPU vendor could not be confirmed; shared shader caches were left untouched.' };
+      return { unsupported: true, unsupportedReason: 'GPU detection failed; vendor-specific shader cache paths were left untouched.' };
     }
-    if (gpuCapabilities.nvidia) {
-      return { unsupported: true, unsupportedReason: 'NVIDIA shader cache paths are protected to avoid disrupting driver or game troubleshooting.' };
-    }
+  }
+  const protectedReasons = {
+    event_logs_old: 'Archived Windows event logs are protected because they may contain diagnostic history.',
+    windows_installer_leftovers: 'Windows Installer patch files are protected because removing them can break repair or rollback.',
+    windows_defender_history: 'Defender scan history is protected; deleting it directly can interfere with security diagnostics.',
+    old_windows_update: 'Windows.old and $WinREAgent are protected because they may be required for Windows rollback or recovery.',
+  };
+  if (protectedReasons[id]) {
+    return { unsupported: true, unsupportedReason: protectedReasons[id] };
   }
   // Deliberately removed and unknown IDs have no native cleanup handler.
   if (!Object.prototype.hasOwnProperty.call(SCAN_DEFS, id)) {
@@ -126,21 +136,26 @@ function buildPathsScanCmd(paths, { filter = null, recurse = true } = {}) {
   let gci = 'Get-ChildItem $p';
   if (filter) gci += ` -Filter '${filter}'`;
   if (recurse) gci += ' -Recurse';
-  gci += ' -Force -ErrorAction SilentlyContinue';
+  gci += ' -Force -ErrorAction Stop';
   const fileWhere = !filter ? ' | Where-Object {!$_.PSIsContainer}' : '';
   return () => `
       $paths = @(
         ${psArr}
       )
-      $total = 0; $cnt = 0
+      $total = [int64]0; $cnt = 0; $scanError = ''
       foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = ${gci}${fileWhere}
-          $total += ($items | Measure-Object Length -Sum).Sum
-          $cnt   += $items.Count
+        try {
+          if (Test-Path -LiteralPath $p -ErrorAction Stop) {
+            $items = @(${gci}${fileWhere})
+            $measure = $items | Measure-Object Length -Sum
+            if ($null -ne $measure.Sum) { $total += [int64]$measure.Sum }
+            $cnt += $items.Count
+          }
+        } catch {
+          $scanError = $_.Exception.Message -replace '[\\r\\n|]', ' '
         }
       }
-      Write-Output "$total|$cnt"
+      Write-Output "$total|$cnt|0|$scanError"
     `;
 }
 
@@ -206,6 +221,7 @@ function buildPathsCleanCmd(paths, { filter = null, recurse = true, removeEmptyD
             Try {
               $sz = [int64]$_.Length
               Remove-Item $_.FullName -Force -EA Stop
+              if (Test-Path -LiteralPath $_.FullName) { throw 'File remained after deletion.' }
               $removed += $sz
               $cnt++
             } Catch { $fail++ }
@@ -214,6 +230,70 @@ function buildPathsCleanCmd(paths, { filter = null, recurse = true, removeEmptyD
       }
       Write-Output "$removed|$cnt|$fail"
     `;
+}
+
+function getShaderCachePaths(gpuCapabilities) {
+  // NVIDIA-specific DXCache/GLCache are intentionally never included. The
+  // shared Direct3D cache and AMD's documented per-user cache are safe targets.
+  const paths = [local + '\\D3DSCache'];
+  if (gpuCapabilities.amd) paths.push(local + '\\AMD\\DxCache');
+  return paths;
+}
+
+function buildServiceManagedCleanCmd(paths, services, { filter = null, cancelFlagPath = null } = {}) {
+  const pathArr = paths.map(quotePowerShellLiteral).join(', ');
+  const serviceArr = services.map(service => quotePowerShellLiteral(service)).join(', ');
+  const filterClause = filter ? ` -Filter '${filter}'` : '';
+  const cancelPath = cancelFlagPath ? quotePowerShellLiteral(cancelFlagPath) : '$null';
+  return () => `
+    $paths = @(${pathArr}); $serviceNames = @(${serviceArr})
+    $serviceStates = @{}; $removed = [int64]0; $count = 0; $failed = 0
+    $failureMessage = ''; $cancelled = $false
+    try {
+      foreach ($name in $serviceNames) {
+        $svc = Get-Service -Name $name -ErrorAction Stop
+        $serviceStates[$name] = $svc.Status.ToString()
+        if ($svc.Status -ne 'Running' -and $svc.Status -ne 'Stopped') {
+          throw "Service $name is changing state; retry cleanup after it settles."
+        }
+        if ($svc.Status -eq 'Running') {
+          Stop-Service -Name $name -ErrorAction Stop
+          (Get-Service -Name $name -ErrorAction Stop).WaitForStatus('Stopped', [TimeSpan]::FromSeconds(15))
+        }
+      }
+      foreach ($p in $paths) {
+        if (!(Test-Path -LiteralPath $p)) { continue }
+        $items = @(Get-ChildItem -LiteralPath $p${filterClause} -Recurse -Force -File -ErrorAction Stop)
+        foreach ($item in $items) {
+          if (${cancelPath} -and (Test-Path -LiteralPath ${cancelPath})) { $cancelled = $true; break }
+          try {
+            $size = [int64]$item.Length
+            Remove-Item -LiteralPath $item.FullName -Force -ErrorAction Stop
+            if (Test-Path -LiteralPath $item.FullName) { throw 'File remained after deletion.' }
+            $removed += $size; $count++
+          } catch { $failed++ }
+        }
+        if ($cancelled) { break }
+      }
+    } catch {
+      $failed++
+      $failureMessage = $_.Exception.Message -replace '[\\r\\n|]', ' '
+    } finally {
+      foreach ($name in @($serviceStates.Keys)) {
+        if ($serviceStates[$name] -eq 'Running') {
+          try {
+            Start-Service -Name $name -ErrorAction Stop
+            (Get-Service -Name $name -ErrorAction Stop).WaitForStatus('Running', [TimeSpan]::FromSeconds(15))
+          } catch {
+            $failed++
+            $failureMessage = 'A service stopped for cleanup could not be restored.'
+          }
+        }
+      }
+    }
+    if ($cancelled -and !$failureMessage) { $failureMessage = 'Cleanup cancelled; service state was restored.' }
+    Write-Output "$removed|$count|$failed|$failureMessage"
+  `;
 }
 
 // Discover profile/library locations at scan time instead of assuming the
@@ -328,31 +408,12 @@ const SCAN_DEFS = {
   },
 
   update_downloads: {
-    scanCmd: () => `
-      $p = '${windir}\\SoftwareDistribution\\Download'
-      If (Test-Path $p) {
-        $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-        $total = ($items | Measure-Object Length -Sum).Sum
-        $cnt = $items.Count
-        Write-Output "$total|$cnt"
-      } Else { Write-Output "0|0" }
-    `,
-    cleanCmd: () => `
-      $p = '${windir}\\SoftwareDistribution\\Download'
-      $removed = [int64]0; $cnt = 0; $fail = 0
-      If (Test-Path $p) {
-        Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-          Where-Object {!$_.PSIsContainer} |
-          ForEach-Object {
-            Try {
-              $sz = [int64]$_.Length
-              Remove-Item $_.FullName -Force -ErrorAction Stop
-              $removed += $sz; $cnt++
-            } Catch { $fail++ }
-          }
-      }
-      Write-Output "$removed|$cnt|$fail"
-    `,
+    scanCmd: buildPathsScanCmd([windir + '\\SoftwareDistribution\\Download']),
+    cleanCmd: buildServiceManagedCleanCmd(
+      [windir + '\\SoftwareDistribution\\Download'],
+      ['wuauserv', 'bits'],
+      { cancelFlagPath: cleanerCancelFlagPath },
+    ),
   },
 
   crash_dumps: {
@@ -400,8 +461,8 @@ const SCAN_DEFS = {
   },
 
   shader_cache: {
-    scanCmd: buildPathsScanCmd([local + '\\NVIDIA\\DXCache', local + '\\NVIDIA\\GLCache', local + '\\D3DSCache', local + '\\AMD\\DxCache']),
-    cleanCmd: buildPathsCleanCmd([local + '\\NVIDIA\\DXCache', local + '\\NVIDIA\\GLCache', local + '\\D3DSCache', local + '\\AMD\\DxCache']),
+    scanCmd: (gpuCapabilities) => buildPathsScanCmd(getShaderCachePaths(gpuCapabilities))(),
+    cleanCmd: (gpuCapabilities) => buildPathsCleanCmd(getShaderCachePaths(gpuCapabilities))(),
   },
 
   anticheat_temp: {
@@ -681,7 +742,11 @@ const SCAN_DEFS = {
 
   windows_font_cache: {
     scanCmd: buildPathsScanCmd([windir + '\\ServiceProfiles\\LocalService\\AppData\\Local\\FontCache'], { filter: '*.dat', recurse: false }),
-    cleanCmd: buildPathsCleanCmd([windir + '\\ServiceProfiles\\LocalService\\AppData\\Local\\FontCache'], { filter: '*.dat', recurse: false }),
+    cleanCmd: buildServiceManagedCleanCmd(
+      [windir + '\\ServiceProfiles\\LocalService\\AppData\\Local\\FontCache'],
+      ['FontCache'],
+      { filter: '*.dat', cancelFlagPath: cleanerCancelFlagPath },
+    ),
   },
 
   windows_icon_cache: {
@@ -775,7 +840,32 @@ const SCAN_DEFS = {
 
   windows_delivery_optimization: {
     scanCmd: buildPathsScanCmd([windir + '\\SoftwareDistribution\\DeliveryOptimization']),
-    cleanCmd: buildPathsCleanCmd([windir + '\\SoftwareDistribution\\DeliveryOptimization']),
+    cleanCmd: () => `
+      $p = '${windir}\\SoftwareDistribution\\DeliveryOptimization'
+      $before = @()
+      if (Test-Path -LiteralPath $p) {
+        $before = @(Get-ChildItem -LiteralPath $p -Recurse -Force -File -ErrorAction Stop)
+      }
+      try {
+        if (!(Get-Command Delete-DeliveryOptimizationCache -ErrorAction SilentlyContinue)) {
+          throw 'Windows Delivery Optimization maintenance command is unavailable.'
+        }
+        Delete-DeliveryOptimizationCache -Force -ErrorAction Stop | Out-Null
+      } catch {
+        $message = $_.Exception.Message -replace '[\\r\\n|]', ' '
+        Write-Output "0|0|1|$message"
+        return
+      }
+      $after = @()
+      if (Test-Path -LiteralPath $p) {
+        $after = @(Get-ChildItem -LiteralPath $p -Recurse -Force -File -ErrorAction SilentlyContinue)
+      }
+      $beforeBytes = [int64](($before | Measure-Object Length -Sum).Sum)
+      $afterBytes = [int64](($after | Measure-Object Length -Sum).Sum)
+      $removedBytes = [Math]::Max([int64]0, $beforeBytes - $afterBytes)
+      $removedCount = [Math]::Max(0, $before.Count - $after.Count)
+      Write-Output "$removedBytes|$removedCount|$($after.Count)"
+    `,
   },
 
   wer_queue: {
@@ -1051,24 +1141,21 @@ const SCAN_DEFS = {
   },
 };
 
-// These folders require Windows-managed service/API cleanup or can break
-// repair, rollback, or protection history. Keep them visible in Advanced mode
-// as unsupported information rather than allowing a filesystem wipe.
-const UNSUPPORTED_SCAN_IDS = new Set([
+// Remove definitions whose data is intentionally protected. Supported Windows
+// maintenance operations remain registered above and are never blanket-disabled.
+for (const id of [
   'event_logs_old', 'windows_installer_leftovers', 'windows_defender_history',
-  'old_windows_update', 'windows_font_cache', 'windows_icon_cache',
-  'update_downloads', 'windows_delivery_optimization',
-  // NVIDIA caches and installer folders are intentionally read-only in
-  // SwitchControl. They are not required for cleanup and can remove useful
-  // shader or driver-recovery material while investigating NVIDIA failures.
-  'shader_cache', 'nvidia_driver_cache',
-]);
-for (const id of UNSUPPORTED_SCAN_IDS) delete SCAN_DEFS[id];
+  'old_windows_update', 'nvidia_driver_cache',
+]) delete SCAN_DEFS[id];
 
 // ── Parse scan/clean output ───────────────────────────────────────────────────
 function parseOutput(output) {
-  const parts = output.split('|').map(p => parseInt(p.trim(), 10) || 0);
-  return { a: parts[0] ?? 0, b: parts[1] ?? 0, c: parts[2] ?? 0 };
+  const parts = output.split('|');
+  const count = (value) => {
+    const parsed = parseInt(value?.trim(), 10);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  };
+  return { a: count(parts[0]), b: count(parts[1]), c: count(parts[2]), error: parts.slice(3).join('|').trim() };
 }
 
 // ── IPC: cleaner:scan ─────────────────────────────────────────────────────────
@@ -1102,9 +1189,9 @@ ipcMain.handle('cleaner:scan', async (event, itemIds) => {
         const def = SCAN_DEFS[id];
         try {
           const timeout = id === 'old_windows_update' ? 60000 : 15000;
-          const out = await runPS(def.scanCmd(), timeout);
-          const { a: sizeBytes, b: fileCount } = parseOutput(out);
-          results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0 };
+          const out = await runPS(def.scanCmd(gpuCapabilities), timeout);
+          const { a: sizeBytes, b: fileCount, error } = parseOutput(out);
+          results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0, ...(error ? { error } : {}) };
         } catch (err) {
           results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: err.message };
         }
@@ -1131,6 +1218,7 @@ ipcMain.handle('cleaner:clean', async (event, itemIds) => {
 
   const results = {};
   cleanerCancelRequested = false;
+  try { fs.unlinkSync(cleanerCancelFlagPath); } catch (_) {}
   try {
     const gpuCapabilities = await getGpuCapabilities();
     // Timeout tiers — large-storage items need much more time than 20 s.
@@ -1164,11 +1252,16 @@ ipcMain.handle('cleaner:clean', async (event, itemIds) => {
           continue;
         }
         const def = SCAN_DEFS[id];
-        const timeout = LARGE_ITEMS.has(id) ? LONG_TIMEOUT : MID_ITEMS.has(id) ? MID_TIMEOUT : STD_TIMEOUT;
+        const cancellationAware = id === 'update_downloads' || id === 'windows_font_cache';
+        // Do not let execFile hard-kill a service-managed PowerShell process:
+        // an explicit timeout would bypass its finally block and strand a
+        // service stopped. These scripts have a cooperative cancel marker.
+        const timeout = cancellationAware ? 0
+          : LARGE_ITEMS.has(id) ? LONG_TIMEOUT : MID_ITEMS.has(id) ? MID_TIMEOUT : STD_TIMEOUT;
         try {
-          const out = await runPS(def.cleanCmd(), timeout);
-          const { a: bytesRemoved, b: filesRemoved, c: failed } = parseOutput(out);
-          results[id] = { bytesRemoved, filesRemoved, failed };
+          const out = await runPS(def.cleanCmd(gpuCapabilities), timeout, { cancellationAware });
+          const { a: bytesRemoved, b: filesRemoved, c: failed, error } = parseOutput(out);
+          results[id] = { bytesRemoved, filesRemoved, failed, ...(error ? { error } : {}) };
           event.sender.send('cleaner:progress', { id, ...results[id] });
         } catch (err) {
           results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 1, error: err.message };
@@ -1178,6 +1271,7 @@ ipcMain.handle('cleaner:clean', async (event, itemIds) => {
     };
     await Promise.all(Array.from({ length: Math.min(3, Math.max(1, itemIds.length)) }, () => cleanWorker()));
   } finally {
+    try { fs.unlinkSync(cleanerCancelFlagPath); } catch (_) {}
     psLimiter.release(token);
   }
   if (cleanerCancelRequested) return { ok: false, reason: 'cancelled', results };
@@ -1190,8 +1284,10 @@ ipcMain.handle('cleaner:cancel', () => {
   // explicit cancel must terminate the actual children rather than merely
   // preventing the next item from starting.
   for (const child of activeCleanerProcesses) {
+    if (child.cleanerCancellationAware) continue;
     try { child.kill(); } catch (_) {}
   }
+  try { fs.writeFileSync(cleanerCancelFlagPath, 'cancel'); } catch (_) {}
   return { ok: true };
 });
 
@@ -1222,9 +1318,9 @@ ipcMain.handle('cleaner:verify', async (event, itemIds) => {
         }
         const def = SCAN_DEFS[id];
         try {
-          const out = await runPS(def.scanCmd(), 12000);
-          const { a: sizeBytes, b: fileCount } = parseOutput(out);
-          results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0 };
+          const out = await runPS(def.scanCmd(gpuCapabilities), 12000);
+          const { a: sizeBytes, b: fileCount, error } = parseOutput(out);
+          results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0, ...(error ? { error } : {}) };
         } catch (err) {
           results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: err.message };
         }

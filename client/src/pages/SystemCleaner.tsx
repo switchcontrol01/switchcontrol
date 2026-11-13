@@ -33,11 +33,12 @@ interface CleanItemDef {
 interface ScanFinding {
   id: string; sizeBytes: number; fileCount: number; found: boolean;
   scanStatus: "pending" | "scanned" | "error"; impactBootSec: number; impactRamMb: number;
-  notApplicable?: boolean; unsupported?: boolean; error?: string;
+  notApplicable?: boolean; notApplicableReason?: string;
+  unsupported?: boolean; unsupportedReason?: string; error?: string;
 }
 
 interface CleanResult {
-  id: string; status: "cleaned" | "partial" | "nothing" | "failed" | "unsupported";
+  id: string; status: "cleaned" | "partial" | "nothing" | "failed" | "unsupported" | "not-applicable";
   bytesRemoved: number; filesRemoved: number; error?: string;
 }
 
@@ -308,11 +309,15 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
                   {files > 0 && bytes > 0 && <span className="text-[10px] text-[#6B7380]">{files.toLocaleString()} {t("files")}</span>}
               </>
             ) : finding?.notApplicable ? (
-              <span className="text-[10px] text-[#6B7380]">{t("Not applicable for this GPU")}</span>
+              <span className="text-[10px] text-[#6B7380]" title={finding.notApplicableReason}>
+                {finding.notApplicableReason || t("Not applicable for this GPU")}
+              </span>
             ) : finding?.unsupported ? (
-              <span className="text-[10px] text-[#6B7380]">{t("Not supported on this system")}</span>
+              <span className="text-[10px] text-[#6B7380]" title={finding.unsupportedReason}>
+                {finding.unsupportedReason || t("Not supported on this system")}
+              </span>
             ) : finding?.scanStatus === "error" ? (
-              <span className="text-[10px] text-amber-400">{t("Scan failed")}</span>
+              <span className="text-[10px] text-amber-400" title={finding.error}>{t("Scan failed")}</span>
             ) : (
               <span className="text-[10px] text-[#4a5460]">{t("Nothing found")}</span>
             )}
@@ -563,9 +568,11 @@ export default function SystemCleaner() {
         ...prev,
         [payload.id]: {
           id: payload.id,
-          status: hasError || (failed > 0 && Number(payload.filesRemoved ?? 0) === 0)
+          status: payload.notApplicable ? "not-applicable"
+            : payload.unsupported ? "unsupported"
+            : (hasError || failed > 0) && Number(payload.filesRemoved ?? 0) === 0
             ? "failed"
-            : failed > 0 ? "partial"
+            : failed > 0 || hasError ? "partial"
             : Number(payload.filesRemoved ?? 0) === 0 && Number(payload.bytesRemoved ?? 0) === 0
               ? "nothing" : "cleaned",
           bytesRemoved: Number(payload.bytesRemoved ?? 0),
@@ -767,7 +774,11 @@ export default function SystemCleaner() {
         for (const id of ids) {
           const result = electronResults[id];
           if (result) setCleanResults(prev => ({ ...prev, [id]: {
-            id, status: result.failed ? "partial" : "cleaned",
+            id, status: result.notApplicable ? "not-applicable"
+              : result.unsupported ? "unsupported"
+              : (result.error || result.failed) && !result.filesRemoved ? "failed"
+              : result.error || result.failed ? "partial"
+              : result.filesRemoved === 0 && result.bytesRemoved === 0 ? "nothing" : "cleaned",
             bytesRemoved: result.bytesRemoved ?? 0, filesRemoved: result.filesRemoved ?? 0,
             error: result.error,
           } }));
@@ -797,12 +808,12 @@ export default function SystemCleaner() {
         const verification = await getEC()!.verify(ids);
         for (const id of ids) {
           const remaining = verification.results?.[id];
-          if (remaining?.found) {
+          if (remaining?.found || remaining?.error) {
             const current = electronResults[id] ?? { bytesRemoved: 0, filesRemoved: 0, failed: 0 };
             electronResults[id] = {
               ...current,
               failed: (current.failed ?? 0) + Math.max(1, remaining.fileCount ?? 0),
-          error: t("Data remains after cleanup verification"),
+              error: remaining.error || t("Data remains after cleanup verification"),
             };
           }
         }
@@ -1233,6 +1244,10 @@ export default function SystemCleaner() {
                               </>
                             ) : result.status === "nothing" ? (
                               <span className="text-[10px] text-[#4a5460]">–</span>
+                            ) : result.status === "unsupported" || result.status === "not-applicable" ? (
+                              <span className="text-[10px] text-[#6B7380]" title={result.error}>
+                                {result.status === "not-applicable" ? t("N/A") : t("Protected")}
+                              </span>
                             ) : (
                               <span
                                 className="text-[10px] text-red-400"
