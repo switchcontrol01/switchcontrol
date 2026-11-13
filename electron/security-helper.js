@@ -12,6 +12,10 @@ const os = require('os');
 const psLimiter = require('./powershell-limiter');
 const { normalizeFirewallProbe } = require('./firewall-status');
 const { classifyPowerShellFailure } = require('./probe-status');
+const {
+  resolveStartupEntry, startupApprovedPath, buildStartupStatusScript,
+  buildSetEnabledScript, buildSetDelayScript, parseStartupCommand,
+} = require('./startup-entry');
 
 // ---------------------------------------------------------------------------
 // PowerShell helper
@@ -321,9 +325,29 @@ ipcMain.handle('security:getStartupApps', async () => {
           location: item.Location || '',
           publisher: null,
           ...classification,
+          ...resolveStartupEntry(item.Location, item.Name),
         };
       });
 
+    const managed = startupItems.filter(item => item.source).map(item => ({
+      registryName: item.registryName, registryKey: item.registryKey,
+      taskName: item.taskName, approvedPath: startupApprovedPath(item.registryKey),
+    }));
+    if (managed.length) {
+      try {
+        const statusRaw = await runPowerShell(buildStartupStatusScript(managed), 20000);
+        const statuses = safeParsePsJson(statusRaw) || [];
+        for (const item of startupItems) {
+          const status = statuses.find(s => s.registryName === item.registryName && s.registryKey === item.registryKey);
+          if (status) {
+            item.enabled = typeof status.enabled === 'boolean' ? status.enabled : null;
+            item.delayIso = status.delayIso || null;
+          }
+        }
+      } catch (error) {
+        console.info('[Startup] Startup entries loaded; state enrichment unavailable:', error?.message);
+      }
+    }
     console.log(`[Security] getStartupApps OK | count=${startupItems.length}`);
     return { available: true, data: startupItems };
   } catch (err) {
@@ -388,6 +412,10 @@ ipcMain.handle('startup:setEnabled', async (event, params) => {
   const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'startup:setEnabled', reason: 'startup-set-enabled' });
   if (!token) return { ok: false, reason: 'busy' };
   const { source, registryName, taskPath, folderPath, enabled } = params || {};
+  if (typeof enabled !== 'boolean') {
+    psLimiter.release(token);
+    return { ok: false, error: 'Choose Enable or Disable.' };
+  }
   const flag = enabled ? 2 : 3; // 2=enabled, 3=disabled (Task Manager convention)
 
   // Input sanitization guards
@@ -404,6 +432,15 @@ ipcMain.handle('startup:setEnabled', async (event, params) => {
 
   try {
     let cmd = '';
+    // Security > Startup supplies the actual WMI location. Resolve it here
+    // instead of guessing HKCU or passing an incompatible IPC payload.
+    if (params?.location) {
+      const entry = resolveStartupEntry(params.location, params.name);
+      if (!entry.source) return { ok: false, error: 'This startup source cannot be changed safely from this view.' };
+      const output = await runPowerShell(buildSetEnabledScript(entry, enabled), 12000);
+      const ok = output.split(/\r?\n/).some(line => line.trim() === 'SCSTARTUP_ENABLED:OK');
+      return { ok, enabled: ok ? enabled : undefined, verified: ok, error: ok ? undefined : 'Windows did not confirm the change.' };
+    }
 
     if (source === 'registry-hkcu' && registryName) {
       const safeName = psEscape(sanitizeName(registryName));
@@ -444,7 +481,7 @@ ipcMain.handle('startup:setEnabled', async (event, params) => {
     return { ok: success };
   } catch (err) {
     console.warn(`[Startup] setEnabled ERROR: ${err?.message}`);
-    return { ok: false, error: err?.message };
+    return { ok: false, error: `${err?.probeDetail || err?.message || 'Windows denied the change.'} System-wide entries may require running SwitchControl as administrator.` };
   } finally {
     psLimiter.release(token);
   }
@@ -457,75 +494,25 @@ ipcMain.handle('startup:setEnabled', async (event, params) => {
 // specified delay from logon. Setting delay=null removes the task.
 // ---------------------------------------------------------------------------
 
-ipcMain.handle('startup:setDelay', async (event, { name, executable, delayIso, registryKey }) => {
+ipcMain.handle('startup:setDelay', async (event, params = {}) => {
   if (process.platform !== 'win32') {
     return { ok: false, reason: 'not-windows' };
   }
   const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'startup:setDelay', reason: 'startup-set-delay' });
   if (!token) return { ok: false, reason: 'busy' };
-  // Sanitize inputs: name becomes task name, executable must be a real file path
-  function sanitizeStartupName(str) {
-    if (typeof str !== 'string') return '';
-    return str.replace(/[^a-zA-Z0-9]/g, '-').slice(0, 64);
-  }
-  function validateExePath(str) {
-    if (typeof str !== 'string') return false;
-    // Must look like a Windows executable path: drive letter or UNC or well-known system path
-    return /^([A-Z]:\\|\\\\|\\?\[A-Z]:\\|C:\\Windows\\System32\\|C:\\Program Files\\)/i.test(str) &&
-           str.length <= 512 &&
-           !str.includes(';') &&
-           !str.includes('|') &&
-           !str.includes('&') &&
-           !str.includes('`');
-  }
-  function psEscape(str) {
-    if (typeof str !== 'string') return '';
-    return str.replace(/'/g, "''");
-  }
-
-  const taskName = `SC-Delay-${sanitizeStartupName(name)}`;
-  if (!taskName || taskName.length < 10) {
-    psLimiter.release(token);
-    return { ok: false, error: 'Invalid name' };
-  }
-
   try {
-    if (!delayIso || !executable) {
-      // Remove the task if it exists
-      const removeCmd = `
-        If (Get-ScheduledTask -TaskName '${psEscape(taskName)}' -ErrorAction SilentlyContinue) {
-          Unregister-ScheduledTask -TaskName '${psEscape(taskName)}' -Confirm:$false
-          Write-Output 'removed'
-        } Else {
-          Write-Output 'notfound'
-        }
-      `;
-      const r = await runPowerShell(removeCmd, 8000);
-      console.log(`[Startup] removeDelay task=${taskName} → ${r.trim()}`);
-      return { ok: true, taskName, action: 'removed' };
-    }
-
-    if (!validateExePath(executable)) {
-      return { ok: false, error: 'Executable path looks unsafe or malformed' };
-    }
-
-    // Create/update delayed task
-    const escapedExe = psEscape(executable);
-    const createCmd = `
-      $action  = New-ScheduledTaskAction -Execute '${escapedExe}'
-      $trigger = New-ScheduledTaskTrigger -AtLogOn
-      $trigger.Delay = '${psEscape(delayIso)}'
-      $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 1) -StartWhenAvailable
-      Register-ScheduledTask -TaskName '${psEscape(taskName)}' -Action $action -Trigger $trigger -Settings $settings -RunLevel Limited -Force | Out-Null
-      Write-Output 'created'
-    `;
-    const r = await runPowerShell(createCmd, 10000);
-    const success = r.trim().includes('created');
-    console.log(`[Startup] setDelay task=${taskName} delay=${delayIso} → ${success ? 'ok' : 'fail'}`);
-    return { ok: success, taskName, action: 'created' };
+    const entry = resolveStartupEntry(params.location, params.name);
+    if (!entry.source) return { ok: false, error: 'Delay launch requires an identified Windows Run-key entry.' };
+    const command = parseStartupCommand(params.command);
+    if (!command) return { ok: false, error: 'This command cannot be delayed safely. It must point to an absolute .exe path.' };
+    const script = buildSetDelayScript(entry, command.executable, command.arguments, params.delayIso, params.command);
+    const output = await runPowerShell(script, 20000);
+    const ok = output.split(/\r?\n/).some(line => line.trim() === 'SCSTARTUP_DELAY:OK');
+    return { ok, taskName: entry.taskName, delayIso: ok ? params.delayIso : null, verified: ok,
+      error: ok ? undefined : 'Windows did not confirm the delayed launch.' };
   } catch (err) {
     console.warn(`[Startup] setDelay ERROR: ${err?.message}`);
-    return { ok: false, error: err?.message };
+    return { ok: false, error: `${err?.probeDetail || err?.message || 'Windows denied the change.'} System-wide entries may require running SwitchControl as administrator.` };
   } finally {
     psLimiter.release(token);
   }

@@ -73,6 +73,9 @@ export interface StartupItem {
   category: string;
   impact: "low" | "medium" | "high";
   recommendation: "keep" | "review" | "disable";
+  source?: string | null;
+  enabled?: boolean | null;
+  delayIso?: string | null;
 }
 
 export interface ProcessTrustItem {

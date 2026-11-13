@@ -61,6 +61,9 @@ if (!electronBuild) {
   if (!Array.isArray(electronBuild.files) || !electronBuild.files.includes('network-telemetry.js')) {
     failures.push('Electron build must include network-telemetry.js in its packaged files');
   }
+  if (!Array.isArray(electronBuild.files) || !electronBuild.files.includes('startup-entry.js')) {
+    failures.push('Electron build must include startup-entry.js in its packaged files');
+  }
   if (electronBuild.files?.includes('process-control.js')) {
     failures.push('Retired process-control.js must not be packaged');
   }

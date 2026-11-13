@@ -54,6 +54,7 @@
       "probe-status.js",
       "driver-probe-output.js",
       "security-helper.js",
+      "startup-entry.js",
       "firewall-status.js",
       "debloat-helper.js",
       "debloat-contract.cjs",

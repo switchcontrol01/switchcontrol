@@ -1,9 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "@/lib/motion";
 import {
   MonitorPlay, RefreshCw, ChevronDown, ChevronUp,
   FolderOpen, Copy, Power, Clock, AlertTriangle,
@@ -40,63 +40,54 @@ interface StartupActionState {
   delayTask: string | null;
 }
 
-function extractExecutable(command: string): string {
-  const m = command?.match(/^(?:"([^"]+)"|([^\s]+))/);
-  return m ? (m[1] || m[2] || command) : command;
-}
-
-function inferRegistryKey(location: string): string {
-  if (!location) return "HKCU";
-  if (location.toLowerCase().includes("hklm") || location.toLowerCase().includes("all users")) return "HKLM";
-  return "HKCU";
-}
-
 function StartupRow({ item, hasSecurity }: { item: StartupItem; hasSecurity: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const [state, setState] = useState<StartupActionState>({
-    loading: false, enabled: null, feedback: null, feedbackOk: true, delayTask: null,
+    loading: false, enabled: item.enabled ?? null, feedback: null, feedbackOk: true, delayTask: item.delayIso ?? null,
   });
   const [showDelay, setShowDelay] = useState(false);
 
-  const registryKey = inferRegistryKey(item.location);
+  const canManage = hasSecurity && !!item.source;
+  useEffect(() => {
+    setState(s => ({ ...s, enabled: item.enabled ?? null, delayTask: item.delayIso ?? null }));
+  }, [item.enabled, item.delayIso]);
   const impact = IMPACT_CONFIG[item.impact] ?? IMPACT_CONFIG.low;
   const rec = REC_CONFIG[item.recommendation] ?? REC_CONFIG.keep;
-  const exe = extractExecutable(item.command);
 
   const setEnabled = useCallback(async (enabled: boolean) => {
     if (!hasSecurity || state.loading) return;
     setState(s => ({ ...s, loading: true, feedback: null }));
     try {
-      const r = await eAPI().startup.setEnabled({ name: item.name, registryKey, enabled });
-      if (r?.ok) {
-        setState(s => ({ ...s, enabled, feedback: enabled ? "Enabled" : "Disabled", feedbackOk: true }));
+      const r = await eAPI().startup.setEnabled({ name: item.name, location: item.location, enabled });
+      if (r?.ok && r?.verified) {
+        setState(s => ({ ...s, enabled, delayTask: null, feedback: enabled ? "Enabled — confirmed by Windows" : "Disabled — confirmed by Windows", feedbackOk: true }));
       } else {
-        setState(s => ({ ...s, feedback: "Action failed", feedbackOk: false }));
+        setState(s => ({ ...s, feedback: r?.error || (r?.reason === "busy" ? "Windows is busy. Please retry in a moment." : "Windows did not confirm the change. System-wide entries may require administrator rights."), feedbackOk: false }));
       }
     } catch {
       setState(s => ({ ...s, feedback: "Error", feedbackOk: false }));
     } finally {
       setState(s => ({ ...s, loading: false }));
     }
-  }, [hasSecurity, item.name, registryKey, state.loading]);
+  }, [hasSecurity, item.name, item.location, state.loading]);
 
   const applyDelay = useCallback(async (iso: string) => {
     if (!hasSecurity || state.loading) return;
     setState(s => ({ ...s, loading: true, feedback: null }));
     setShowDelay(false);
     try {
-      const r = await eAPI().startup.setDelay({ name: item.name, executable: exe, delayIso: iso, registryKey });
-      if (r?.ok) {
-        setState(s => ({ ...s, delayTask: iso, feedback: `Delayed launch set`, feedbackOk: true }));
+      const r = await eAPI().startup.setDelay({ name: item.name, command: item.command, location: item.location, delayIso: iso });
+      if (r?.ok && r?.verified) {
+        setState(s => ({ ...s, enabled: false, delayTask: iso, feedback: `Delayed launch set for the next sign-in — confirmed by Windows`, feedbackOk: true }));
       } else {
-        setState(s => ({ ...s, feedback: "Delay failed", feedbackOk: false }));
+        setState(s => ({ ...s, feedback: r?.error || (r?.reason === "busy" ? "Windows is busy. Please retry in a moment." : "Windows did not confirm the delayed launch."), feedbackOk: false }));
       }
     } catch {
       setState(s => ({ ...s, feedback: "Error", feedbackOk: false }));
     } finally {
       setState(s => ({ ...s, loading: false }));
     }
-  }, [hasSecurity, item.name, exe, registryKey, state.loading]);
+  }, [hasSecurity, item.name, item.command, item.location, state.loading]);
 
   const openLocation = useCallback(async () => {
     if (!hasSecurity) return;
@@ -124,7 +115,7 @@ function StartupRow({ item, hasSecurity }: { item: StartupItem; hasSecurity: boo
           </Badge>
           {state.enabled !== null && (
             <Badge variant="outline" className={cn("text-[10px] px-1.5", state.enabled ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" : "text-zinc-400 border-zinc-500/30 bg-zinc-500/10")}>
-              {state.enabled ? "Enabled" : "Disabled"}
+              {state.delayTask ? "Delayed" : state.enabled ? "Enabled" : "Disabled"}
             </Badge>
           )}
           {state.loading && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
@@ -169,25 +160,25 @@ function StartupRow({ item, hasSecurity }: { item: StartupItem; hasSecurity: boo
               {hasSecurity ? (
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="secondary" className="text-xs gap-1.5 h-7"
-                    onClick={() => setEnabled(true)} disabled={state.loading || state.enabled === true}
+                    onClick={() => setEnabled(true)} disabled={!canManage || state.loading || state.enabled === true}
                     data-testid={`btn-enable-${item.name}`}>
                     <Power className="size-3" />Enable
                   </Button>
                   <Button size="sm" variant="secondary" className="text-xs gap-1.5 h-7"
-                    onClick={() => setEnabled(false)} disabled={state.loading || state.enabled === false}
+                    onClick={() => setEnabled(false)} disabled={!canManage || state.loading || (state.enabled === false && !state.delayTask)}
                     data-testid={`btn-disable-${item.name}`}>
                     <Power className="size-3 opacity-50" />Disable
                   </Button>
-                  <div className="relative">
+                  <div>
                     <Button size="sm" variant="secondary" className="text-xs gap-1.5 h-7"
-                      onClick={() => setShowDelay(d => !d)} disabled={state.loading}
+                      onClick={() => setShowDelay(d => !d)} disabled={!canManage || state.loading}
                       data-testid={`btn-delay-${item.name}`}>
                       <Clock className="size-3" />Delay launch
                     </Button>
                     {showDelay && (
                       <motion.div
                         initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                        className="absolute top-full left-0 mt-1 bg-zinc-900 border border-[#2A313A] rounded-lg shadow-xl z-10 overflow-hidden min-w-32"
+                        className="mt-2 bg-zinc-900 border border-[#2A313A] rounded-lg shadow-xl overflow-hidden min-w-32"
                       >
                         {DELAY_OPTIONS.map(opt => (
                           <button key={opt.iso} onClick={() => applyDelay(opt.iso)}
@@ -212,8 +203,12 @@ function StartupRow({ item, hasSecurity }: { item: StartupItem; hasSecurity: boo
               )}
 
               {state.delayTask && (
-                <p className="text-[11px] text-cyan-400">Delayed launch scheduled via Task Scheduler</p>
+                <div className="flex items-center gap-3 text-[11px] text-cyan-400">
+                  <span>Launch {DELAY_OPTIONS.find(option => option.iso === state.delayTask)?.label ?? state.delayTask} after sign-in. Immediate launch is disabled.</span>
+                  <button className="underline" onClick={() => setEnabled(true)} disabled={state.loading}>Cancel delay</button>
+                </div>
               )}
+              {hasSecurity && !canManage && <p className="text-xs text-muted-foreground">Windows could not identify a supported Run-key source for this entry. Use Task Manager to manage it.</p>}
             </div>
           </motion.div>
         )}
