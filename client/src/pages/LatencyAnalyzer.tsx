@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { SystemLoadPanel } from "@/components/SystemLoadPanel";
 import { CollectionSummary, CoreCounterMetrics, CounterTimeline } from "@/components/latency-analyzer/CounterMetrics";
 import { CaptureComparison, CaptureExport } from "@/components/latency-analyzer/CaptureTools";
-import { ResponsivenessModel } from "@/components/latency-analyzer/ResponsivenessModel";
+import { ResponsivenessModelSummary, SignalBenchModel } from "@/components/latency-analyzer/SignalBenchModel";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 import { useMeasuredSystemLoad } from "@/hooks/useMeasuredSystemLoad";
@@ -19,6 +19,7 @@ import { useLatencyAnalyzerStore, type DriverRow } from "@/stores/latencyAnalyze
 import { calculateResponsivenessModel } from "@/lib/responsivenessModel";
 import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import "@/components/latency-analyzer/latency-analyzer-signal-bench.css";
 
 const api = () => (window as any).electronAPI;
 const desktopAvailable = () => !!api()?.isElectron && !!api()?.latencyAnalyzer;
@@ -36,26 +37,27 @@ function Controls({ onStart, onStop, onReset }: { onStart: () => void; onStop: (
   const active = sessionStatus === "starting" || sessionStatus === "collecting";
   const stopping = sessionStatus === "stopping";
   return (
-    <GlassCard className="p-5 lg:p-6 border-cyan-500/15 bg-[#151B24]">
+    <GlassCard className="la-bench-panel la-bench-capture p-5 lg:p-6">
       <div className="flex flex-wrap items-center justify-between gap-5">
         <div>
-          <h2 className="flex items-center gap-2 text-sm font-semibold"><Activity className="size-4 text-cyan-300" />{t("Windows counter capture")}</h2>
-          <p className="mt-1 text-[10px] text-[#8A95A4]">{elapsedSec}s {t("elapsed")} · {sampleCount} {t("valid samples")}</p>
-          {active && durationSec > 0 && <p className="mt-1 text-[10px] text-[#778292]">{Math.max(0, durationSec - elapsedSec)}s {t("remaining")}</p>}
+          <span className="la-bench-kicker">{t("Capture / Windows PerfOS")}</span>
+          <h2 className="la-bench-card-title"><Activity aria-hidden="true" />{t("Windows counter capture")}</h2>
+          <p className="la-bench-small-copy">{elapsedSec}s {t("elapsed")} · {sampleCount} {t("valid samples")}</p>
+          {active && durationSec > 0 && <p className="la-bench-small-copy">{Math.max(0, durationSec - elapsedSec)}s {t("remaining")}</p>}
         </div>
         {!active && !stopping && (
-          <div className="flex flex-wrap gap-1.5" aria-label={t("Capture duration")}>
-            {DURATIONS.map((duration) => <button key={duration.seconds} onClick={() => setDuration(duration.seconds)} className={cn("rounded-lg border px-3 py-1.5 text-[11px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50", durationSec === duration.seconds ? "border-cyan-300/40 bg-cyan-400/15 text-cyan-200" : "border-[#2A313A] bg-[#1A1F26] text-[#A0A8B3]")}>{t(duration.label)}</button>)}
+          <div className="la-bench-duration" role="group" aria-label={t("Capture duration")}>
+            {DURATIONS.map((duration) => <button type="button" key={duration.seconds} aria-pressed={durationSec === duration.seconds} onClick={() => setDuration(duration.seconds)} className={cn(durationSec === duration.seconds && "is-selected")}>{t(duration.label)}</button>)}
           </div>
         )}
-        <div className="flex gap-2">
-          {!active && !stopping && <Button size="sm" disabled={!desktopAvailable()} onClick={onStart} className="gap-1.5 border border-cyan-300/30 bg-cyan-400/15 text-cyan-200 hover:bg-cyan-400/25"><Play className="size-3.5" />{t("Start Analysis")}</Button>}
-          {(active || stopping) && <Button size="sm" disabled={stopping} onClick={onStop} className="gap-1.5 border border-red-500/30 bg-red-500/20 text-red-400 hover:bg-red-500/30">{stopping ? <Loader2 className="size-3.5 animate-spin" /> : <Square className="size-3.5" />}{t(stopping ? "Stopping…" : "Stop")}</Button>}
-          {!active && !stopping && (sampleCount > 0 || sessionStatus === "error") && <Button size="sm" variant="outline" onClick={onReset} className="gap-1.5"><RotateCcw className="size-3.5" />{t("Reset")}</Button>}
+        <div className="la-bench-action-row">
+          {!active && !stopping && <Button size="sm" disabled={!desktopAvailable()} onClick={onStart} className="la-bench-primary-action"><Play className="size-3.5" />{t("Start Analysis")}</Button>}
+          {(active || stopping) && <Button size="sm" disabled={stopping} onClick={onStop} className="la-bench-stop-action">{stopping ? <Loader2 className="size-3.5 animate-spin" /> : <Square className="size-3.5" />}{t(stopping ? "Stopping…" : "Stop")}</Button>}
+          {!active && !stopping && (sampleCount > 0 || sessionStatus === "error") && <Button size="sm" variant="outline" onClick={onReset} className="la-bench-quiet-action"><RotateCcw className="size-3.5" />{t("Reset")}</Button>}
         </div>
       </div>
-      {!desktopAvailable() && <p className="mt-3 rounded-lg border border-[#2A313A] bg-[#1A1F26] p-3 text-[11px] text-[#8A95A4]">{t("Windows desktop is required. Browser and cloud-host telemetry are not used as measurements of your computer.")}</p>}
-      {sessionError && <div role="alert" className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/[0.05] p-3 text-[11px] text-amber-300"><AlertTriangle className="mt-0.5 size-3.5 shrink-0" /><span>{sessionError}</span></div>}
+      {!desktopAvailable() && <p className="la-bench-inline-note">{t("Windows desktop is required. Browser and cloud-host telemetry are not used as measurements of your computer.")}</p>}
+      {sessionError && <div role="alert" className="la-bench-inline-error"><AlertTriangle aria-hidden="true" /><span>{sessionError}</span></div>}
     </GlassCard>
   );
 }
@@ -65,16 +67,16 @@ function DriverInventory({ drivers }: { drivers: DriverRow[] }) {
   const [expanded, setExpanded] = useState(false);
   if (drivers.length === 0) return null;
   return (
-    <GlassCard className="p-5">
-      <h3 className="flex items-center gap-2 text-sm font-semibold"><Layers className="size-4 text-cyan-300" />{t("System driver inventory")} <span className="text-[10px] font-normal text-[#778292]">({drivers.length})</span></h3>
-      <p className="mt-2 text-[10px] leading-relaxed text-[#778292]">{t("Inventory only. System-wide counters cannot identify a responsible driver; no per-driver timing or impact rank is collected.")}</p>
-      <div className="mt-4 overflow-x-auto">
+    <GlassCard className="la-bench-panel la-bench-inventory p-5">
+      <h3 className="la-bench-card-title"><Layers aria-hidden="true" />{t("System driver inventory")} <span>({drivers.length})</span></h3>
+      <p className="la-bench-small-copy">{t("Inventory only. System-wide counters cannot identify a responsible driver; no per-driver timing or impact rank is collected.")}</p>
+      <div className="la-bench-table-wrap">
         <table className="w-full text-[11px]">
-          <thead><tr className="border-b border-[#2A313A]">{["Driver", "Description", "Type", "State"].map((heading) => <th key={heading} className="pb-2 pr-4 text-left text-[9px] uppercase tracking-wider text-[#778292]">{t(heading)}</th>)}</tr></thead>
-          <tbody>{(expanded ? drivers : drivers.slice(0, 8)).map((driver, index) => <tr key={`${driver.name}-${index}`} className="border-b border-[#2A313A]/40"><td className="py-2 pr-4 font-mono text-[#E6EAF0]">{driver.name}</td><td className="py-2 pr-4 text-[#A0A8B3]">{driver.description}</td><td className="py-2 pr-4 text-[#778292]">{driver.type}</td><td className="py-2 pr-4 text-[#778292]">{driver.state}</td></tr>)}</tbody>
+          <thead><tr>{["Driver", "Description", "Type", "State"].map((heading) => <th key={heading}>{t(heading)}</th>)}</tr></thead>
+          <tbody>{(expanded ? drivers : drivers.slice(0, 8)).map((driver, index) => <tr key={`${driver.name}-${index}`}><td className="la-bench-mono">{driver.name}</td><td>{driver.description}</td><td>{driver.type}</td><td>{driver.state}</td></tr>)}</tbody>
         </table>
       </div>
-      {drivers.length > 8 && <button onClick={() => setExpanded(!expanded)} className="mt-3 flex items-center gap-1.5 text-[11px] text-cyan-300">{expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}{t(expanded ? "Show fewer" : "Show all")} ({drivers.length})</button>}
+      {drivers.length > 8 && <button type="button" onClick={() => setExpanded(!expanded)} className="la-bench-text-action">{expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}{t(expanded ? "Show fewer" : "Show all")} ({drivers.length})</button>}
     </GlassCard>
   );
 }
@@ -83,12 +85,12 @@ function AudioInventory() {
   const { t } = useTranslation();
   const { audioDevices, driversScanned } = useLatencyAnalyzerStore();
   return (
-    <GlassCard className="p-5">
-      <h3 className="flex items-center gap-2 text-sm font-semibold"><Music className="size-4 text-cyan-300" />{t("Audio device inventory")}</h3>
-      <p className="mt-2 text-[10px] text-[#778292]">{t("Detected devices only. Audio dropouts, buffer underruns, and real-time audio suitability are not measured.")}</p>
-      <div className="mt-3 space-y-2">
-        {audioDevices.map((device, index) => <div key={`${device.name}-${index}`} className="flex flex-wrap justify-between gap-2 rounded-lg border border-[#2A313A] bg-[#131A23] px-3 py-2 text-[11px]"><span className="text-[#A0A8B3]">{device.name}</span><span className="text-[#778292]">{device.manufacturer} · {device.status || t("Unknown")}</span></div>)}
-        {audioDevices.length === 0 && <p className="text-[11px] text-[#778292]">{t(driversScanned ? "No audio inventory data is available." : "Start a capture to request the device inventory.")}</p>}
+    <GlassCard className="la-bench-panel la-bench-inventory p-5">
+      <h3 className="la-bench-card-title"><Music aria-hidden="true" />{t("Audio device inventory")}</h3>
+      <p className="la-bench-small-copy">{t("Detected devices only. Audio dropouts, buffer underruns, and real-time audio suitability are not measured.")}</p>
+      <div className="la-bench-audio-rows">
+        {audioDevices.map((device, index) => <div key={`${device.name}-${index}`}><span>{device.name}</span><span>{device.manufacturer} · {device.status || t("Unknown")}</span></div>)}
+        {audioDevices.length === 0 && <p>{t(driversScanned ? "No audio inventory data is available." : "Start a capture to request the device inventory.")}</p>}
       </div>
     </GlassCard>
   );
@@ -99,13 +101,13 @@ function LockedState() {
   const { openUpgradeModal } = useUpgradeModal();
   return (
     <AppLayout noPageAnimation>
-      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center px-4">
-        <GlassCard className="w-full max-w-md space-y-4 p-8 text-center">
-          <Timer className="mx-auto size-8 text-cyan-300" />
+      <div className="la-bench-locked">
+        <GlassCard className="la-bench-panel w-full max-w-md space-y-4 p-8 text-center">
+          <Timer className="mx-auto size-8" />
           <h1 className="text-lg font-semibold">{t("Latency Analyzer")}</h1>
           <p className="text-xs text-[#8A95A4]">{t("Analyze real Windows DPC and interrupt counters with a transparent responsiveness model, detailed 3D capture graph, and factual device inventory.")}</p>
           <p className="text-[10px] text-[#778292]">{t("Scheduler delay and input-to-display latency are not measured.")}</p>
-          <Button onClick={() => openUpgradeModal()} className="w-full gap-2"><Crown className="size-4" />{t("Unlock Premium")}</Button>
+          <Button onClick={() => openUpgradeModal()} className="la-bench-primary-action w-full gap-2"><Crown className="size-4" />{t("Unlock Premium")}</Button>
         </GlassCard>
       </div>
     </AppLayout>
@@ -245,28 +247,37 @@ export default function LatencyAnalyzer() {
   if (locked) return <LockedState />;
   return (
     <AppLayout noPageAnimation>
-      <div className="mx-auto max-w-[1180px] space-y-5 px-4 py-6">
-        <header>
-          <p className="text-[9px] uppercase tracking-[0.2em] text-cyan-300/60">{t("Diagnostics / Windows performance")}</p>
-          <h1 className="mt-2 flex items-center gap-2.5 text-xl font-semibold text-[#E6EAF0]"><Timer className="size-5 text-cyan-300" />{t("Latency Analyzer")}</h1>
-          <p className="mt-1 text-[11px] text-[#7F8997]">{t("Measured system-wide counters and factual device inventory — not an input-latency test.")}</p>
+        <div className="la-signal-bench">
+        <header className="la-bench-intro">
+          <div className="la-bench-kicker">{t("Diagnostics / Windows performance")}</div>
+          <h1><Timer aria-hidden="true" />{t("Latency Analyzer")}</h1>
+          <p>{t("Measured system-wide counters and factual device inventory — not an input-latency test.")}</p>
         </header>
-        <Controls onStart={() => { void handleStart(); }} onStop={() => { void handleStop(); }} onReset={handleReset} />
-        <CollectionSummary desktop={desktopAvailable()} />
-        <ResponsivenessModel samples={store.chartSamples} model={responsivenessModel} />
+        <div className="la-bench-controls-model">
+          <div className="la-bench-capture-column">
+            <Controls onStart={() => { void handleStart(); }} onStop={() => { void handleStop(); }} onReset={handleReset} />
+            <CollectionSummary desktop={desktopAvailable()} />
+          </div>
+          <ResponsivenessModelSummary model={responsivenessModel} validSampleCount={store.sampleCount} />
+        </div>
+        <SignalBenchModel samples={store.chartSamples} model={responsivenessModel} />
         <CoreCounterMetrics />
         <CounterTimeline />
-        <SystemLoadPanel data={systemLoad} />
+        <SystemLoadPanel data={systemLoad} className="la-bench-panel la-bench-system-load" />
+        <div className="la-bench-inventory-grid">
         <DriverInventory drivers={store.drivers} />
         {store.sampleCount > 0 && !store.driversScanned && <p className="flex items-center gap-2 px-2 text-[11px] text-[#778292]"><Loader2 className="size-3.5 animate-spin" />{t("Requesting driver and audio inventory…")}</p>}
         {store.driversScanned && store.drivers.length === 0 && <p className="px-2 text-[11px] text-[#778292]">{t("No driver inventory data is available.")}</p>}
         <AudioInventory />
+        </div>
+        <div className="la-bench-tools-grid">
         <CaptureComparison />
         <CaptureExport />
-        <GlassCard className="p-4" variant="secondary">
-          <div className="flex items-start gap-2 text-[10px] leading-relaxed text-[#778292]"><Info className="mt-0.5 size-4 shrink-0" /><p>{t("This capture measures system-wide DPC CPU-time %, interrupt CPU-time %, and total page faults/sec. It does not measure scheduler dispatch delay, per-driver execution time, disk paging delay, audio dropout risk, gaming performance, or input-to-display latency. Valid zero activity remains zero; missing or invalid counters are excluded rather than replaced.")}</p></div>
+        </div>
+        <GlassCard className="la-bench-panel la-bench-limits p-4" variant="secondary" hoverEffect={false}>
+          <div><Info aria-hidden="true" /><p>{t("This capture measures system-wide DPC CPU-time %, interrupt CPU-time %, and total page faults/sec. It does not measure scheduler dispatch delay, per-driver execution time, disk paging delay, audio dropout risk, gaming performance, or input-to-display latency. Valid zero activity remains zero; missing or invalid counters are excluded rather than replaced.")}</p></div>
         </GlassCard>
-      </div>
+        </div>
     </AppLayout>
   );
 }
