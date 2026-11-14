@@ -818,12 +818,61 @@ html.sc-reduced-motion .debloater-scan-root * {
 .debloater-notebook-head {
   margin: 0 0 16px;
   padding: 14px 16px 16px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   border: 1px solid rgba(155, 204, 218, .24);
   border-radius: 14px;
+  background: #102638;
+  box-shadow: 0 12px 28px rgba(4, 12, 26, .25), inset 0 1px rgba(231, 247, 250, .08);
+}
+.debloater-notebook-head::before,
+.debloater-notebook-head::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+}
+.debloater-notebook-head::before {
+  z-index: 0;
   background:
     linear-gradient(112deg, rgba(8, 19, 35, .82), rgba(21, 66, 82, .58)),
     url("/images/debloater-reference/teal-wash.webp") right center / cover no-repeat;
-  box-shadow: 0 12px 28px rgba(4, 12, 26, .25), inset 0 1px rgba(231, 247, 250, .08);
+}
+.debloater-notebook-head > * {
+  position: relative;
+  z-index: 2;
+}
+.debloater-notebook-head.debloater-watercolor-motion::before {
+  background-position: center, 100% 50%;
+  background-size: 100% 100%, cover;
+  animation: debloater-wash-base-drift 36s ease-in-out infinite alternate;
+}
+.debloater-notebook-head.debloater-watercolor-motion::after {
+  z-index: 1;
+  background: url("/images/debloater-reference/teal-wash.webp") 58% 46% / cover no-repeat;
+  opacity: .1;
+  mix-blend-mode: soft-light;
+  mask-image: radial-gradient(ellipse 70% 82% at 68% 48%, #000 10%, rgba(0, 0, 0, .76) 44%, transparent 82%);
+  animation: debloater-wash-flow 24s ease-in-out infinite alternate;
+}
+@keyframes debloater-wash-base-drift {
+  0% { background-position: center, 100% 50%; background-size: 100% 100%, cover; }
+  100% { background-position: center, 94% 47%; background-size: 100% 100%, cover; }
+}
+@keyframes debloater-wash-flow {
+  0% { background-position: 58% 46%; opacity: .1; }
+  100% { background-position: 69% 55%; opacity: .17; }
+}
+html.sc-reduced-motion .debloater-notebook-head.debloater-watercolor-motion::before,
+html.sc-reduced-motion .debloater-notebook-head.debloater-watercolor-motion::after {
+  animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .debloater-notebook-head.debloater-watercolor-motion::before,
+  .debloater-notebook-head.debloater-watercolor-motion::after {
+    animation: none !important;
+  }
 }
 .debloater-notebook-head > div:first-child {
   background: transparent !important;
@@ -912,5 +961,97 @@ html.sc-reduced-motion .debloater-scan-root * {
   .debloater-notebook-head {
     margin-bottom: 14px;
     padding: 12px;
+  }
+}
+
+/* High-visibility controls for Installed Apps and the main Debloater tabs. */
+.debloater-page .debloater-notebook-head .debloater-tabs {
+  gap: 7px !important;
+  padding: 6px !important;
+}
+.debloater-page .debloater-notebook-head .debloater-tabs button {
+  min-height: 44px;
+  padding: 0 18px !important;
+  border: 1px solid transparent;
+  border-radius: 9px !important;
+  color: #e3eef1 !important;
+  font-size: 16px !important;
+  font-weight: 650 !important;
+  letter-spacing: .005em;
+}
+.debloater-page .debloater-notebook-head .debloater-tabs button:hover {
+  color: #ffffff !important;
+  background: #245c63 !important;
+}
+.debloater-page .debloater-notebook-head .debloater-tabs button[class*="bg-primary"] {
+  color: #fffaf0 !important;
+  background: #17676c !important;
+  border-color: rgba(192, 231, 218, .56) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.18), 0 2px 6px rgba(2,18,27,.2);
+}
+.debloater-page .debloater-notebook-head .debloater-tabs button:focus-visible {
+  outline: 3px solid #91dfd9;
+  outline-offset: 2px;
+}
+.debloater-page .debloater-installed .debloater-app-filters {
+  gap: 8px !important;
+  align-items: center;
+}
+.debloater-page .debloater-installed [data-testid^="filter-apps-"] {
+  min-height: 38px;
+  padding: 7px 13px !important;
+  border: 1px solid rgba(47, 71, 71, .38) !important;
+  border-radius: 999px !important;
+  color: #34484b !important;
+  background: #f3f1e7 !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+  line-height: 1.15;
+  box-shadow: 0 1px 2px rgba(25, 43, 42, .12);
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+.debloater-page .debloater-installed [data-testid^="filter-apps-"]:hover {
+  color: #233b3e !important;
+  background: #e3ece3 !important;
+  border-color: rgba(40, 108, 112, .52) !important;
+  transform: translateY(-1px);
+}
+.debloater-page .debloater-installed [data-testid^="filter-apps-"][aria-pressed="true"] {
+  color: #fffaf0 !important;
+  background: #17676c !important;
+  border-color: #15575c !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.17), 0 2px 5px rgba(20, 55, 55, .18);
+}
+.debloater-page .debloater-installed [data-testid^="filter-apps-"]:focus-visible,
+.debloater-page .debloater-installed [data-testid="select-sort-apps"]:focus-visible {
+  outline: 3px solid #267b7d;
+  outline-offset: 2px;
+}
+.debloater-page .debloater-installed select[data-testid="select-sort-apps"] {
+  min-height: 36px;
+  padding-inline: 4px 8px;
+  font-size: 14px !important;
+  font-weight: 600;
+}
+.debloater-page .debloater-installed-stat p:first-child {
+  color: #4c5d5f !important;
+  font-size: 12px !important;
+  font-weight: 650;
+}
+.debloater-page .debloater-installed-safety p {
+  color: #405457 !important;
+  font-size: 12px !important;
+}
+
+@media (max-width: 600px) {
+  .debloater-page .debloater-notebook-head .debloater-tabs button {
+    min-height: 42px;
+    padding-inline: 11px !important;
+    font-size: 14px !important;
+  }
+  .debloater-page .debloater-installed [data-testid^="filter-apps-"] {
+    min-height: 38px;
+    padding-inline: 11px !important;
+    font-size: 13px !important;
   }
 }

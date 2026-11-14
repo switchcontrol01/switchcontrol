@@ -108,7 +108,10 @@ function resolveIconPath(app) {
     raw = raw.replace(/,\s*-?\d+\s*$/, '').trim();
   }
   raw = expandEnvVars(raw);
-  if (raw.length > 4 && fs.existsSync(raw)) return raw;
+  const displayIconName = path.basename(raw);
+  const pointsToInstallerStub = /\.(?:exe)$/i.test(displayIconName) &&
+    /^(?:unins\w*|uninstall\w*|setup|installer|update|updater|repair|crashpad(?:_handler)?|crashreporter|helper)\.exe$/i.test(displayIconName);
+  if (raw.length > 4 && !pointsToInstallerStub && fs.existsSync(raw)) return raw;
 
   // ── 2. Best exe in InstallLocation (recursive, bounded) ────────────────────
   const loc = expandEnvVars(String(app.installLocation || '').trim());

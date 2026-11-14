@@ -23,6 +23,10 @@ const TIMER_TOGGLE_ID       = 'timer-res';
 const TIMER_SLIDER_ID       = 'timer-resolution-slider';
 const TIMER_SLIDER_APPLIED  = 5;    // 0.5ms in ms10 units
 const TIMER_SLIDER_DEFAULT  = 156;  // 15.6ms — "using default" sentinel
+const PRIORITY_TOGGLE_ID    = 'tune-priority';
+const PRIORITY_SLIDER_ID    = 'win32-priority-sep';
+const PRIORITY_SLIDER_APPLIED = 38;
+const PRIORITY_SLIDER_DEFAULT = 2;
 
 // ── syncAll cooldown — prevents repeated full scans on rapid remounts / focus ─
 // Module-level so it persists across component remounts for the app session.
@@ -56,6 +60,7 @@ export interface TweakResult {
   failureType?: FailureType | null;
   userMessage?: string | null;
   hint?: string | null;
+  recoveryPersistenceWarning?: string | null;
 }
 
 export interface TweakExecuteOutcome {
@@ -276,6 +281,14 @@ export function useTweakExecutor() {
         source,
       });
 
+      if (result.recoveryPersistenceWarning) {
+        toast({
+          title: 'Restart Recovery Not Saved',
+          description: result.recoveryPersistenceWarning,
+          variant: 'destructive',
+        });
+      }
+
       if (result.unsupported) {
         const t = FAILURE_TOAST.unsupported;
         toast({ title: t.title, description: result.message ?? t.description, variant: 'destructive' });
@@ -360,6 +373,14 @@ export function useTweakExecutor() {
         // showing the old value until it remounts.
         window.dispatchEvent(new CustomEvent('sc:slider-state-changed', {
           detail: { sliderId: TIMER_SLIDER_ID, value: timerValue },
+        }));
+      }
+      if (tweakId === PRIORITY_TOGGLE_ID) {
+        const { setSliderValue } = useStore.getState();
+        const priorityValue = action === 'apply' ? PRIORITY_SLIDER_APPLIED : PRIORITY_SLIDER_DEFAULT;
+        setSliderValue(PRIORITY_SLIDER_ID, priorityValue);
+        window.dispatchEvent(new CustomEvent('sc:slider-state-changed', {
+          detail: { sliderId: PRIORITY_SLIDER_ID, value: priorityValue },
         }));
       }
 

@@ -78,6 +78,7 @@
 - [Cleaner navigation modal](cleaner-navigation-modal.md) — active-operation confirmation must render at body level with explicit pointer handling to avoid freezing the Electron shell.
 - [Windows display connection enum](windows-display-connection-enum.md) — HDMI is enum 6; external DisplayPort is 11; preserve unknown raw values instead of guessing.
 - [Windows firewall profile status](windows-firewall-profile-status.md) — derive firewall health from the active profile, not a hard-coded Private-only check.
+- [Windows background-app state](background-apps-verification.md) — SwitchControl markers express intent but do not prove Windows still enforces the background-app setting.
 - [System Integrity scoring](system-integrity-scoring.md) — score device evidence, not recommendation counts; unknown probes and partial scans must stay explicit.
 - [Latency measurement honesty](latency-measurement-honesty.md) — load heuristics and DPC counters are system-responsiveness signals, not mouse-to-screen input-latency measurements.
 - [Free customization settings](free-customization-settings.md) — appearance, layout, accessibility, behavior, startup, and privacy preferences are available to every account.
@@ -115,3 +116,4 @@
 - [Feature light surfaces](feature-light-surfaces.md) — light feature themes must pair text and background overrides, including shared controls and portal notices.
 - [Power Plan and Debloater references](power-debloater-reference-fidelity.md) — recreate the approved watercolor references, not the green Depth palette; verify actual production components.
 - [Defender Tamper Protection detection](tamper-protection-detection.md) — use IsTamperProtected, not policy-source metadata; keep unknown distinct from confirmed off.
+- [Debloater installed-app clarity](debloater-installed-app-clarity.md) — keep tabs and filters easy to read; prefer actual app icons over cached generic uninstaller art.

@@ -22,6 +22,7 @@
  */
 const { ipcMain, shell, app: electronApp } = require('electron');
 const { execFile, spawn } = require('child_process');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -63,7 +64,20 @@ async function getAppIconDataUrl(appId, app) {
   if (!fs.existsSync(cacheDir)) {
     try { fs.mkdirSync(cacheDir, { recursive: true }); } catch {}
   }
-  const cacheFile = path.join(cacheDir, `${appId}.png`);
+  // Include the registry icon/install paths in the cache key. The former
+  // appId-only cache could preserve a generic uninstaller icon indefinitely,
+  // even after the resolver found the real application executable.
+  const cacheIdentity = crypto.createHash('sha256')
+    .update([
+      'installed-app-icon-v2',
+      appId,
+      String(app.displayIcon || ''),
+      String(app.installLocation || ''),
+      String(app.uninstallString || ''),
+      String(app.quietUninstall || ''),
+    ].join('\0'))
+    .digest('hex');
+  const cacheFile = path.join(cacheDir, `${cacheIdentity}.png`);
   if (fs.existsSync(cacheFile)) {
     return `data:image/png;base64,${fs.readFileSync(cacheFile).toString('base64')}`;
   }
@@ -1047,7 +1061,6 @@ $apps | ConvertTo-Json -Compress -Depth 1
       return { ok: false, error: 'json-parse-failed', apps: [] };
     }
     if (!Array.isArray(parsed)) parsed = [parsed];
-    const crypto = require('crypto');
     const apps = parsed
       .filter(a => a && a.N)
       .map(a => {

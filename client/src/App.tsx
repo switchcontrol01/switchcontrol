@@ -722,7 +722,8 @@ function ElectronAppContent() {
       if (cancelled) return;
 
       const api = (window as any).electronAPI?.tweaks;
-      if (typeof api?.reapplyAppliedValues !== "function") {
+      if (typeof api?.reconcileOwnedTargets !== "function" &&
+          typeof api?.reapplyAppliedValues !== "function") {
         sliderStartupRestoreAttemptedForUserRef.current = restoreUserId;
         console.warn("[SliderRestore] Electron restore API is unavailable.");
         toast({
@@ -735,9 +736,11 @@ function ElectronAppContent() {
 
       console.info(`[SliderRestore] Running startup check attempt=${currentAttempt + 1}/5.`);
       try {
-        // The executor restores non-premium sliders for free accounts and
-        // independently skips premium values unless entitlement is active.
-        const result = await api.reapplyAppliedValues(premiumIsActive === true);
+        // Restore explicit slider and app-owned toggle targets only after
+        // entitlement verification. Older packaged clients retain the slider-only path.
+        const result = typeof api.reconcileOwnedTargets === "function"
+          ? await api.reconcileOwnedTargets(premiumIsActive === true)
+          : await api.reapplyAppliedValues(premiumIsActive === true);
         if (cancelled) return;
 
         if (result?.busy && currentAttempt < 4) {
@@ -757,7 +760,11 @@ function ElectronAppContent() {
           return;
         }
 
-        const restored = Array.isArray(result.reapplied) ? result.reapplied : [];
+        const sliderResult = result?.sliders ?? result;
+        const restored = [
+          ...(Array.isArray(sliderResult?.reapplied) ? sliderResult.reapplied : []),
+          ...(Array.isArray(sliderResult?.unchanged) ? sliderResult.unchanged : []),
+        ];
         for (const item of restored) {
           if (typeof item?.tweakId !== "string" || typeof item?.value !== "number") continue;
           setSliderValue(item.tweakId, item.value);
@@ -774,30 +781,86 @@ function ElectronAppContent() {
               detail: { enabled },
             }));
           }
+          if (item.tweakId === "win32-priority-sep") {
+            setTweak("tune-priority", item.value === 38);
+          }
         }
 
-        const skipped = Array.isArray(result.skipped) ? result.skipped : [];
+        const restoredToggleIds = [
+          ...(result?.toggles?.reapplied ?? []),
+          ...(result?.toggles?.unchanged ?? []),
+        ]
+          .map((item: any) => item?.tweakId)
+          .filter((id: unknown): id is string => typeof id === "string");
+        const restoredNetworkIds = [
+          ...(result?.network?.reapplied ?? []),
+          ...(result?.network?.unchanged ?? []),
+        ]
+          .map((item: any) => item?.tweakId)
+          .filter((id: unknown): id is string => typeof id === "string");
+        for (const id of restoredToggleIds) {
+          setTweak(id, true);
+          if (id === "tcp-no-delay") setTweak("tcp-nagle", true);
+          if (id === "timer-res") {
+            setSliderValue("timer-resolution-slider", 5);
+            window.dispatchEvent(new CustomEvent("sc:slider-state-changed", {
+              detail: { sliderId: "timer-resolution-slider", value: 5 },
+            }));
+            window.dispatchEvent(new CustomEvent("sc:timer-toggle-state-changed", {
+              detail: { enabled: true },
+            }));
+          }
+          if (id === "tune-priority") {
+            setSliderValue("win32-priority-sep", 38);
+            window.dispatchEvent(new CustomEvent("sc:slider-state-changed", {
+              detail: { sliderId: "win32-priority-sep", value: 38 },
+            }));
+          }
+        }
+        for (const id of restoredNetworkIds) setTweak(id, true);
+        const reconciledNetworkIds = [
+          ...restoredNetworkIds,
+          ...(restoredToggleIds.includes("tcp-no-delay") ? ["tcp-nagle"] : []),
+        ];
+        if (reconciledNetworkIds.length > 0) {
+          window.dispatchEvent(new CustomEvent("sc:net-reconciled", {
+            detail: { ids: reconciledNetworkIds },
+          }));
+        }
+
+        const skipped = [
+          ...(Array.isArray(sliderResult?.skipped) ? sliderResult.skipped : []),
+          ...(Array.isArray(result?.toggles?.skipped) ? result.toggles.skipped : []),
+          ...(Array.isArray(result?.network?.skipped) ? result.network.skipped : []),
+        ];
         const awaitingPremium = skipped.some((item: any) => item?.reason === "premium_not_verified_active");
-        const adminSkipped = skipped.filter((item: any) => item?.reason === "administrator_required").length;
-        const failures = Array.isArray(result.failed) ? result.failed.length : 0;
+        const adminSkipped = skipped.filter((item: any) =>
+          item?.reason === "administrator_required" || item?.reason === "requires_admin",
+        ).length;
+        const failures = (Array.isArray(sliderResult?.failed) ? sliderResult.failed.length : 0) +
+          (result?.toggles?.failed?.length ?? 0) +
+          (result?.network?.failed?.length ?? 0);
         if (awaitingPremium) {
           console.info("[SliderRestore] Premium slider targets remain saved until premium entitlement is active.");
           return;
         }
 
         sliderStartupRestoreAttemptedForUserRef.current = restoreUserId;
-        console.info(`[SliderRestore] Startup check complete restored=${restored.length} skipped=${skipped.length} failed=${failures}.`);
-        if (restored.length > 0 || adminSkipped > 0 || failures > 0) {
+        const restoredCount = restored.length + restoredToggleIds.length + restoredNetworkIds.length;
+        console.info(`[OwnedTweakRecovery] Startup check complete restored=${restoredCount} skipped=${skipped.length} failed=${failures}.`);
+        if (restoredCount > 0 || adminSkipped > 0 || failures > 0) {
           const details = [
-            restored.length > 0 ? `Restored ${restored.length} saved slider value${restored.length === 1 ? "" : "s"}.` : "",
+            restored.length > 0 ? `Confirmed ${restored.length} saved slider value${restored.length === 1 ? "" : "s"}.` : "",
+            restoredToggleIds.length > 0 ? `Confirmed ${restoredToggleIds.length} saved tweak toggle${restoredToggleIds.length === 1 ? "" : "s"}.` : "",
+            restoredNetworkIds.length > 0 ? `Confirmed ${restoredNetworkIds.length} saved network setting${restoredNetworkIds.length === 1 ? "" : "s"}.` : "",
             adminSkipped > 0 ? `${adminSkipped} system-wide value${adminSkipped === 1 ? "" : "s"} need SwitchControl to run as administrator.` : "",
-            failures > 0 ? `${failures} saved value${failures === 1 ? "" : "s"} could not be verified; check the Windows permission prompt and try applying them again.` : "",
+            failures > 0 ? `${failures} saved setting${failures === 1 ? "" : "s"} could not be verified; check SwitchControl's logs and Windows permissions.` : "",
           ].filter(Boolean).join(" ");
           toast({
-            title: restored.length > 0
-              ? "Saved slider settings checked"
+            title: restoredCount > 0
+              ? "Saved tweak settings checked"
               : failures > 0
-                ? "Some slider settings were not restored"
+                ? "Some saved settings were not restored"
                 : "Administrator access needed",
             description: details,
           });
@@ -837,6 +900,139 @@ function ElectronAppContent() {
     setSliderValue,
     setTweak,
     toast,
+  ]);
+
+  // Keep an app-owned target from silently drifting after startup (for example
+  // after Windows resets a network profile). Recovery is limited to explicitly
+  // applied, verified targets and requires a verified active entitlement.
+  useEffect(() => {
+    if (
+      !isElectron ||
+      !entitlementsOk ||
+      !entitlementsVerified ||
+      !user?.loggedIn ||
+      !user.id ||
+      phase !== "authenticated"
+    ) return;
+
+    const api = (window as any).electronAPI?.tweaks;
+    if (typeof api?.reconcileOwnedTargets !== "function") return;
+    let stopped = false;
+    let inFlight = false;
+
+    const reconcile = async () => {
+      if (stopped || inFlight) return;
+      inFlight = true;
+      try {
+        const result = await api.reconcileOwnedTargets(premiumIsActive === true);
+        if (stopped || !result?.ok || result.busy) return;
+
+        const restoredSliders = [
+          ...(result.sliders?.reapplied ?? []),
+          ...(result.sliders?.unchanged ?? []),
+        ];
+        for (const item of restoredSliders) {
+          if (typeof item?.tweakId !== "string" || typeof item?.value !== "number") continue;
+          setSliderValue(item.tweakId, item.value);
+          window.dispatchEvent(new CustomEvent("sc:slider-state-changed", {
+            detail: { sliderId: item.tweakId, value: item.value },
+          }));
+          if (item.tweakId === "net-throttle-index") {
+            setTweak("tcp-throttling-index", item.value === 4294967295);
+          } else if (item.tweakId === "timer-resolution-slider") {
+            const enabled = item.value < 156;
+            setTweak("timer-res", enabled);
+            window.dispatchEvent(new CustomEvent("sc:timer-toggle-state-changed", {
+              detail: { enabled },
+            }));
+          } else if (item.tweakId === "win32-priority-sep") {
+            setTweak("tune-priority", item.value === 38);
+          }
+        }
+
+        const restoredToggleIds = [
+          ...(result.toggles?.reapplied ?? []),
+          ...(result.toggles?.unchanged ?? []),
+        ]
+          .map((item: any) => item?.tweakId)
+          .filter((id: unknown): id is string => typeof id === "string");
+        const restoredNetworkIds = [
+          ...(result.network?.reapplied ?? []),
+          ...(result.network?.unchanged ?? []),
+        ]
+          .map((item: any) => item?.tweakId)
+          .filter((id: unknown): id is string => typeof id === "string");
+        for (const id of restoredToggleIds) {
+          setTweak(id, true);
+          if (id === "tcp-no-delay") setTweak("tcp-nagle", true);
+          if (id === "timer-res") {
+            setSliderValue("timer-resolution-slider", 5);
+            window.dispatchEvent(new CustomEvent("sc:slider-state-changed", {
+              detail: { sliderId: "timer-resolution-slider", value: 5 },
+            }));
+            window.dispatchEvent(new CustomEvent("sc:timer-toggle-state-changed", {
+              detail: { enabled: true },
+            }));
+          }
+          if (id === "tune-priority") {
+            setSliderValue("win32-priority-sep", 38);
+            window.dispatchEvent(new CustomEvent("sc:slider-state-changed", {
+              detail: { sliderId: "win32-priority-sep", value: 38 },
+            }));
+          }
+        }
+        for (const id of restoredNetworkIds) setTweak(id, true);
+        const networkIds = [
+          ...restoredNetworkIds,
+          ...(restoredToggleIds.includes("tcp-no-delay") ? ["tcp-nagle"] : []),
+        ];
+        if (networkIds.length > 0) {
+          window.dispatchEvent(new CustomEvent("sc:net-reconciled", {
+            detail: { ids: networkIds },
+          }));
+        }
+
+        const failures = [
+          ...(result.sliders?.failed ?? []),
+          ...(result.toggles?.failed ?? []),
+          ...(result.network?.failed ?? []),
+        ];
+        if (failures.length > 0) {
+          console.warn(`[OwnedTweakRecovery] ${failures.length} saved targets remain unrecovered.`);
+        }
+        const reappliedCount = (result.sliders?.reapplied?.length ?? 0) +
+          (result.toggles?.reapplied?.length ?? 0) +
+          (result.network?.reapplied?.length ?? 0);
+        if (reappliedCount > 0) {
+          console.info(
+            `[OwnedTweakRecovery] repaired sliders=${result.sliders?.reapplied?.length ?? 0} ` +
+            `toggles=${result.toggles?.reapplied?.length ?? 0} network=${result.network?.reapplied?.length ?? 0}`,
+          );
+        }
+      } catch (error) {
+        console.warn("[OwnedTweakRecovery] periodic reconciliation failed:", error);
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    const interval = window.setInterval(() => void reconcile(), 90_000);
+    window.addEventListener("focus", reconcile);
+    return () => {
+      stopped = true;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", reconcile);
+    };
+  }, [
+    isElectron,
+    entitlementsOk,
+    entitlementsVerified,
+    premiumIsActive,
+    user?.loggedIn,
+    user?.id,
+    phase,
+    setSliderValue,
+    setTweak,
   ]);
 
   // Startup reconciliation, fires once, non-blocking.

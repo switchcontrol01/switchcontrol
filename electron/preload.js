@@ -388,6 +388,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
       if (typeof premiumActive !== 'boolean') throw new TypeError('tweaks.reapplyAppliedValues: premiumActive must be a boolean');
       return ipcRenderer.invoke('tweak:reapplyAppliedValues', premiumActive);
     },
+    reconcileOwnedTargets: (premiumActive) => {
+      if (typeof premiumActive !== 'boolean') throw new TypeError('tweaks.reconcileOwnedTargets: premiumActive must be a boolean');
+      return ipcRenderer.invoke('tweak:reconcileOwnedTargets', premiumActive);
+    },
     applyValue: (tweakId, value) => {
       assertString(tweakId, 'tweakId');
       if (typeof value !== 'number' || !Number.isFinite(value)) throw new TypeError('tweaks.applyValue: value must be a finite number');

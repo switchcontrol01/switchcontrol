@@ -5198,6 +5198,28 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
           };
         }
       }
+
+      // Tune Priority and the slider share Win32PrioritySeparation; the timer
+      // toggle and slider share NtSetTimerResolution. When a toggle is used,
+      // persist that same explicit target through the slider recovery store
+      // and transfer ownership so only one surface can restore it at startup.
+      if (result?.success === true && result?.verified === true &&
+          (tweakId === 'tune-priority' || tweakId === 'timer-res')) {
+        const sliderId = tweakId === 'tune-priority'
+          ? 'win32-priority-sep'
+          : 'timer-resolution-slider';
+        const target = tweakId === 'tune-priority' ? 38 : 5;
+        const persisted = action === 'apply'
+          ? sliderTweakExecutor.setAppliedSliderTarget(sliderId, target)
+          : { ok: sliderTweakExecutor.clearAppliedSliderTarget(sliderId) };
+        if (persisted.ok && action === 'apply') {
+          tweakExecutor.clearOwnedTweakTarget(tweakId);
+        }
+        if (!persisted.ok) {
+          result.recoveryPersistenceWarning = `Windows changed, but its restart recovery target could not be ${action === 'apply' ? 'saved' : 'cleared'}.`;
+          console.error(`[tweak:execute] ${tweakId} recovery target persistence failed`);
+        }
+      }
   
       return result;
     } finally {
@@ -5398,6 +5420,52 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
       psLimiter.release(token);
     }
   });
+
+  ipcMain.handle('tweak:reconcileOwnedTargets', async (_event, premiumActive) => {
+    if (typeof premiumActive !== 'boolean') {
+      return { ok: false, error: 'Premium status must be verified before restoring saved tweak targets.' };
+    }
+    const token = psLimiter.tryAcquire({
+      file: 'main.js', fn: 'tweak:reconcileOwnedTargets', reason: 'owned-tweak-recovery',
+    });
+    if (!token) {
+      return { ok: false, busy: true, sliders: null, toggles: null, network: null };
+    }
+    const empty = { reapplied: [], unchanged: [], skipped: [], failed: [] };
+    try {
+      const sliders = await sliderTweakExecutor.reapplyAppliedSliderValues(premiumActive);
+      const sliderTargetIds = new Set([
+        ...(sliders?.reapplied ?? []),
+        ...(sliders?.unchanged ?? []),
+        ...(sliders?.failed ?? []),
+      ].map(item => item?.tweakId).filter(id => typeof id === 'string'));
+      const skipToggleIds = [];
+      for (const [sliderId, toggleId] of [
+        ['win32-priority-sep', 'tune-priority'],
+        ['timer-resolution-slider', 'timer-res'],
+      ]) {
+        if (!premiumActive || !sliderTargetIds.has(sliderId)) continue;
+        // The slider is the more specific control for this shared Windows
+        // setting. Release the legacy toggle claim so the two views cannot
+        // fight over one registry value or timer request after restart.
+        tweakExecutor.clearOwnedTweakTarget(toggleId);
+        skipToggleIds.push(toggleId);
+      }
+      const toggles = await tweakExecutor.reapplyOwnedPersistentTweaks(premiumActive, {
+        skipIds: skipToggleIds,
+        beforeApply: async (tweakId) => {
+          if (tweakId === 'timer-res') sliderTweakExecutor.stopTimerResolutionKeeper();
+        },
+      });
+      const network = await networkTweakExecutor.reapplyOwnedNetworkTweaks(premiumActive);
+      return { ok: sliders?.ok !== false, busy: false, sliders: sliders || empty, toggles, network };
+    } catch (e) {
+      console.error('[IPC] tweak:reconcileOwnedTargets error:', e.message);
+      return { ok: false, busy: false, error: e.message, sliders: null, toggles: null, network: null };
+    } finally {
+      psLimiter.release(token);
+    }
+  });
   
   ipcMain.handle('tweak:applyValue', async (event, tweakId, value) => {
     if (typeof tweakId !== 'string') return { ok: false, error: 'Invalid tweakId' };
@@ -5409,7 +5477,16 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
     if (tweakId === 'timer-resolution-slider') {
       tweakExecutor.cleanupTimerResProcess();
     }
-    try { return await sliderTweakExecutor.applySliderValue(tweakId, value); } finally { psLimiter.release(token); }
+    try {
+      const result = await sliderTweakExecutor.applySliderValue(tweakId, value);
+      if (result?.ok === true && result?.verified === true) {
+        if (tweakId === 'win32-priority-sep') tweakExecutor.clearOwnedTweakTarget('tune-priority');
+        if (tweakId === 'timer-resolution-slider') tweakExecutor.clearOwnedTweakTarget('timer-res');
+      }
+      return result;
+    } finally {
+      psLimiter.release(token);
+    }
   });
   
   ipcMain.handle('tweak:verifyValue', async (event, tweakId, expectedValue) => {
@@ -5430,7 +5507,17 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
     // leaves a non-default value in the registry between clicks.
     // resetSliderValue is still used by the premium-revert engine (trial expiry) where
     // "restore what was there before the user ever touched this tweak" is the right goal.
-    try { return await sliderTweakExecutor.forceRevertSliderToDefault(tweakId); } finally { psLimiter.release(token); }
+    if (tweakId === 'timer-resolution-slider') tweakExecutor.cleanupTimerResProcess();
+    try {
+      const result = await sliderTweakExecutor.forceRevertSliderToDefault(tweakId);
+      if (result?.ok === true && result?.verified === true) {
+        if (tweakId === 'win32-priority-sep') tweakExecutor.clearOwnedTweakTarget('tune-priority');
+        if (tweakId === 'timer-resolution-slider') tweakExecutor.clearOwnedTweakTarget('timer-res');
+      }
+      return result;
+    } finally {
+      psLimiter.release(token);
+    }
   });
   
   ipcMain.handle('tweak:getSliderMeta', (event, tweakId) => {
@@ -5452,7 +5539,14 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
    */
   ipcMain.handle('tweak:revertAllSliders', async () => {
     try {
+      tweakExecutor.cleanupTimerResProcess();
+      sliderTweakExecutor.stopTimerResolutionKeeper();
       const result = await sliderTweakExecutor.revertAllPremiumSliders();
+      const revertedIds = new Set((result.reverted ?? [])
+        .map(item => typeof item === 'string' ? item : item?.tweakId)
+        .filter(id => typeof id === 'string'));
+      if (revertedIds.has('win32-priority-sep')) tweakExecutor.clearOwnedTweakTarget('tune-priority');
+      if (revertedIds.has('timer-resolution-slider')) tweakExecutor.clearOwnedTweakTarget('timer-res');
       console.log(`[IPC] tweak:revertAllSliders — reverted=${result.reverted.length} failed=${result.failed.length}`);
       return { success: true, ...result };
     } catch (e) {
@@ -5960,7 +6054,18 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
       const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'powerPlans:getState', reason: 'power-plan-read' });
       if (_token) {
         try {
-          return await powerPlanManager.getPowerPlanState();
+          const state = await powerPlanManager.getPowerPlanState();
+          if (state?.success) {
+            const priority = await sliderTweakExecutor.readSliderValue('win32-priority-sep');
+            state.settings = { ...(state.settings || {}), win32PrioritySeparation: priority.value };
+            if (priority.error) {
+              state.settingsErrors = {
+                ...(state.settingsErrors || {}),
+                win32PrioritySeparation: priority.error,
+              };
+            }
+          }
+          return state;
         } catch (e) {
           console.error('[IPC] powerPlans:getState error:', e.message);
           return { success: false, error: e.message };
@@ -6013,7 +6118,86 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'powerPlans:applyCustom', reason: 'power-plan-custom' });
     if (!_token) return { success: false, skipped: true, error: 'Power-plan operation already in progress' };
     try {
-      return await powerPlanManager.applyCustomPowerProfile(name, settings);
+      const previousCustomPlan = powerPlanManager.getCustomPlanMeta();
+      const previousRecovery = previousCustomPlan?.priorityRecovery ?? null;
+      const applyResult = await powerPlanManager.applyCustomPowerProfile(name, settings);
+      if (!applyResult?.success) return applyResult;
+
+      if (settings.preferPerformanceProcesses === true) {
+        let recovery = previousRecovery;
+        if (!recovery) {
+          const [current, sliderState] = await Promise.all([
+            sliderTweakExecutor.readSliderValue('win32-priority-sep'),
+            Promise.resolve(sliderTweakExecutor.getSliderRecoveryState('win32-priority-sep')),
+          ]);
+          if (current.error || current.value === null || current.value === undefined) {
+            applyResult.verified = false;
+            applyResult.priorityPreference = {
+              status: 'unavailable',
+              error: current.error || 'Could not read the current foreground-priority value.',
+            };
+          } else {
+            recovery = {
+              previousValue: current.value,
+              previousAppliedTarget: sliderState?.appliedValue ?? null,
+            };
+          }
+        }
+
+        if (recovery) {
+          powerPlanManager.setCustomPlanPriorityRecovery(recovery);
+          const priorityApply = await sliderTweakExecutor.applySliderValue('win32-priority-sep', 26);
+          applyResult.priorityPreference = {
+            status: priorityApply.ok && priorityApply.verified ? 'verified' : 'failed',
+            expected: 26,
+            actual: priorityApply.actualValue ?? null,
+            error: priorityApply.error ?? null,
+          };
+          if (!priorityApply.ok || !priorityApply.verified) applyResult.verified = false;
+          powerPlanManager.setCustomPlanPriorityRecovery(
+            recovery,
+            applyResult.priorityPreference,
+          );
+        }
+      } else if (previousRecovery) {
+        const current = await sliderTweakExecutor.readSliderValue('win32-priority-sep');
+        if (current.error || current.value === null || current.value === undefined) {
+          applyResult.verified = false;
+          applyResult.priorityPreference = {
+            status: 'restore-unavailable',
+            error: current.error || 'Could not read the current foreground-priority value.',
+          };
+        } else if (current.value !== previousRecovery.managedValue) {
+          // Another SwitchControl surface or the user changed the shared value.
+          // Do not overwrite that newer choice while removing the custom option.
+          const sliderState = sliderTweakExecutor.getSliderRecoveryState('win32-priority-sep');
+          if (sliderState?.appliedValue === previousRecovery.managedValue) {
+            sliderTweakExecutor.clearAppliedSliderTarget('win32-priority-sep');
+          }
+          applyResult.priorityPreference = { status: 'preserved-newer-value', actual: current.value };
+          powerPlanManager.setCustomPlanPriorityRecovery(null, applyResult.priorityPreference);
+        } else {
+          const restore = previousRecovery.previousAppliedTarget !== null
+            ? await sliderTweakExecutor.applySliderValue('win32-priority-sep', previousRecovery.previousAppliedTarget)
+            : await sliderTweakExecutor.applySliderValue('win32-priority-sep', previousRecovery.previousValue);
+          const restored = restore.ok && restore.verified;
+          if (restored && previousRecovery.previousAppliedTarget === null) {
+            sliderTweakExecutor.clearSliderRecoveryState('win32-priority-sep');
+          }
+          applyResult.priorityPreference = {
+            status: restored ? 'restored' : 'restore-failed',
+            actual: restore.actualValue ?? null,
+            error: restore.error ?? null,
+          };
+          if (restored) {
+            powerPlanManager.setCustomPlanPriorityRecovery(null, applyResult.priorityPreference);
+          } else {
+            applyResult.verified = false;
+            powerPlanManager.setCustomPlanPriorityRecovery(previousRecovery, applyResult.priorityPreference);
+          }
+        }
+      }
+      return applyResult;
     } catch (e) {
       console.error('[IPC] powerPlans:applyCustom error:', e.message);
       return { success: false, error: e.message };
@@ -6027,7 +6211,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   const _powerOverrideBackups = new Map();
   async function _capturePowerOverride(id, subgroup, setting) {
     if (_powerOverrideBackups.has(id)) return _powerOverrideBackups.get(id);
-    const raw = await runMainPs(`powercfg /q scheme_current ${subgroup} ${setting}`, { timeout: 4000, label: 'powerPlans:captureOverride' });
+    const raw = await runMainPs(`powercfg /qh scheme_current ${subgroup} ${setting}`, { timeout: 4000, label: 'powerPlans:captureOverride' });
     if (!raw) return null;
     const ac = raw.match(/Current AC Power Setting Index:\s*0x([0-9a-f]+)/i);
     const dc = raw.match(/Current DC Power Setting Index:\s*0x([0-9a-f]+)/i);
@@ -6039,14 +6223,31 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
 
   ipcMain.handle('powerPlans:applyOverride', async (event, id, enabled) => {
     verboseLog(`[IPC] powerPlans:applyOverride id="${id}" enabled=${enabled}`);
+    if (id === 'perf-processes') {
+      const priorityToken = psLimiter.tryAcquire({ file: 'main.js', fn: 'powerPlans:applyOverride', reason: 'power-plan-priority-override' });
+      if (!priorityToken) return { success: false, skipped: true, error: 'Power-plan operation already in progress' };
+      try {
+        const result = enabled
+          ? await sliderTweakExecutor.applySliderValue('win32-priority-sep', 26)
+          : await sliderTweakExecutor.resetSliderValue('win32-priority-sep');
+        return {
+          success: result.ok === true && result.verified === true,
+          verified: result.verified === true,
+          actualValue: result.actualValue ?? null,
+          error: result.error ?? null,
+        };
+      } finally {
+        psLimiter.release(priorityToken);
+      }
+    }
     const OVERRIDE_PS = {
       'disable-throttle': {
         apply:  'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb 0; powercfg /setactive scheme_current',
         revert: 'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb 3; powercfg /setactive scheme_current',
       },
       'hardware-pstates': {
-        apply:  'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 be337238-0d82-4146-a960-4f3749d470c7 1; powercfg /setactive scheme_current',
-        revert: 'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 be337238-0d82-4146-a960-4f3749d470c7 0; powercfg /setactive scheme_current',
+        apply:  'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 8baa4a8a-14c6-4451-8e8b-14bd5f7ac3b1 1; powercfg /setactive scheme_current',
+        revert: 'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 8baa4a8a-14c6-4451-8e8b-14bd5f7ac3b1 0; powercfg /setactive scheme_current',
       },
       'turbo-boost': {
         apply:  'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 45bcc044-d885-43e2-8605-ee0ec6e96b59 2; powercfg /setactive scheme_current',
@@ -6075,10 +6276,6 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
       'freq-scaling': {
         apply:  'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 893dee8e-2bef-41e0-89c6-b55d0929964c 100; powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 bc5038f7-23e0-4960-96da-33abaf5935ec 100; powercfg /setactive scheme_current',
         revert: 'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 893dee8e-2bef-41e0-89c6-b55d0929964c 5; powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 bc5038f7-23e0-4960-96da-33abaf5935ec 100; powercfg /setactive scheme_current',
-      },
-      'perf-processes': {
-        apply:  "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl' -Name 'Win32PrioritySeparation' -Value 38 -Type DWord -Force",
-        revert: "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl' -Name 'Win32PrioritySeparation' -Value 2 -Type DWord -Force",
       },
     };
     const cmdSet = OVERRIDE_PS[id];

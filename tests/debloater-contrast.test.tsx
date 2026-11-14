@@ -22,9 +22,19 @@ test("Debloater controls and cards remain readable in every light-surface state"
   assert.match(source, /debloater-installed-stat/);
   assert.match(source, /debloater-installed-no-results/);
   assert.match(source, /debloater-control-destructive/);
+  assert.match(source, /preferPublisherLogo/);
+  assert.match(source, /epic games launcher/);
+  assert.match(source, /fifine control deck/);
   const fixture = renderToStaticMarkup(
     <>
       <div className="debloater-page">
+        <header className="debloater-notebook-head">
+          <div><h1>Debloater</h1></div>
+          <nav className="debloater-tabs flex gap-1 p-1 rounded-xl bg-[#21262D] border border-[#2A313A] w-fit">
+            <button id="tab-curated" className="bg-primary/15 text-primary border border-primary/25 shadow-sm">Curated Removals</button>
+            <button id="tab-installed" className="text-muted-foreground">Installed Apps</button>
+          </nav>
+        </header>
         <div className="debloater-installed">
           <Button id="rescan" variant="outline" className="debloater-control-secondary">Rescan</Button>
           <Button id="uninstall" variant="outline" className="debloater-control-secondary debloater-uninstall-trigger">Uninstall</Button>
@@ -34,6 +44,10 @@ test("Debloater controls and cards remain readable in every light-surface state"
           <input id="search" data-testid="input-search-apps" className="bg-[#21262D]" defaultValue="Microsoft" />
           <div className="debloater-installed-safety bg-[#1A1F26]">
             <p id="safety" className="text-muted-foreground">Protected system apps cannot be uninstalled.</p>
+          </div>
+          <div className="debloater-app-filters flex flex-wrap gap-1.5">
+            <button id="filter-all" data-testid="filter-apps-all" aria-pressed="true" className="bg-primary/15 text-primary border border-primary/30">All</button>
+            <button id="filter-third-party" data-testid="filter-apps-third-party" aria-pressed="false">Third-party</button>
           </div>
           <GlassCard id="stats-card" className="debloater-installed-stat">
             <p id="stats-label" className="text-muted-foreground/50">Total</p>
@@ -144,12 +158,19 @@ test("Debloater controls and cards remain readable in every light-surface state"
           while ((background==='rgba(0, 0, 0, 0)' || background==='transparent') && parent.parentElement) {
             parent=parent.parentElement; background=getComputedStyle(parent).backgroundColor;
           }
-          return {color:style.color,background,opacity:style.opacity,outline:style.outlineStyle};
+        return {color:style.color,background,opacity:style.opacity,outline:style.outlineStyle,fontSize:style.fontSize,height:style.height};
         })()`,
         returnByValue: true,
       });
       await page("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: [] });
-      return evaluated.result.value as { color: string; background: string; opacity: string; outline: string };
+      return evaluated.result.value as {
+        color: string;
+        background: string;
+        opacity: string;
+        outline: string;
+        fontSize: string;
+        height: string;
+      };
     };
     const luminance = (rgb: string) => {
       const channels = rgb.match(/[\d.]+/g)!.slice(0, 3).map(Number).map(v => v / 255)
@@ -159,7 +180,7 @@ test("Debloater controls and cards remain readable in every light-surface state"
     let checks = 0;
     for (const width of [1280, 560]) {
       await page("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile: false });
-      for (const id of ["rescan", "uninstall", "disabled", "secondary", "ghost", "search", "safety", "stats-label", "stats-number", "empty-label", "clear-filters", "confirm-warning", "cancel", "confirm", "confirm-disabled", "close", "results"]) {
+      for (const id of ["tab-curated", "tab-installed", "filter-all", "filter-third-party", "rescan", "uninstall", "disabled", "secondary", "ghost", "search", "safety", "stats-label", "stats-number", "empty-label", "clear-filters", "confirm-warning", "cancel", "confirm", "confirm-disabled", "close", "results"]) {
         for (const state of [[], ["hover"], ["focus-visible"]]) {
           const value = await sample(id, state);
           const a = luminance(value.color), b = luminance(value.background);
@@ -167,6 +188,16 @@ test("Debloater controls and cards remain readable in every light-surface state"
           assert.ok(ratio >= 4.5, `${width}px ${id} ${state.join(",") || "normal"} contrast ${ratio.toFixed(2)}: ${JSON.stringify(value)}`);
           checks++;
         }
+      }
+      for (const id of ["tab-curated", "tab-installed"]) {
+        const tab = await sample(id);
+        assert.ok(parseFloat(tab.fontSize) >= 14, `${width}px ${id} font is too small: ${tab.fontSize}`);
+        assert.ok(parseFloat(tab.height) >= 42, `${width}px ${id} hit target is too short: ${tab.height}`);
+      }
+      for (const id of ["filter-all", "filter-third-party"]) {
+        const chip = await sample(id);
+        assert.ok(parseFloat(chip.fontSize) >= 13, `${width}px ${id} font is too small: ${chip.fontSize}`);
+        assert.ok(parseFloat(chip.height) >= 36, `${width}px ${id} hit target is too short: ${chip.height}`);
       }
       for (const id of ["stats-card", "empty-card"]) {
         const value = await sample(id, ["hover"]);

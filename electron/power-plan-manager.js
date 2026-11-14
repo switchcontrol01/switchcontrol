@@ -74,6 +74,18 @@ const SETTING_DEFS = {
     label:    'CPU Boost Mode',
     fmt:      (v) => ({ 0: 'Disabled', 1: 'Enabled', 2: 'Aggressive', 3: 'Efficient enabled', 4: 'Efficient aggressive' })[v] ?? `Mode ${v}`,
   },
+  processorAutonomousModeAC: {
+    subgroup: '54533251-82be-4824-96c1-47b60b740d00',
+    setting:  '8baa4a8a-14c6-4451-8e8b-14bd5f7ac3b1',
+    label:    'Processor Autonomous Mode',
+    fmt:      (v) => v === 1 ? 'Hardware controlled' : v === 0 ? 'Windows controlled' : `Mode ${v}`,
+  },
+  processorPerformanceTimeCheckIntervalAC: {
+    subgroup: '54533251-82be-4824-96c1-47b60b740d00',
+    setting:  '4d2b0152-7d5c-498b-88e2-34345392a2c5',
+    label:    'Processor Performance Check Interval',
+    fmt:      (v) => `${v} ms`,
+  },
   systemCoolingPolicyAC: {
     subgroup: '54533251-82be-4824-96c1-47b60b740d00',
     setting:  '94d3a615-a899-4ac5-ae2b-e4d8f634367f',
@@ -97,6 +109,12 @@ const SETTING_DEFS = {
     setting:  '48e6b7a6-50f5-4782-a5d4-53bb8f07e226',
     label:    'USB Selective Suspend',
     fmt:      (v) => v === 0 ? 'Disabled' : 'Enabled',
+  },
+  usbPowerManagementAC: {
+    subgroup: '2a737441-1930-4402-8d77-b2bebba308a3',
+    setting:  'd4e98f31-5ffe-4ce1-be31-1b38b384c009',
+    label:    'USB 3 Link Power Management',
+    fmt:      (v) => ({ 0: 'Off', 1: 'Moderate power savings', 2: 'Maximum power savings', 3: 'Auto' })[v] ?? `Mode ${v}`,
   },
   pcieAspmAC: {
     subgroup: '501a4d13-42af-4429-9fd1-a8218c268e20',
@@ -260,6 +278,38 @@ function parseAcValue(output) {
   return raw.startsWith('0x') ? parseInt(raw, 16) : parseInt(raw, 10);
 }
 
+async function readPowerSettingValue(schemeGuid, key, def, query = runPowercfg) {
+  const hiddenSettings = new Set([
+    'perfBoostModeAC',
+    'processorAutonomousModeAC',
+    'processorPerformanceTimeCheckIntervalAC',
+    'usbPowerManagementAC',
+  ]);
+  const queryModes = hiddenSettings.has(key) ? ['/query', '/qh'] : ['/query'];
+  let lastAttemptHadOutput = false;
+  let lastError = null;
+
+  for (const mode of queryModes) {
+    try {
+      const output = await query(mode, schemeGuid, def.subgroup, def.setting);
+      lastAttemptHadOutput = true;
+      const value = parseAcValue(output);
+      if (value !== null) return { value, error: null, source: mode };
+    } catch (error) {
+      lastAttemptHadOutput = false;
+      lastError = `${mode}: ${error?.message ?? String(error)}`;
+    }
+  }
+
+  // A successful command with no readable index means Windows did not report
+  // this setting; reserve errors for actual command failures.
+  return {
+    value: null,
+    error: lastAttemptHadOutput ? null : lastError,
+    source: null,
+  };
+}
+
 // ── Core operations ───────────────────────────────────────────────────────────
 
 async function listPowerSchemes() {
@@ -311,11 +361,15 @@ async function readAllSettings(schemeGuid) {
   // ~50-150 ms of process-creation overhead on Windows).
   const entries = Object.entries(SETTING_DEFS);
   const results = await Promise.all(
-    entries.map(([key, def]) =>
-      runPowercfg('/query', schemeGuid, def.subgroup, def.setting)
-        .then(out => ({ key, val: parseAcValue(out), err: null }))
-        .catch(e  => ({ key, val: null,              err: e.message }))
-    )
+    entries.map(async ([key, def]) => {
+      const result = await readPowerSettingValue(schemeGuid, key, def);
+      if (key === 'perfBoostModeAC' && result.source === '/qh') {
+        console.info('[PowerPlan] CPU boost mode read using hidden-setting query fallback.');
+      } else if (key === 'perfBoostModeAC' && result.value === null) {
+        console.warn(`[PowerPlan] CPU boost mode was not readable${result.error ? `: ${result.error}` : ''}.`);
+      }
+      return { key, val: result.value, err: result.error };
+    })
   );
   const settings = {};
   const errors   = {};
@@ -326,7 +380,40 @@ async function readAllSettings(schemeGuid) {
   return { settings, errors };
 }
 
-function generateBreakdown(settings) {
+function buildCustomPowerSettingTargets(settings = {}) {
+  const numberOr = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+  const minProcessorState = settings.disableFrequencyScaling
+    ? 100
+    : numberOr(settings.minProcessorState, 5);
+  const maxProcessorState = settings.disableFrequencyScaling
+    ? 100
+    : numberOr(settings.maxProcessorState, 100);
+
+  const targets = {
+    cpuMinPercentAC: minProcessorState,
+    cpuMaxPercentAC: maxProcessorState,
+    perfBoostModeAC: settings.enableTurboBoost === false ? 0 : 2,
+    processorThrottleStates: settings.disableThrottleStates === true ? 0 : 1,
+    usbSelectiveSuspendAC: settings.disableUsbSelectiveSuspend === true ? 0 : 1,
+    pcieAspmAC: 0,
+  };
+
+  if (settings.disableCoreParking === true) targets.coreParkingMinCoresAC = 100;
+  if (settings.enableHardwarePStates === true) targets.processorAutonomousModeAC = 1;
+  if (settings.optimizePerformanceInterval === true) targets.processorPerformanceTimeCheckIntervalAC = 10;
+  if (settings.disableUsbPowerManagement === true) targets.usbPowerManagementAC = 0;
+  if (settings.disableSleep === true) {
+    targets.sleepAfterAC = 0;
+    targets.hibernateAfterAC = 0;
+  } else if (settings.disableHibernation === true) {
+    targets.hibernateAfterAC = 0;
+  }
+  if (settings.keepDisplayOn === true) targets.displayOffAfterAC = 0;
+
+  return targets;
+}
+
+function generateBreakdown(settings, errors = {}) {
   const get = (key) => {
     const v = settings[key];
     return v !== null && v !== undefined ? SETTING_DEFS[key]?.fmt(v) ?? String(v) : null;
@@ -336,7 +423,7 @@ function generateBreakdown(settings) {
   const maxPct = settings.cpuMaxPercentAC;
 
   return {
-    cpuBoost:            get('perfBoostModeAC')           ?? 'Unknown',
+    cpuBoost:            get('perfBoostModeAC')           ?? (errors.perfBoostModeAC ? 'Unavailable' : 'Not reported by Windows'),
     cpuRange:            (minPct !== null && maxPct !== null) ? `${minPct}% – ${maxPct}%` : 'Unknown',
     coreParking:         get('coreParkingMinCoresAC')     ?? 'Unknown',
     sleepHibernate:      settings.sleepAfterAC === 0 ? 'Sleep disabled'
@@ -720,7 +807,7 @@ async function applyPowerProfile(profileId) {
   console.log(`[PowerPlan]   target GUID: ${schemeGuid.toLowerCase()}`);
 
   const settings     = settingsResult.settings;
-  const breakdown    = generateBreakdown(settings);
+  const breakdown    = generateBreakdown(settings, settingsResult.errors);
   const profileMatch = matchProfileToPreset(guidAfter, settings);
 
   // SUCCESS = the target scheme GUID is now active.
@@ -771,7 +858,7 @@ async function getPowerPlanState() {
 
     const schemeGuid  = activeResult.scheme.guid;
     const { settings, errors } = await readAllSettings(schemeGuid);
-    const breakdown   = generateBreakdown(settings);
+    const breakdown   = generateBreakdown(settings, errors);
     const profileMatch = matchProfileToPreset(schemeGuid, settings);
 
     return {
@@ -1291,6 +1378,9 @@ async function applyCustomPowerProfile(name, settings) {
 
   // ── Step 3: Build setting commands ───────────────────────────────────────────
   const cmds = [];
+  const expectedSettings = {};
+  const unsupportedSettings = [];
+  const settingErrors = {};
 
   // Custom profiles are performance profiles for the plugged-in machine by
   // default. Preserve the duplicated plan's battery/DC policy unless the user
@@ -1299,46 +1389,30 @@ async function applyCustomPowerProfile(name, settings) {
     const def = SETTING_DEFS[key];
     if (!def) return;
     console.log(`[PowerPlan:Custom] applying setting=${key} value=${value}`);
+    expectedSettings[key] = value;
     cmds.push(`powercfg /setacvalueindex ${customGuid} ${def.subgroup} ${def.setting} ${value}`);
     if (applyDc) {
       cmds.push(`powercfg /setdcvalueindex ${customGuid} ${def.subgroup} ${def.setting} ${value}`);
     }
   }
 
-  // CPU % states — frequency scaling overrides sliders
-  const minProc = settings.disableFrequencyScaling ? 100 : (Number(settings.minProcessorState) || 5);
-  const maxProc = settings.disableFrequencyScaling ? 100 : (Number(settings.maxProcessorState) || 100);
-  addSetting('cpuMinPercentAC', minProc);
-  addSetting('cpuMaxPercentAC', maxProc);
-
-  // Core parking
-  if (settings.disableCoreParking) {
-    addSetting('coreParkingMinCoresAC', 100);
-  }
-
-  // Turbo boost (perfBoostModeAC: 2=aggressive / 0=disabled)
-  addSetting('perfBoostModeAC', settings.enableTurboBoost ? 2 : 0);
-
-  // Throttle states (0=disabled / 1=enabled)
-  addSetting('processorThrottleStates', settings.disableThrottleStates ? 0 : 1);
-
-  // USB selective suspend
-  addSetting('usbSelectiveSuspendAC', settings.disableUsbSelectiveSuspend ? 0 : 1);
-
-  // PCIe ASPM — always disable for performance in custom plans
-  addSetting('pcieAspmAC', 0);
-
-  // Sleep & hibernate
-  if (settings.disableSleep) {
-    addSetting('sleepAfterAC', 0);
-    addSetting('hibernateAfterAC', 0);
-  } else if (settings.disableHibernation) {
-    addSetting('hibernateAfterAC', 0);
-  }
-
-  // Display
-  if (settings.keepDisplayOn) {
-    addSetting('displayOffAfterAC', 0);
+  const supportCheckedSettings = new Set([
+    'processorAutonomousModeAC',
+    'processorPerformanceTimeCheckIntervalAC',
+    'usbPowerManagementAC',
+  ]);
+  const customTargets = buildCustomPowerSettingTargets(settings);
+  for (const [key, value] of Object.entries(customTargets)) {
+    if (supportCheckedSettings.has(key)) {
+      const support = await readPowerSettingValue(customGuid, key, SETTING_DEFS[key]);
+      if (support.value === null) {
+        unsupportedSettings.push(key);
+        if (support.error) settingErrors[key] = support.error;
+        console.warn(`[PowerPlan:Custom] skipping unsupported/unreadable setting=${key}${support.error ? `: ${support.error}` : ''}`);
+        continue;
+      }
+    }
+    addSetting(key, value);
   }
 
   // Activate last
@@ -1377,25 +1451,52 @@ async function applyCustomPowerProfile(name, settings) {
   console.log(`[PowerPlan:Custom] activated GUID=${customGuid}`);
 
   // ── Step 5: Verify ────────────────────────────────────────────────────────────
-  const activeResult = await getActivePowerScheme();
+  const [activeResult, readback] = await Promise.all([
+    getActivePowerScheme(),
+    readAllSettings(customGuid),
+  ]);
   const activeGuid   = (activeResult.scheme?.guid ?? '').toLowerCase();
   console.log(`[PowerPlan:Custom] verify active GUID=${activeGuid}`);
 
-  const verified = activeResult.success && activeGuid === customGuid;
+  const guidVerified = activeResult.success && activeGuid === customGuid;
+  const settingVerification = {};
+  const mismatchedSettings = [];
+  for (const [key, expected] of Object.entries(expectedSettings)) {
+    const actual = readback.settings[key];
+    const matched = actual === expected;
+    settingVerification[key] = {
+      expected,
+      actual,
+      status: matched ? 'verified' : actual == null ? 'unavailable' : 'mismatch',
+    };
+    if (!matched) mismatchedSettings.push(key);
+  }
+  const verified = guidVerified &&
+    unsupportedSettings.length === 0 &&
+    mismatchedSettings.length === 0 &&
+    (applyResult.failed ?? []).length === 0;
   console.log(`[PowerPlan:Custom] success/fail=${verified ? 'success' : 'fail'}`);
 
   // ── Step 6: Persist ───────────────────────────────────────────────────────────
   const updatedState = loadState(); // re-read to avoid clobbering concurrent writes
   const customPlan = {
+    ...(updatedState.customPlan || {}),
     guid:                customGuid,
     name:                cleanName,
     createdAt:           updatedState.customPlan?.createdAt || Date.now(),
     lastAppliedSettings: settings,
+    lastApplyVerification: {
+      verified,
+      settingVerification,
+      unsupportedSettings,
+      mismatchedSettings,
+      failedCommands: applyResult.failed ?? [],
+    },
   };
   saveState({ ...updatedState, customPlan });
   console.log(`[PowerPlan:Custom] persisted custom plan metadata guid=${customGuid} name="${cleanName}"`);
 
-  if (!verified) {
+  if (!guidVerified) {
     return {
       success: false,
       error: `Custom plan created but verification failed — active=${activeGuid}, expected=${customGuid}`,
@@ -1406,11 +1507,15 @@ async function applyCustomPowerProfile(name, settings) {
 
   return {
     success:      true,
-    verified:     true,
+    verified,
     guid:         customGuid,
     name:         cleanName,
     activeScheme: activeResult.scheme,
     failedCmds:   applyResult.failed ?? [],
+    unsupportedSettings,
+    mismatchedSettings,
+    settingVerification,
+    settingsErrors: { ...readback.errors, ...settingErrors },
   };
 }
 
@@ -1419,6 +1524,36 @@ async function applyCustomPowerProfile(name, settings) {
  */
 function getCustomPlanMeta() {
   return loadState().customPlan ?? null;
+}
+
+function setCustomPlanPriorityRecovery(recovery, verification) {
+  const state = loadState();
+  if (!state.customPlan || typeof state.customPlan !== 'object') return false;
+
+  if (recovery && Number.isInteger(recovery.previousValue) &&
+      recovery.previousValue >= 0 && recovery.previousValue <= 38) {
+    state.customPlan.priorityRecovery = {
+      previousValue: recovery.previousValue,
+      previousAppliedTarget: Number.isInteger(recovery.previousAppliedTarget) &&
+        recovery.previousAppliedTarget >= 0 && recovery.previousAppliedTarget <= 38
+        ? recovery.previousAppliedTarget
+        : null,
+      managedValue: 26,
+    };
+  } else {
+    delete state.customPlan.priorityRecovery;
+  }
+
+  if (verification && typeof verification === 'object') {
+    const priorityVerified = ['verified', 'restored', 'preserved-newer-value'].includes(verification.status);
+    state.customPlan.lastApplyVerification = {
+      ...(state.customPlan.lastApplyVerification || {}),
+      priorityPreference: verification,
+      verified: state.customPlan.lastApplyVerification?.verified === true && priorityVerified,
+    };
+  }
+  saveState(state);
+  return true;
 }
 
 // ── Ownership-aware wrapper ────────────────────────────────────────────────────
@@ -1508,6 +1643,7 @@ module.exports = {
   applyPowerProfileWithOwnership,
   applyCustomPowerProfile,
   getCustomPlanMeta,
+  setCustomPlanPriorityRecovery,
   activatePlanByGuid,
   listSchemesForFrontend,
   getActivePowerScheme,
@@ -1515,5 +1651,8 @@ module.exports = {
   deleteAllScPlans,
   verifyRevertClean,
   restoreBuiltinPlanNames,
+  readPowerSettingValue,
+  buildCustomPowerSettingTargets,
+  generateBreakdown,
   runElevatedCommands,
 };

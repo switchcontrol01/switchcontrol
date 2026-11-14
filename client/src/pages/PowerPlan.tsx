@@ -149,6 +149,9 @@ const SETTING_DESCRIPTORS: Array<{ key: string; label: string; category: string;
   { key: "cpuMinPercentAC", label: "Minimum processor state", category: "CPU", format: v => v == null ? "Unavailable" : `${v}%` },
   { key: "cpuMaxPercentAC", label: "Maximum processor state", category: "CPU", format: v => v == null ? "Unavailable" : `${v}%` },
   { key: "perfBoostModeAC", label: "Processor boost mode", category: "CPU", format: v => ({ 0: "Disabled", 1: "Enabled", 2: "Aggressive", 3: "Efficient enabled", 4: "Efficient aggressive" } as Record<number, string>)[v ?? -1] ?? `Mode ${v}` },
+  { key: "processorAutonomousModeAC", label: "Hardware P-state control", category: "CPU", format: v => v == null ? "Unavailable" : v === 1 ? "Hardware controlled" : "Windows controlled" },
+  { key: "processorPerformanceTimeCheckIntervalAC", label: "CPU policy check interval", category: "CPU", format: v => v == null ? "Unavailable" : `${v} ms` },
+  { key: "win32PrioritySeparation", label: "Foreground priority balance", category: "CPU", format: v => v == null ? "Unavailable" : `Windows scheduler value ${v}` },
   { key: "energyPerformancePreferenceAC", label: "Energy performance preference", category: "CPU", format: v => v == null ? "Unavailable" : v === 0 ? "Maximum performance (0)" : `${v}% performance preference` },
   { key: "processorIdleDisableAC", label: "Processor idle states", category: "CPU", format: v => v == null ? "Unsupported" : v === 1 ? "Disabled" : "Enabled" },
   { key: "processorThrottleStates", label: "Throttle states", category: "CPU", format: v => v == null ? "Unsupported" : v === 0 ? "Disabled" : "Enabled" },
@@ -156,6 +159,7 @@ const SETTING_DESCRIPTORS: Array<{ key: string; label: string; category: string;
   { key: "coreParkingMinCoresAC", label: "Minimum unparked cores", category: "Core parking", format: v => v == null ? "Unavailable" : `${v}%` },
   { key: "coreParkingMaxCoresAC", label: "Maximum unparked cores", category: "Core parking", format: v => v == null ? "Unsupported" : `${v}%` },
   { key: "usbSelectiveSuspendAC", label: "USB selective suspend", category: "Devices", format: v => v == null ? "Unsupported" : v === 0 ? "Disabled" : "Enabled" },
+  { key: "usbPowerManagementAC", label: "USB 3 link power management", category: "Devices", format: v => ({ 0: "Off", 1: "Moderate savings", 2: "Maximum savings", 3: "Auto" } as Record<number, string>)[v ?? -1] ?? `Mode ${v}` },
   { key: "pcieAspmAC", label: "PCIe link-state power management", category: "Devices", format: v => v == null ? "Unsupported" : v === 0 ? "Off" : v === 1 ? "Moderate saving" : "Maximum saving" },
   { key: "sleepAfterAC", label: "Sleep timeout", category: "Power saving", format: v => v == null ? "Unavailable" : v === 0 ? "Never" : `After ${Math.round(v / 60)} min` },
   { key: "hibernateAfterAC", label: "Hibernate timeout", category: "Power saving", format: v => v == null ? "Unavailable" : v === 0 ? "Never" : `After ${Math.round(v / 60)} min` },
@@ -167,6 +171,13 @@ const PROFILE_EXPECTED_SETTINGS: Record<FrontendProfileId, Record<string, number
   balanced: { cpuMinPercentAC: 5, cpuMaxPercentAC: 100, perfBoostModeAC: 4, energyPerformancePreferenceAC: 32, processorIdleDisableAC: 0, processorThrottleStates: 1, systemCoolingPolicyAC: 1, coreParkingMinCoresAC: 100, coreParkingMaxCoresAC: 100, usbSelectiveSuspendAC: 0, pcieAspmAC: 0, sleepAfterAC: 0, hibernateAfterAC: 1800, displayOffAfterAC: 0 },
   efficiency: { cpuMinPercentAC: 5, cpuMaxPercentAC: 85, perfBoostModeAC: 3, energyPerformancePreferenceAC: 80, processorIdleDisableAC: 0, processorThrottleStates: 1, systemCoolingPolicyAC: 0, coreParkingMinCoresAC: 25, coreParkingMaxCoresAC: 75, usbSelectiveSuspendAC: 1, pcieAspmAC: 2, sleepAfterAC: 900, hibernateAfterAC: 1800, displayOffAfterAC: 300 },
   custom: {},
+};
+
+const CUSTOM_SETTING_SUPPORT_KEYS: Partial<Record<keyof CustomSettings, string>> = {
+  enableHardwarePStates: "processorAutonomousModeAC",
+  preferPerformanceProcesses: "win32PrioritySeparation",
+  optimizePerformanceInterval: "processorPerformanceTimeCheckIntervalAC",
+  disableUsbPowerManagement: "usbPowerManagementAC",
 };
 
 // Per-profile visual theme
@@ -196,7 +207,7 @@ const OVERRIDE_TOGGLES: OverrideToggle[] = [
   { id: "turbo-boost",      name: "Force Turbo Boost", description: "Keep turbo boost always enabled regardless of thermals", category: "cpu", tag: "Advanced", requiresAgent: true },
   { id: "core-parking",     name: "Disable Core Parking", description: "Prevents Windows from disabling CPU cores", category: "cpu", tag: "Safe" },
   { id: "usb-suspend",      name: "Disable USB Selective Suspend", description: "Prevents USB devices from being powered down", category: "usb", tag: "Safe" },
-  { id: "usb-power",        name: "Disable USB Power Management", description: "Full USB power at all times", category: "usb", tag: "Safe" },
+  { id: "usb-power",        name: "Disable USB 3 Link Power Management", description: "Prevent USB 3 link power-saving states", category: "usb", tag: "Safe" },
   { id: "sleep",            name: "Disable Sleep", description: "Prevent system from entering sleep mode", category: "sleep", tag: "Safe" },
   { id: "hibernate",        name: "Disable Hibernation", description: "Prevent system from hibernating", category: "sleep", tag: "Safe" },
   { id: "freq-scaling",     name: "Disable Frequency Scaling", description: "Lock CPU at maximum frequency", category: "frequency", tag: "Advanced", requiresAgent: true },
@@ -600,7 +611,6 @@ function OverrideToggleCard({ toggle, enabled, onToggle, onInfo }: { toggle: Ove
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-[#E6EAF0] truncate">{toggle.name}</span>
           <span className={cn("text-[9px] font-medium px-1.5 py-0.5 rounded-full border uppercase", toggle.tag === "Safe" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20")}>{toggle.tag}</span>
-          {toggle.requiresAgent && <span className="text-[9px] font-medium px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400">Agent</span>}
         </div>
         <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{toggle.description}</p>
       </div>
@@ -637,7 +647,7 @@ function AppliedSettingsPanel({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  const isLive = profileId !== "custom" && activeProfileId === profileId && !!backendState?.settings;
+  const isLive = activeProfileId === profileId && !!backendState?.settings;
   const expected = PROFILE_EXPECTED_SETTINGS[profileId];
   const customValues: Record<string, number> = profileId === "custom" && customSettings ? {
     cpuMinPercentAC: customSettings.minProcessorState,
@@ -647,6 +657,10 @@ function AppliedSettingsPanel({
     sleepAfterAC: customSettings.disableSleep ? 0 : 900,
     hibernateAfterAC: customSettings.disableHibernation ? 0 : 1800,
     displayOffAfterAC: customSettings.keepDisplayOn ? 0 : 300,
+    ...(customSettings.enableHardwarePStates ? { processorAutonomousModeAC: 1 } : {}),
+    ...(customSettings.optimizePerformanceInterval ? { processorPerformanceTimeCheckIntervalAC: 10 } : {}),
+    ...(customSettings.disableUsbPowerManagement ? { usbPowerManagementAC: 0 } : {}),
+    ...(customSettings.preferPerformanceProcesses ? { win32PrioritySeparation: 26 } : {}),
   } : {};
   const rows = profileId === "custom"
     ? SETTING_DESCRIPTORS.filter(d => d.key in customValues)
@@ -1058,7 +1072,35 @@ export default function PowerPlan() {
          });
         setPrevProfileId(capturedPrev);
         setShowComparison(true);
-        toast({ title: "Custom Plan Applied", description: `"${result.name}" is now active in Windows.` });
+        const settingLabels: Record<string, string> = {
+          processorAutonomousModeAC: "Hardware P-States",
+          processorPerformanceTimeCheckIntervalAC: "CPU check interval",
+          usbPowerManagementAC: "USB 3 link power management",
+          win32PrioritySeparation: "Foreground priority",
+        };
+        const skippedSettings = [
+          ...(result.unsupportedSettings ?? []),
+          ...(result.mismatchedSettings ?? []),
+        ];
+        const priorityNotVerified = result.priorityPreference &&
+          !["verified", "restored", "preserved-newer-value"].includes(result.priorityPreference.status);
+        const hasApplyWarnings = skippedSettings.length > 0 ||
+          (result.failedCmds?.length ?? 0) > 0 ||
+          priorityNotVerified;
+        if (hasApplyWarnings) {
+          const issueText = [
+            ...skippedSettings.map((key: string) => settingLabels[key] ?? key),
+            ...(result.failedCmds?.length ? ["one or more Windows commands"] : []),
+            ...(priorityNotVerified ? ["foreground priority could not be verified"] : []),
+          ];
+          toast({
+            title: "Custom Plan Active — Some Settings Need Attention",
+            description: `${result.name} is active, but these settings were not verified: ${issueText.join(", ")}.`,
+            variant: "destructive",
+          });
+        } else {
+          toast({ title: "Custom Plan Applied", description: `"${result.name}" is active and its supported settings were verified.` });
+        }
          logHistory(`Power Plan: ${result.name} (Custom)`, "Power Plan", "Applied", "Custom power profile created and activated", {
            category: "power-plan", targetId: result.guid, restoreValue: prevGuidCustom || null,
            restoreTarget: { guid: prevGuidCustom || null, name: prevNameCustom }, reversible: !!prevGuidCustom,
@@ -1151,11 +1193,35 @@ export default function PowerPlan() {
     frequency: OVERRIDE_TOGGLES.filter(t => t.category === "frequency"),
   };
 
+  function customSettingSupport(key: keyof CustomSettings) {
+    const settingKey = CUSTOM_SETTING_SUPPORT_KEYS[key];
+    if (!settingKey) return null;
+    if (!isElectron) {
+      return { supported: false, label: "Desktop app required", reason: "This setting can only be checked and applied by the Windows desktop app." };
+    }
+    if (planLoading) return { supported: false, label: "Checking…", reason: "Checking the active Windows power plan." };
+    if (!backendState?.success) {
+      return { supported: false, label: "Could not check", reason: planError ?? "Windows power-plan state is unavailable." };
+    }
+    const value = backendState.settings?.[settingKey];
+    if (value !== null && value !== undefined) {
+      return { supported: true, label: "Available", reason: "Windows reports this setting on the active plan." };
+    }
+    const error = backendState.settingsErrors?.[settingKey];
+    return error
+      ? { supported: false, label: "Check failed", reason: error }
+      : { supported: false, label: "Not exposed", reason: "Windows did not expose this setting on the active plan." };
+  }
+
   function getBreakdownForProfile(frontendId: FrontendProfileId): Record<string, string> {
     if (backendState?.breakdown && activeProfileId === frontendId) {
       const bd = backendState.breakdown;
       return {
-        cpuBoost:         bd.cpuBoost         ?? STATIC_BREAKDOWN[frontendId]?.cpuBoost         ?? "Unknown",
+        cpuBoost:         bd.cpuBoost && bd.cpuBoost !== "Unknown"
+          ? bd.cpuBoost
+          : backendState.settingsErrors?.perfBoostModeAC
+            ? "Unavailable"
+            : "Not reported by Windows",
         cpuRange:         bd.cpuRange         ?? STATIC_BREAKDOWN[frontendId]?.cpuRange         ?? "Unknown",
         coreParking:      bd.coreParking      ?? STATIC_BREAKDOWN[frontendId]?.coreParking      ?? "Unknown",
         sleepHibernate:   bd.sleepHibernate   ?? STATIC_BREAKDOWN[frontendId]?.sleepHibernate   ?? "Unknown",
@@ -1366,7 +1432,11 @@ export default function PowerPlan() {
                     {Object.entries(displayBreakdown).map(([key, value]) => {
                       const mismatch   = backendState?.profileMatch?.mismatches?.[key];
                       const isLive     = !!(backendState?.breakdown && activeProfileId === displayProfile.id);
-                      const isVerified = isLive && !mismatch;
+                      const isReported = value !== "Unknown" &&
+                        value !== "Unavailable" &&
+                        value !== "Not reported by Windows";
+                      const isVerified = isLive && isReported && !mismatch;
+                      const isUnavailable = isLive && !isReported;
                       return (
                         <div
                           key={key}
@@ -1382,9 +1452,17 @@ export default function PowerPlan() {
                               {BREAKDOWN_LABELS[key] ?? key}
                             </span>
                             {isVerified && <ShieldCheck className="size-3 text-emerald-400 shrink-0" />}
-                            {mismatch   && <AlertTriangle className="size-3 text-amber-400 shrink-0" />}
+                            {(mismatch || isUnavailable) && <AlertTriangle className="size-3 text-amber-400 shrink-0" />}
                           </div>
                           <p className="text-sm font-medium text-[#E6EAF0]">{value}</p>
+                          {key === "cpuBoost" && isUnavailable && (
+                            <p
+                              className="mt-1 text-[10px] text-amber-300/75"
+                              title={backendState?.settingsErrors?.perfBoostModeAC ?? "Windows did not return this power-plan setting."}
+                            >
+                              {backendState?.settingsErrors?.perfBoostModeAC ?? "Windows did not report this setting."}
+                            </p>
+                          )}
                           {mismatch && (
                             <p className="text-[10px] text-amber-400/65 mt-1">
                               Expected {(mismatch as any).expected}, got {(mismatch as any).actual}
@@ -1603,20 +1681,21 @@ export default function PowerPlan() {
               <div className="grid gap-2.5 sm:grid-cols-2">
                 {([
                   { key: "disableThrottleStates" as const,      name: "Disable Throttle States",       desc: "Prevent CPU low-power states",       tag: "Advanced" as const },
-                  { key: "enableHardwarePStates" as const,       name: "Enable Hardware P-States",      desc: "Hardware performance state control",  tag: "Safe" as const,    unwired: true },
+                  { key: "enableHardwarePStates" as const,       name: "Enable Hardware P-States",      desc: "Allow compatible CPUs to manage performance states", tag: "Safe" as const },
                   { key: "enableTurboBoost" as const,            name: "Enable Turbo Boost",            desc: "Allow CPU to boost above base clock", tag: "Safe" as const },
                   { key: "disableCoreParking" as const,          name: "Disable Core Parking",          desc: "Keep all CPU cores active",           tag: "Safe" as const },
                   { key: "disableFrequencyScaling" as const,     name: "Disable Frequency Scaling",     desc: "Lock CPU at maximum frequency",       tag: "Advanced" as const },
-                  { key: "preferPerformanceProcesses" as const,  name: "Prefer Performance Processes",  desc: "Prioritize foreground apps",          tag: "Safe" as const,    unwired: true },
-                  { key: "optimizePerformanceInterval" as const, name: "Optimize Check Interval",       desc: "Faster performance monitoring",       tag: "Advanced" as const, unwired: true },
+                  { key: "preferPerformanceProcesses" as const,  name: "Prefer Performance Processes",  desc: "Use the recommended foreground-priority value (shared with the Tweaks slider)", tag: "Safe" as const },
+                  { key: "optimizePerformanceInterval" as const, name: "Optimize Check Interval",       desc: "Set the CPU policy check interval to 10 ms when Windows supports it", tag: "Advanced" as const },
                 ] as const).map(item => {
-                  const isUnwired = "unwired" in item && item.unwired;
+                  const support = customSettingSupport(item.key);
+                  const unavailable = support !== null && !support.supported;
                   return (
                     <div
                       key={item.key}
                       className={cn(
                         "flex items-center justify-between p-3.5 rounded-xl border transition-colors",
-                        isUnwired
+                        unavailable
                           ? "border-[#2A313A] bg-[#1A1F26] opacity-45 cursor-not-allowed"
                           : localState.customSettings[item.key]
                             ? "border-primary/30 bg-primary/[0.06] hover:bg-primary/10"
@@ -1625,16 +1704,16 @@ export default function PowerPlan() {
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                          <span className={cn("text-sm font-medium", isUnwired ? "text-[#6B7380]" : "text-[#E6EAF0]")}>{item.name}</span>
+                          <span className={cn("text-sm font-medium", unavailable ? "text-[#6B7380]" : "text-[#E6EAF0]")}>{item.name}</span>
                           <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full border uppercase font-medium", item.tag === "Safe" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" : "text-blue-400 border-blue-500/30 bg-blue-500/10")}>{item.tag}</span>
-                          {isUnwired && <span className="text-[9px] px-1.5 py-0.5 rounded border border-[#2A313A] bg-[#21262D] text-[#6B7380]">{translate("Coming soon")}</span>}
+                          {support && <span title={support.reason} className={cn("text-[9px] px-1.5 py-0.5 rounded border", support.supported ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300" : "border-[#2A313A] bg-[#21262D] text-[#8A93A1]")}>{support.label}</span>}
                         </div>
                         <p className="text-[10px] text-muted-foreground">{item.desc}</p>
                       </div>
                       <Switch
-                        checked={isUnwired ? false : localState.customSettings[item.key]}
-                        onCheckedChange={isUnwired ? undefined : (v) => updateCustomSetting(item.key, v)}
-                        disabled={isUnwired}
+                        checked={localState.customSettings[item.key]}
+                        onCheckedChange={(v) => updateCustomSetting(item.key, v)}
+                        disabled={unavailable}
                         className="data-[state=checked]:bg-primary ml-3 shrink-0"
                       />
                     </div>
@@ -1694,18 +1773,19 @@ export default function PowerPlan() {
               <div className="grid gap-2.5 sm:grid-cols-2">
                 {([
                   { key: "disableUsbSelectiveSuspend" as const, name: "Disable USB Selective Suspend", desc: "USB devices stay powered", tag: "Safe" as const },
-                  { key: "disableUsbPowerManagement" as const,  name: "Disable USB Power Management", desc: "Full USB power at all times", tag: "Safe" as const, unwired: true },
+                  { key: "disableUsbPowerManagement" as const,  name: "Disable USB 3 Link Power Management", desc: "Prevent USB 3 link power-saving states", tag: "Safe" as const },
                   { key: "keepDisplayOn" as const,              name: "Keep Display On",               desc: "Prevent display from sleeping", tag: "Safe" as const },
                   { key: "disableSleep" as const,               name: "Disable Sleep",                 desc: "Prevent sleep mode",           tag: "Safe" as const },
                   { key: "disableHibernation" as const,         name: "Disable Hibernation",           desc: "Prevent hibernation",          tag: "Safe" as const },
                 ] as const).map(item => {
-                  const isUnwired = "unwired" in item && item.unwired;
+                  const support = customSettingSupport(item.key);
+                  const unavailable = support !== null && !support.supported;
                   return (
                     <div
                       key={item.key}
                       className={cn(
                         "flex items-center justify-between p-3.5 rounded-xl border transition-colors",
-                        isUnwired
+                        unavailable
                           ? "border-[#2A313A] bg-[#1A1F26] opacity-45 cursor-not-allowed"
                           : localState.customSettings[item.key]
                             ? "border-primary/30 bg-primary/[0.06] hover:bg-primary/10"
@@ -1714,16 +1794,16 @@ export default function PowerPlan() {
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                          <span className={cn("text-sm font-medium", isUnwired ? "text-[#6B7380]" : "text-[#E6EAF0]")}>{item.name}</span>
+                          <span className={cn("text-sm font-medium", unavailable ? "text-[#6B7380]" : "text-[#E6EAF0]")}>{item.name}</span>
                           <span className="text-[9px] px-1.5 py-0.5 rounded-full border text-emerald-400 border-emerald-500/30 bg-emerald-500/10 uppercase font-medium">{item.tag}</span>
-                          {isUnwired && <span className="text-[9px] px-1.5 py-0.5 rounded border border-[#2A313A] bg-[#21262D] text-[#6B7380]">Coming soon</span>}
+                          {support && <span title={support.reason} className={cn("text-[9px] px-1.5 py-0.5 rounded border", support.supported ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300" : "border-[#2A313A] bg-[#21262D] text-[#8A93A1]")}>{support.label}</span>}
                         </div>
                         <p className="text-[10px] text-muted-foreground">{item.desc}</p>
                       </div>
                       <Switch
-                        checked={isUnwired ? false : localState.customSettings[item.key]}
-                        onCheckedChange={isUnwired ? undefined : (v) => updateCustomSetting(item.key, v)}
-                        disabled={isUnwired}
+                        checked={localState.customSettings[item.key]}
+                        onCheckedChange={(v) => updateCustomSetting(item.key, v)}
+                        disabled={unavailable}
                         className="data-[state=checked]:bg-primary ml-3 shrink-0"
                       />
                     </div>

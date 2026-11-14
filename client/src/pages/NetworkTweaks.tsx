@@ -841,6 +841,24 @@ function NetworkTweaksContent() {
     window.addEventListener('sc:slider-state-changed', handler);
     return () => window.removeEventListener('sc:slider-state-changed', handler);
   }, []);
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const ids: string[] = (event as CustomEvent<{ ids?: string[] }>).detail?.ids ?? [];
+      if (ids.length === 0) return;
+      setStateMap(prev => {
+        const next = { ...prev };
+        for (const id of ids) {
+          if (next[id] && next[id].status !== "unavailable") {
+            next[id] = { ...next[id], status: "enabled", message: "Restored and verified by SwitchControl" };
+          }
+        }
+        savePersistedState(next);
+        return next;
+      });
+    };
+    window.addEventListener('sc:net-reconciled', handler);
+    return () => window.removeEventListener('sc:net-reconciled', handler);
+  }, []);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastCounter = useRef(0);
   function addToast(tweakId: string, success: boolean, message: string) {

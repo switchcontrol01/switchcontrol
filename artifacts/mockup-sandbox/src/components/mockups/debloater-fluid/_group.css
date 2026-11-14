@@ -1,0 +1,113 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap");
+
+:root {
+  color-scheme: dark;
+  --background: 215 18% 10%;
+  --foreground: 220 20% 92%;
+  --card: 215 16% 15%;
+  --card-foreground: 220 20% 92%;
+  --popover: 215 16% 17%;
+  --popover-foreground: 220 20% 92%;
+  --primary: 193 100% 50%;
+  --primary-foreground: 210 25% 7%;
+  --secondary: 38 92% 50%;
+  --secondary-foreground: 210 25% 7%;
+  --muted: 215 16% 12%;
+  --muted-foreground: 220 12% 55%;
+  --accent: 193 100% 50%;
+  --accent-foreground: 210 25% 7%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 210 20% 98%;
+  --border: 215 14% 17%;
+  --input: 215 14% 17%;
+  --ring: 193 100% 50%;
+  --radius: 0.75rem;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  color: hsl(var(--foreground));
+  font-family: "DM Sans", sans-serif;
+  background: #07131f;
+}
+
+.debloater-preview {
+  min-height: 100vh;
+  padding: 24px;
+  display: flex;
+  align-items: flex-start;
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(27, 70, 91, .4), transparent 58%),
+    #07131f;
+}
+
+.debloater-notebook-head {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  margin: 0;
+  padding: 14px 16px 16px;
+  border: 1px solid rgba(155, 204, 218, .24);
+  border-radius: 14px;
+  background: #102638;
+  box-shadow: 0 12px 28px rgba(4, 12, 26, .25), inset 0 1px rgba(231, 247, 250, .08);
+}
+
+.debloater-notebook-head::before,
+.debloater-notebook-head::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+}
+
+.debloater-notebook-head::before {
+  z-index: 0;
+  background:
+    linear-gradient(112deg, rgba(8, 19, 35, .82), rgba(21, 66, 82, .58)),
+    url("/__mockup/images/debloater-reference/teal-wash.webp") right center / cover no-repeat;
+}
+
+.debloater-notebook-head > * {
+  position: relative;
+  z-index: 2;
+}
+
+.debloater-notebook-head > div:first-child {
+  border-radius: 4px;
+  background: transparent !important;
+}
+
+.debloater-notebook-head h1,
+.debloater-notebook-head h2,
+.debloater-notebook-head h3,
+.debloater-notebook-head p {
+  color: #e8f1f4 !important;
+}
+
+.debloater-notebook-head h1 {
+  font-family: "Patrick Hand", "Trebuchet MS", sans-serif;
+}
+
+.debloater-notebook-head .debloater-tabs {
+  margin-top: 12px;
+  background: rgba(7, 17, 31, .72) !important;
+  border-color: rgba(150, 193, 207, .28) !important;
+}
+
+.debloater-notebook-head .debloater-tabs button {
+  color: #b8c7d1 !important;
+  background: transparent !important;
+}
+
+.debloater-notebook-head .debloater-tabs button[class*="bg-primary"] {
+  color: #f3fbfc !important;
+  background: #17676c !important;
+}

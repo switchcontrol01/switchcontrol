@@ -347,6 +347,9 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
             detail: { enabled: confirmedValue < TIMER_SLIDER_DEFAULT },
           }));
         }
+        if (tweakId === 'win32-priority-sep') {
+          setTweak('tune-priority', confirmedValue === 38);
+        }
         setState(s => ({
           ...s,
           previousValue: s.currentValue,
@@ -380,7 +383,7 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
       setState(s => ({ ...s, status: 'failed', lastError: msg }));
       toast({ title: 'Apply Failed', description: msg, variant: 'destructive' });
     }
-  }, [isElectron, tweakId, state.pendingValue, toast, scheduleResultDismiss]);
+  }, [isElectron, tweakId, state.pendingValue, toast, scheduleResultDismiss, setTweak]);
 
   const reset = useCallback(async () => {
     setState(s => ({ ...s, status: 'resetting', verifyResult: null, lastError: null }));
@@ -423,6 +426,7 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
             detail: { enabled: false },
           }));
         }
+        if (tweakId === 'win32-priority-sep') setTweak('tune-priority', resetValue === 38);
         setState(s => ({
           ...s,
           previousValue: s.currentValue,
@@ -443,7 +447,7 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
       setState(s => ({ ...s, status: 'failed', lastError: msg }));
       toast({ title: 'Reset Failed', description: msg, variant: 'destructive' });
     }
-  }, [isElectron, tweakId, config.defaultValue, toast, scheduleResultDismiss]);
+  }, [isElectron, tweakId, config.defaultValue, toast, scheduleResultDismiss, setTweak]);
 
   const revert = useCallback(async () => {
     if (state.previousValue === null) return;

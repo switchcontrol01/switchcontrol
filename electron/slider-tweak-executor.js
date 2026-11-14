@@ -48,11 +48,17 @@ function loadSliderState() {
 }
 
 function saveSliderState(state) {
+  let tempFile = null;
   try {
     ensureDir();
-    fs.writeFileSync(SLIDER_STATE_FILE, JSON.stringify(state, null, 2));
+    tempFile = `${SLIDER_STATE_FILE}.tmp`;
+    fs.writeFileSync(tempFile, JSON.stringify(state, null, 2), 'utf8');
+    fs.renameSync(tempFile, SLIDER_STATE_FILE);
     return true;
   } catch (e) {
+    if (tempFile) {
+      try { fs.unlinkSync(tempFile); } catch {}
+    }
     console.error('[SliderExecutor] saveSliderState failed:', e.message);
     return false;
   }
@@ -61,6 +67,46 @@ function saveSliderState(state) {
 function persistAppliedValue(tweakId, value) {
   const state = loadSliderState();
   state.appliedValues[tweakId] = value;
+  return saveSliderState(state);
+}
+
+function setAppliedSliderTarget(tweakId, value) {
+  const def = SLIDER_TWEAKS[tweakId];
+  const numericValue = Number(value);
+  if (!def || def.disabled || !Number.isInteger(numericValue) ||
+      (def.safeMin !== undefined && numericValue < def.safeMin) ||
+      (def.safeMax !== undefined && numericValue > def.safeMax)) {
+    return { ok: false, error: 'Invalid or disabled slider recovery target.' };
+  }
+  const ok = persistAppliedValue(tweakId, numericValue);
+  return { ok, error: ok ? null : 'Could not save the slider recovery target.' };
+}
+
+function clearAppliedSliderTarget(tweakId) {
+  if (typeof tweakId !== 'string' || !SLIDER_TWEAKS[tweakId]) return false;
+  const state = loadSliderState();
+  if (!Object.prototype.hasOwnProperty.call(state.appliedValues, tweakId)) return true;
+  delete state.appliedValues[tweakId];
+  return saveSliderState(state);
+}
+
+function getSliderRecoveryState(tweakId) {
+  if (typeof tweakId !== 'string' || !SLIDER_TWEAKS[tweakId]) return null;
+  const state = loadSliderState();
+  const rawApplied = state.appliedValues[tweakId];
+  const appliedValue = Number(rawApplied);
+  return {
+    appliedValue: Number.isInteger(appliedValue) ? appliedValue : null,
+    originalValue: state.originalValues[tweakId]?.value ?? null,
+    hasOriginalValue: Object.prototype.hasOwnProperty.call(state.originalValues, tweakId),
+  };
+}
+
+function clearSliderRecoveryState(tweakId) {
+  if (typeof tweakId !== 'string' || !SLIDER_TWEAKS[tweakId]) return false;
+  const state = loadSliderState();
+  delete state.originalValues[tweakId];
+  delete state.appliedValues[tweakId];
   return saveSliderState(state);
 }
 
@@ -1094,6 +1140,10 @@ function stopTimerResolutionKeeper() {
 module.exports = {
   readSliderValue,
   applySliderValue,
+  setAppliedSliderTarget,
+  clearAppliedSliderTarget,
+  getSliderRecoveryState,
+  clearSliderRecoveryState,
   verifySliderValue,
   resetSliderValue,
   forceRevertSliderToDefault,

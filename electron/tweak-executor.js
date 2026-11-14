@@ -5,6 +5,8 @@ const os = require('os');
 const psLimiter = require('./powershell-limiter');
 const { _withPsSemaphore, runElevated } = require('./ps-shared');
 const { TWEAK_STATE_FILE, TWEAK_LOG_FILE, WINDOWED_GAMES_BACKUP_FILE, VENDOR_UPDATERS_BACKUP_FILE, TEAMS_STARTUP_BACKUP_FILE, TIMER_RESOLUTION_STATE_FILE } = require('./user-data-paths');
+const { reconcileOwnedTargets } = require('./owned-tweak-recovery');
+const { recordOwnershipAfterAction } = require('./ownership-actions');
 
 // Backup-path constants used inside PowerShell double-quoted strings.
 // PowerShell does NOT treat backslash as an escape character in double-quoted
@@ -531,10 +533,10 @@ const HKCU_TWEAKS = {
     // still returns the correct applied state (same pattern as CPU C-States).
     apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Value 1 -Type DWord -Force; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -Value 1 -Type DWord -Force; New-Item -Path "HKCU:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -Value 1 -Type DWord -Force`,
     revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Value 0 -Type DWord -Force; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -Value 0 -Type DWord -Force; New-Item -Path "HKCU:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -Value 0 -Type DWord -Force`,
-    // check: legacy HKCU key first; then HKLM marker; then HKCU marker (backup).
-    // The HKCU marker is the most resilient — it requires no elevation and is never
-    // reset by Windows.  Together these three cover every OS normalisation edge case.
-    check:  `$k=(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -EA SilentlyContinue).GlobalUserDisabled; $m=(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -EA SilentlyContinue).BgAppsDisabled; $mc=(Get-ItemProperty -Path "HKCU:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -EA SilentlyContinue).BgAppsDisabled; ($k -eq 1) -or ($m -eq 1) -or ($mc -eq 1)`,
+    // Only the Windows setting proves that background access is disabled.
+    // SwitchControl markers preserve app intent, but must not mask Windows
+    // clearing GlobalUserDisabled; recovery uses this result to reapply it.
+    check:  `$k=(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -EA SilentlyContinue).GlobalUserDisabled; ($k -eq 1)`,
   },
   'disable-fso': {
     name: 'Disable Fullscreen Optimizations',
@@ -958,7 +960,7 @@ const ADMIN_TWEAKS = {
     requiresReboot: true,
     apply:  `New-Item -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -Force -EA SilentlyContinue | Out-Null; Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -EA SilentlyContinue | ForEach-Object { Set-ItemProperty -Path $_.PSPath -Name "TcpNoDelay" -Value 1 -Type DWord -Force -EA SilentlyContinue; Set-ItemProperty -Path $_.PSPath -Name "TcpAckFrequency" -Value 1 -Type DWord -Force -EA SilentlyContinue }`,
     revert: `Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -EA SilentlyContinue | ForEach-Object { Remove-ItemProperty -Path $_.PSPath -Name "TcpNoDelay" -EA SilentlyContinue; Remove-ItemProperty -Path $_.PSPath -Name "TcpAckFrequency" -EA SilentlyContinue }`,
-    check:  `$script:found = $false; Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -EA SilentlyContinue | ForEach-Object { $d = Get-ItemProperty -Path $_.PSPath -Name "TcpNoDelay" -EA SilentlyContinue; if ($d -and $d.TcpNoDelay -eq 1) { $script:found = $true } }; $script:found`,
+    check:  `$items = @(Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -EA SilentlyContinue); if ($items.Count -eq 0) { $false; exit }; $all = $true; foreach ($i in $items) { $p = Get-ItemProperty -Path $i.PSPath -Name "TcpNoDelay","TcpAckFrequency" -EA SilentlyContinue; if ($null -eq $p -or $p.TcpNoDelay -ne 1 -or $p.TcpAckFrequency -ne 1) { $all = $false } }; $all`,
   },
   'optimize-windowed-games': {
     name: 'Optimizations for Windowed Games',
@@ -2574,8 +2576,19 @@ async function executeTweak(tweakId, action, options = {}) {
         ok = true;
         message = 'Timer resolution agent stopped — resolution returned to default.';
       }
+      const expectedApplied = action === 'apply';
+      const verification = await verifyTweak(tweakId);
+      const verified = ok && verification.verified === true &&
+        verification.isApplied === expectedApplied;
+      if (verified) {
+        await _updateState(state => { state.tweaks[tweakId] = expectedApplied; });
+      } else {
+        ok = false;
+        message = `Timer resolution could not be verified ${expectedApplied ? 'on' : 'off'}.`;
+      }
       const result = {
-        success:        ok,
+        success:        verified,
+        verified,
         unsupported:    false,
         requiresReboot: false,
         requiresAdmin:  false,
@@ -3166,14 +3179,91 @@ async function executeTweakWithOwnership(tweakId, action, options = {}) {
   // Step 3: execute
   const result = await executeTweak(tweakId, action, options);
 
-  // Step 4: record ownership only after confirmed success
-  if (result.success) {
-    ownershipStore.recordApply(scopeKey, {
-      appliedValue:      action === 'apply',
-      verificationState: result.verified ? 'verified' : 'unverified',
-    });
-  }
+  // A successful user revert releases app ownership; it must not be recorded
+  // as a new apply with appliedValue=false. Unverified reverts retain ownership
+  // so expiry recovery can retry instead of silently losing the target.
+  recordOwnershipAfterAction(ownershipStore, scopeKey, action, result);
 
+  return result;
+}
+
+const PERSISTENT_REAPPLY_TWEAK_IDS = [
+  'bg-apps',
+  'ntfs-last-access',
+  'tcp-no-delay',
+  'timer-res',
+  'tune-priority',
+];
+
+function clearOwnedTweakTarget(tweakId) {
+  if (typeof tweakId !== 'string' || !ALL_TWEAKS[tweakId]) return false;
+  const scopeKey = ownershipStore.buildScopeKey('tweak', tweakId);
+  if (!ownershipStore.getOwnershipRecord(scopeKey)) return true;
+  ownershipStore.recordRevert(scopeKey);
+  return true;
+}
+
+/**
+ * Reapply the named persistent toggle settings only for explicit app-owned
+ * targets. Premium IDs require a confirmed entitlement; free IDs remain eligible.
+ * A live Windows value alone never creates ownership or authorizes a write.
+ */
+async function reapplyOwnedPersistentTweaks(premiumActive = false, options = {}) {
+  const skipIds = new Set(Array.isArray(options?.skipIds) ? options.skipIds : []);
+  const beforeApply = typeof options?.beforeApply === 'function' ? options.beforeApply : null;
+  const tweakIds = PERSISTENT_REAPPLY_TWEAK_IDS.filter(id => !!ALL_TWEAKS[id] && !skipIds.has(id));
+  const ownedRecords = ownershipStore.getAllAppOwned();
+  const legacyNagle = ownedRecords.find(record =>
+    record?.itemType === 'network_tweak' &&
+    record.itemId === 'tcp-nagle' &&
+    record.appliedByApp === true
+  );
+  const canonicalNagle = ownedRecords.find(record =>
+    record?.itemType === 'tweak' &&
+    record.itemId === 'tcp-no-delay' &&
+    record.appliedByApp === true
+  );
+  const useLegacyNagle = !!legacyNagle && !canonicalNagle;
+  const recoveryRecords = useLegacyNagle
+    ? [...ownedRecords, { ...legacyNagle, itemType: 'tweak', itemId: 'tcp-no-delay' }]
+    : ownedRecords;
+
+  const result = await reconcileOwnedTargets({
+    records: recoveryRecords,
+    itemType: 'tweak',
+    premiumActive,
+    allowedIds: tweakIds,
+    premiumRequiredIds: tweakIds.filter(id => id !== 'bg-apps'),
+    readCurrent: async (tweakId) => {
+      const status = await verifyTweak(tweakId);
+      return {
+        applied: status?.isApplied,
+        verified: status?.verified === true,
+        error: status?.error,
+      };
+    },
+    applyTarget: async (tweakId) => {
+      if (beforeApply) await beforeApply(tweakId);
+      const result = await executeTweakWithOwnership(tweakId, 'apply', {
+        source: 'startup_reconcile',
+      });
+      if (useLegacyNagle && tweakId === 'tcp-no-delay' &&
+          result?.success === true && result?.verified === true) {
+        ownershipStore.recordRevert(legacyNagle.scopeKey);
+      }
+      return {
+        success: result?.success === true,
+        verified: result?.verified === true,
+        error: result?.error || result?.message,
+      };
+    },
+  });
+
+  const nagleRecovered = result.reapplied.some(item => item.tweakId === 'tcp-no-delay') ||
+    result.unchanged.some(item => item.tweakId === 'tcp-no-delay');
+  if (legacyNagle && canonicalNagle && nagleRecovered) {
+    ownershipStore.recordRevert(legacyNagle.scopeKey);
+  }
   return result;
 }
 
@@ -3215,6 +3305,9 @@ function saveVerifiedState(stateMap) {
 module.exports = {
   executeTweak,
   executeTweakWithOwnership,
+  reapplyOwnedPersistentTweaks,
+  clearOwnedTweakTarget,
+  PERSISTENT_REAPPLY_TWEAK_IDS,
   checkTweakStatus,
   batchCheckAllTweaks,
   verifyTweak,

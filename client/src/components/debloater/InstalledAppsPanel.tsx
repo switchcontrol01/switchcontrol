@@ -379,12 +379,16 @@ const AppIcon = memo(function AppIcon({
   const catCfg = CATEGORY_CONFIG[detectCategory(app)];
   const CatIcon = catCfg.icon;
 
-  // Compute the ordered list of image sources to try
+  // Prefer the publisher's official mark for these launcher/control apps:
+  // Windows sometimes extracts only the generic installer icon from them.
   const sources = useMemo<string[]>(() => {
     const list: string[] = [];
-    if (app.iconDataUrl) list.push(app.iconDataUrl);
     const domain = publisherToDomain(app.publisher, app.name);
-    if (domain) list.push(...iconSrcs(domain));
+    const preferPublisherLogo = /^(epic games launcher|epic online services|fifine control deck)$/i.test(app.name.trim());
+
+    if (preferPublisherLogo && domain) list.push(...iconSrcs(domain));
+    if (app.iconDataUrl) list.push(app.iconDataUrl);
+    if (!preferPublisherLogo && domain) list.push(...iconSrcs(domain));
     return list;
   }, [app.iconDataUrl, app.publisher, app.name]);
 
@@ -651,12 +655,12 @@ function AppRow({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="font-medium text-sm truncate max-w-[200px] sm:max-w-xs">{app.name}</span>
-            <Badge variant="outline" className={cn(`debloater-trust-${app.trustLabel} text-[10px] px-1.5 py-0 border shrink-0`, tCfg.cls)}>
+            <span className="font-medium text-[15px] truncate max-w-[200px] sm:max-w-xs">{app.name}</span>
+            <Badge variant="outline" className={cn(`debloater-trust-${app.trustLabel} text-[11px] px-2 py-0.5 border shrink-0`, tCfg.cls)}>
               {t(tCfg.label)}
             </Badge>
             {app.uninstallMethod !== "none" && (
-              <Badge variant="outline" className={cn(`debloater-method-${app.uninstallMethod} text-[10px] px-1.5 py-0 border shrink-0`, mCfg.cls)}>
+              <Badge variant="outline" className={cn(`debloater-method-${app.uninstallMethod} text-[11px] px-2 py-0.5 border shrink-0`, mCfg.cls)}>
                 {t(mCfg.label)}
               </Badge>
             )}
@@ -667,13 +671,13 @@ function AppRow({
             )}
           </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            {app.publisher && <span className="text-[11px] text-muted-foreground">{app.publisher}</span>}
-            {app.publisher && app.version && <span className="text-muted-foreground/40 text-[11px]">·</span>}
-            {app.version && <span className="text-[11px] text-muted-foreground/60">{app.version}</span>}
+            {app.publisher && <span className="text-xs text-muted-foreground">{app.publisher}</span>}
+            {app.publisher && app.version && <span className="text-muted-foreground/50 text-xs">·</span>}
+            {app.version && <span className="text-xs text-muted-foreground/70">{app.version}</span>}
             {app.sizeMb > 0 && (
               <>
-                <span className="text-muted-foreground/40 text-[11px]">·</span>
-                <span className="text-[11px] text-muted-foreground/60">{app.sizeMb} MB</span>
+                <span className="text-muted-foreground/50 text-xs">·</span>
+                <span className="text-xs text-muted-foreground/70">{app.sizeMb} MB</span>
               </>
             )}
           </div>
@@ -1096,7 +1100,7 @@ export function InstalledAppsPanel() {
             { label: "Third-party",   value: stats.thirdParty,    color: "text-amber-400" },
           ].map(s => (
             <GlassCard key={s.label} className="debloater-installed-stat p-3">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50">{t(s.label)}</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground/70">{t(s.label)}</p>
               <p className={cn("text-xl font-bold tabular-nums mt-0.5", s.color)}>{s.value}</p>
             </GlassCard>
           ))}
@@ -1106,7 +1110,7 @@ export function InstalledAppsPanel() {
       {/* ── Safety rail ──────────────────────────────────────────────────────── */}
       <div className="debloater-installed-safety flex items-start gap-2 p-3 rounded-xl bg-[#1A1F26] border border-[#2A313A]">
         <ShieldOff className="size-3.5 text-muted-foreground/50 mt-0.5 shrink-0" />
-        <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
+        <p className="text-xs text-muted-foreground/80 leading-relaxed">
            {t("Protected system apps (Defender, Firewall, Windows Update) are locked and cannot be removed.")}
            {" "}{t("SwitchControl uses the app's own uninstaller — always check you no longer need an app before removing it.")}
         </p>
@@ -1137,7 +1141,7 @@ export function InstalledAppsPanel() {
             <select
               value={sort}
               onChange={e => setSort(e.target.value as SortType)}
-              className="bg-transparent text-[11px] text-muted-foreground pr-1 focus:outline-none cursor-pointer"
+              className="bg-transparent text-sm text-muted-foreground pr-2 focus:outline-none cursor-pointer"
               data-testid="select-sort-apps"
             >
                {SORTS.map(s => <option key={s.id} value={s.id}>{t(s.label)}</option>)}
@@ -1146,13 +1150,14 @@ export function InstalledAppsPanel() {
         </div>
 
         {/* Filter chips */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="debloater-app-filters flex flex-wrap gap-1.5">
           {FILTERS.map(f => (
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
+              aria-pressed={filter === f.id}
               className={cn(
-                "px-2.5 py-1 rounded-full text-[11px] border transition-colors",
+                "px-2.5 py-1 rounded-full text-sm border transition-colors",
                 filter === f.id
                   ? "bg-primary/15 border-primary/30 text-primary"
                   : "border-[#2A313A] text-muted-foreground hover:text-foreground/80"
@@ -1163,7 +1168,7 @@ export function InstalledAppsPanel() {
             </button>
           ))}
           {filtered.length !== apps.length && (
-            <span className="px-2.5 py-1 text-[11px] text-muted-foreground/50">
+            <span className="px-2.5 py-1 text-sm text-muted-foreground/80">
                {filtered.length} {t("shown")}
             </span>
           )}

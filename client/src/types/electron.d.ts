@@ -271,6 +271,30 @@ declare global {
           skipped: Array<{ tweakId: string; reason: string }>;
           failed: Array<{ tweakId: string; error: string }>;
         }>;
+        reconcileOwnedTargets: (premiumActive: boolean) => Promise<{
+          ok: boolean;
+          busy?: boolean;
+          error?: string;
+          sliders: {
+            ok: boolean;
+            reapplied: Array<{ tweakId: string; value: number }>;
+            unchanged: Array<{ tweakId: string; value: number }>;
+            skipped: Array<{ tweakId: string; reason: string }>;
+            failed: Array<{ tweakId: string; error: string }>;
+          } | null;
+          toggles: {
+            reapplied: Array<{ tweakId: string }>;
+            unchanged: Array<{ tweakId: string }>;
+            skipped: Array<{ tweakId: string; reason: string }>;
+            failed: Array<{ tweakId: string; error: string }>;
+          } | null;
+          network: {
+            reapplied: Array<{ tweakId: string }>;
+            unchanged: Array<{ tweakId: string }>;
+            skipped: Array<{ tweakId: string; reason: string }>;
+            failed: Array<{ tweakId: string; error: string }>;
+          } | null;
+        }>;
       };
 
       presetTweaks: {

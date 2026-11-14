@@ -1,0 +1,48 @@
+.debloater-watercolor-motion::before {
+  background-position: center, 100% 50%;
+  background-size: 100% 100%, cover;
+  animation: debloater-wash-base-drift 36s ease-in-out infinite alternate;
+}
+
+.debloater-watercolor-motion::after {
+  z-index: 1;
+  background: url("/__mockup/images/debloater-reference/teal-wash.webp") 58% 46% / cover no-repeat;
+  opacity: .1;
+  mix-blend-mode: soft-light;
+  mask-image: radial-gradient(ellipse 70% 82% at 68% 48%, #000 10%, rgba(0, 0, 0, .76) 44%, transparent 82%);
+  animation: debloater-wash-flow 24s ease-in-out infinite alternate;
+}
+
+@keyframes debloater-wash-base-drift {
+  0% {
+    background-position: center, 100% 50%;
+    background-size: 100% 100%, cover;
+  }
+  100% {
+    background-position: center, 94% 47%;
+    background-size: 100% 100%, cover;
+  }
+}
+
+@keyframes debloater-wash-flow {
+  0% {
+    background-position: 58% 46%;
+    opacity: .1;
+  }
+  100% {
+    background-position: 69% 55%;
+    opacity: .17;
+  }
+}
+
+html.sc-reduced-motion .debloater-watercolor-motion::before,
+html.sc-reduced-motion .debloater-watercolor-motion::after {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .debloater-watercolor-motion::before,
+  .debloater-watercolor-motion::after {
+    animation: none !important;
+  }
+}

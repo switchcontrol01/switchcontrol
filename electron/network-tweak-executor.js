@@ -77,6 +77,13 @@ function normalizeNetshOutput(output) {
     .trim();
 }
 
+function isNetworkActionVerified(action, observedApplied) {
+  if (typeof observedApplied !== 'boolean') return false;
+  if (action === 'apply') return observedApplied;
+  if (action === 'revert') return !observedApplied;
+  return false;
+}
+
 // ── tweak definitions ─────────────────────────────────────────────────────────
 
 /**
@@ -761,7 +768,7 @@ async function executeNetworkTweak(tweakId, action) {
       const checkOut = await execPowerShell(entry.check);
       const isEnabled = normalizePSBoolOutput(checkOut);
       if (isEnabled !== null) {
-        verified = action === 'apply' ? isEnabled : !isEnabled;
+        verified = isNetworkActionVerified(action, isEnabled);
       }
     } catch (verifyErr) {
       console.warn(`[NetworkTweak] Verification inconclusive for ${tweakId}:`, verifyErr.message);
@@ -771,9 +778,10 @@ async function executeNetworkTweak(tweakId, action) {
   const verb = action === 'apply' ? 'Enabled' : 'Disabled';
   return {
     tweakId, action,
-    success: true,
+    success: verified,
     verified,
-    message: verified ? `${verb} and verified` : `${verb} (verification inconclusive)`,
+    message: verified ? `${verb} and verified` : `${verb} was not verified; the applied state was not recorded.`,
+    error: verified ? null : 'verification_failed',
     requiresRestart: false,
     rawOutput,
   };
@@ -821,6 +829,8 @@ function getDisabledTweaks() {
 // ── Ownership-aware wrapper ────────────────────────────────────────────────────
 
 const ownershipStore = require('./ownership-store');
+const { reconcileOwnedTargets } = require('./owned-tweak-recovery');
+const { recordOwnershipAfterAction } = require('./ownership-actions');
 
 /**
  * Execute a network tweak AND maintain the ownership / baseline record.
@@ -861,21 +871,44 @@ async function executeNetworkTweakWithOwnership(tweakId, action) {
   // Step 3: execute
   const result = await executeNetworkTweak(tweakId, action);
 
-  // Step 4: update ownership only after confirmed success. A revert must
-  // clear app ownership; recording every successful action as recordApply()
-  // leaves a reverted network tweak owned/applied forever.
-  if (result.success) {
-    if (action === 'revert') {
-      ownershipStore.recordRevert(scopeKey);
-    } else {
-      ownershipStore.recordApply(scopeKey, {
-        appliedValue:      true,
-        verificationState: result.verified ? 'verified' : 'unverified',
-      });
-    }
-  }
+  // Step 4: only verified mutations change ownership. A revert releases the
+  // record; an unverified revert keeps it for a later recovery attempt.
+  recordOwnershipAfterAction(ownershipStore, scopeKey, action, result);
 
   return result;
+}
+
+/**
+ * Reapply network settings only when the app has a verified ownership record
+ * and Premium is still active. This checks current Windows state first, and
+ * verifies both the write result and an independent readback afterward.
+ */
+async function reapplyOwnedNetworkTweaks(premiumActive = false) {
+  const allowedIds = Object.entries(TWEAK_REGISTRY)
+    .filter(([, entry]) => !entry.disabled)
+    .map(([id]) => id);
+  return reconcileOwnedTargets({
+    records: ownershipStore.getAllAppOwned(),
+    itemType: 'network_tweak',
+    premiumActive,
+    allowedIds,
+    readCurrent: async (tweakId) => {
+      const status = await checkNetworkTweakStatus(tweakId);
+      return {
+        applied: status?.applied,
+        verified: typeof status?.applied === 'boolean',
+        error: status?.error,
+      };
+    },
+    applyTarget: async (tweakId) => {
+      const result = await executeNetworkTweakWithOwnership(tweakId, 'apply');
+      return {
+        success: result?.success === true,
+        verified: result?.verified === true,
+        error: result?.error || result?.message,
+      };
+    },
+  });
 }
 
 // ── DNS Benchmark (runs locally on the user's PC) ─────────────────────────────
@@ -1158,6 +1191,7 @@ async function revertDnsServers() {
 module.exports = {
   executeNetworkTweak,
   executeNetworkTweakWithOwnership,
+  reapplyOwnedNetworkTweaks,
   checkNetworkTweakStatus,
   checkAllNetworkTweakStatus,
   getDisabledTweaks,
@@ -1167,5 +1201,6 @@ module.exports = {
   TWEAK_REGISTRY,
   // normalization helpers
   normalizePSBoolOutput,
+  isNetworkActionVerified,
   // normalizeNetshOutput is defined above but currently unused by callers
 };

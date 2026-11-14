@@ -21,25 +21,52 @@ function createHarness({ admin = true } = {}) {
   const registry = new Map();
   const elevatedCommands = [];
   const state = { admin };
+  let timerMs10 = 156;
+  let timerAgentRunning = false;
+
+  function applyCommand(command) {
+    const writes = [
+      ...command.matchAll(/-Name '([^']+)' -Value \(\[(?:int|uint32)\](\d+)\)|-Name '([^']+)' -Value '(\d+)' -Type String/g),
+    ];
+    for (const match of writes) {
+      registry.set(match[1] ?? match[3], Number(match[2] ?? match[4]));
+    }
+
+    if (command.includes("timer-resolution-state.json")) {
+      const start = command.match(/\$state = @\{ pid = \$proc\.Id; ms10 = (\d+) \}/);
+      if (start) {
+        timerMs10 = Number(start[1]);
+        timerAgentRunning = true;
+      } else if (/if \(156 -eq 156\)/.test(command)) {
+        timerMs10 = 156;
+        timerAgentRunning = false;
+      }
+    }
+  }
 
   async function runPS(command) {
-    const match = command.match(/-Name '([^']+)' -Value \(\[int\](-?\d+)\)/);
-    if (match) registry.set(match[1], Number(match[2]));
+    applyCommand(command);
     return "";
   }
 
   async function queryPS(command) {
+    if (command.includes("timer-resolution-state.json")) {
+      const expectedTimer = command.match(/\$s\.ms10 -eq (\d+)\)/);
+      if (expectedTimer) {
+        return String(timerAgentRunning && timerMs10 === Number(expectedTimer[1]));
+      }
+      return String(timerAgentRunning ? timerMs10 : 156);
+    }
     const name = command.match(/-Name '([^']+)'/)?.[1];
-    const expected = command.match(/-eq \(\[int\](-?\d+)\)/);
+    const expected = command.match(/-eq \(\[(?:int|uint32)\](\d+)\)|-eq '(\d+)'/);
     const current = name ? registry.get(name) : undefined;
-    if (expected) return String(current === Number(expected[1]));
+    if (expected) return String(current === Number(expected[1] ?? expected[2]));
     return current === undefined ? "" : String(current);
   }
 
   async function runElevated(command) {
     elevatedCommands.push(command);
-    const writes = [...command.matchAll(/-Name '([^']+)' -Value \(\[int\](-?\d+)\)/g)];
-    for (const match of writes) registry.set(match[1], Number(match[2]));
+    applyCommand(command);
     return { ok: true, error: null, output: "" };
   }
 
@@ -77,6 +104,10 @@ function createHarness({ admin = true } = {}) {
     registry,
     elevatedCommands,
     state,
+    setTimerState(value, running) {
+      timerMs10 = value;
+      timerAgentRunning = running;
+    },
     loadExecutor,
     cleanup() {
       fs.rmSync(dir, { recursive: true, force: true });
@@ -115,6 +146,28 @@ test("restores verified slider values after restart with one UAC batch", async (
     assert.equal(result.reapplied.find((item) => item.tweakId === "sys-responsiveness").value, 18);
     assert.equal(h.elevatedCommands.length, 1, "system-wide restores should share one UAC prompt");
     assert.equal([...h.elevatedCommands[0].matchAll(/-Name '/g)].length, 2, "the single elevated script should contain both writes");
+  } finally {
+    h.cleanup();
+  }
+});
+
+test("custom priority recovery can inspect and clear the shared slider target", async () => {
+  const h = createHarness({ admin: true });
+  try {
+    h.registry.set("Win32PrioritySeparation", 38);
+    const executor = h.loadExecutor();
+    const applied = await executor.applySliderValue("win32-priority-sep", 26);
+    assert.equal(applied.ok, true);
+
+    const appliedState = executor.getSliderRecoveryState("win32-priority-sep");
+    assert.equal(appliedState.appliedValue, 26);
+    assert.equal(appliedState.originalValue, 38);
+    assert.equal(appliedState.hasOriginalValue, true);
+    assert.equal(executor.clearSliderRecoveryState("win32-priority-sep"), true);
+    const clearedState = executor.getSliderRecoveryState("win32-priority-sep");
+    assert.equal(clearedState.appliedValue, null);
+    assert.equal(clearedState.originalValue, null);
+    assert.equal(clearedState.hasOriginalValue, false);
   } finally {
     h.cleanup();
   }
@@ -174,6 +227,57 @@ test("resetting to the Windows default clears the saved automatic-restore target
     assert.equal(h.registry.get("Win32PrioritySeparation"), 2);
     const persisted = JSON.parse(fs.readFileSync(h.files.SLIDER_STATE_FILE, "utf8"));
     assert.equal(persisted.appliedValues["win32-priority-sep"], undefined);
+  } finally {
+    h.cleanup();
+  }
+});
+
+test("every enabled slider survives restart and missing Windows values", async () => {
+  const h = createHarness({ admin: true });
+  try {
+    const firstRun = h.loadExecutor();
+    const activeIds = firstRun.SLIDER_TWEAK_IDS.filter(id => !firstRun.SLIDER_TWEAKS[id].disabled);
+    assert.equal(activeIds.length, 10, "the regression loop must cover every enabled slider definition");
+    assert.equal(firstRun.SLIDER_TWEAK_IDS.length - activeIds.length, 2, "only the two documented unsafe sliders are disabled");
+
+    const targets = new Map();
+    for (const tweakId of activeIds) {
+      const def = firstRun.SLIDER_TWEAKS[tweakId];
+      const target = def.defaultValue === def.safeMin
+        ? Math.min(def.safeMax, def.safeMin + 1)
+        : def.safeMin;
+      assert.notEqual(target, def.defaultValue, `${tweakId} test value must differ from its Windows default`);
+      if (def.regName) h.registry.set(def.regName, def.defaultValue);
+      if (tweakId === "timer-resolution-slider") h.setTimerState(156, false);
+
+      const applied = await firstRun.applySliderValue(tweakId, target);
+      assert.equal(applied.ok, true, `${tweakId} should apply`);
+      assert.equal(applied.verified, true, `${tweakId} should be verified`);
+      assert.equal(applied.persisted, true, `${tweakId} should save its recovery target`);
+      targets.set(tweakId, target);
+    }
+
+    const saved = JSON.parse(fs.readFileSync(h.files.SLIDER_STATE_FILE, "utf8"));
+    for (const [tweakId, target] of targets) {
+      assert.equal(saved.appliedValues[tweakId], target, `${tweakId} should persist its exact target`);
+    }
+
+    // Simulate a new app process and Windows deleting every changed registry key.
+    for (const tweakId of activeIds) {
+      const def = firstRun.SLIDER_TWEAKS[tweakId];
+      if (def.regName) h.registry.delete(def.regName);
+    }
+    h.setTimerState(156, false);
+
+    const afterRestart = h.loadExecutor();
+    const restored = await afterRestart.reapplyAppliedSliderValues(true);
+    assert.equal(restored.reapplied.length, activeIds.length);
+    assert.equal(restored.failed.length, 0);
+    for (const tweakId of activeIds) {
+      const result = await afterRestart.readSliderValue(tweakId);
+      assert.equal(result.value, targets.get(tweakId), `${tweakId} should be restored to its saved value`);
+      assert.equal(result.missing, false, `${tweakId} should no longer be missing after recovery`);
+    }
   } finally {
     h.cleanup();
   }

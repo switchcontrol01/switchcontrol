@@ -1571,7 +1571,7 @@ import { DebloaterNotebookFrame } from "@/components/debloater/DebloaterNotebook
         <Reveal className="debloater-page sc-page-blur-in space-y-5">
   
           {/* Header */}
-          <div className="debloater-notebook-head">
+          <div className="debloater-notebook-head debloater-watercolor-motion">
           <PageHeader
             icon={ShieldCheck}
             title={t("Debloater")}
@@ -1590,9 +1590,10 @@ import { DebloaterNotebookFrame } from "@/components/debloater/DebloaterNotebook
                 <button
                   key={tab.id}
                   onClick={() => setMainTab(tab.id)}
+                  aria-pressed={active}
                   data-testid={`tab-debloat-${tab.id}`}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-base font-semibold transition-all duration-200",
                     active
                       ? "bg-primary/15 text-primary border border-primary/25 shadow-sm"
                       : "text-muted-foreground hover:text-foreground/80 hover:bg-[#21262D]"
