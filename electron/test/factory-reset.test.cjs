@@ -166,7 +166,7 @@ test("factory reset accepts safely released unverifiable ownership", () => {
 });
 
 test("Debloater sparklines always receive a concrete static path", () => {
-  const debloater = read("client/src/pages/Debloater.tsx");
-  assert.match(debloater, /<motion\.path\s+d=\{s\.spark\}/);
-  assert.doesNotMatch(debloater, /animate=\{\{\s*d:\s*s\.spark/);
+  const debloater = read("client/src/components/debloater/DebloaterOverviewCards.tsx");
+  assert.match(debloater, /<motion\.path\s+d=\{card\.spark\}/);
+  assert.doesNotMatch(debloater, /animate=\{\{\s*d:\s*card\.spark/);
 });

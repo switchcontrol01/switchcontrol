@@ -37,6 +37,22 @@ export interface ActiveProblemsData {
   ts: number;
 }
 
+export interface LatencyEstimateData {
+  ready: boolean;
+  estimatedMs: number | null;
+  quality: string;
+  trend: "rising" | "falling" | "stable";
+  breakdown: Array<{
+    label: string;
+    value: number | string;
+    unit: string;
+    contributionMs: number;
+  }>;
+  reason: string;
+  sampledAt: number | null;
+  stale?: boolean;
+}
+
 // ── Display Signal profile ─────────────────────────────────────────────────────
 
 export interface DisplaySignalProfile {
@@ -63,6 +79,7 @@ interface DashboardIntelligenceState {
   instability:   InstabilityData | null;
   problems:      ActiveProblemsData | null;
   systemLoad:    SystemLoadMeasurement;
+  latencyEstimate: LatencyEstimateData | null;
   loading:       boolean;
   refresh:       () => void;
 }
@@ -73,10 +90,161 @@ async function fetchJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export function getLatencyEstimateUrl(systemLoad: SystemLoadMeasurement): string {
+  const cpuCores = systemLoad.cpuCoreCount;
+  const ramTotalGB = systemLoad.ramTotalGb;
+  const processCount = systemLoad.processCount;
+  const params = new URLSearchParams();
+  const values: Record<string, number | null> = {
+    cpuLoad: systemLoad.cpuUsagePct,
+    cpuCores,
+    ramUsedGB: systemLoad.ramUsedGb,
+    ramTotalGB,
+    ramUsedPercent: systemLoad.ramUsagePct,
+    processCount,
+  };
+  for (const [key, value] of Object.entries(values)) {
+    if (typeof value === "number" && Number.isFinite(value)) params.set(key, String(value));
+  }
+  return `/api/dashboard-intelligence/latency-estimate?${params.toString()}`;
+}
+
+export function useLatencyEstimate(
+  enabled: boolean,
+  systemLoad: SystemLoadMeasurement,
+): { data: LatencyEstimateData | null; refresh: () => void } {
+  const [data, setData] = useState<LatencyEstimateData | null>(null);
+  const lastReadyLatencyRef = useRef<LatencyEstimateData | null>(null);
+  const systemLoadRef = useRef(systemLoad);
+  const pollRef = useRef<() => void>(() => {});
+  systemLoadRef.current = systemLoad;
+
+  const refresh = useCallback(() => pollRef.current(), []);
+
+  useEffect(() => {
+    if (!enabled) {
+      setData(null);
+      pollRef.current = () => {};
+      return;
+    }
+
+    let cancelled = false;
+    let inFlight = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const waiting: LatencyEstimateData = {
+      ready: false,
+      estimatedMs: null,
+      quality: "Not enough data",
+      trend: "stable",
+      breakdown: [],
+      reason: "Waiting for a complete Windows telemetry sample.",
+      sampledAt: null,
+    };
+
+    const poll = async () => {
+      if (cancelled || inFlight) return;
+      if (timer) clearTimeout(timer);
+      if (document.hidden) {
+        timer = setTimeout(() => void poll(), 8_000);
+        return;
+      }
+
+      const current = systemLoadRef.current;
+      const cpuCores = current.cpuCoreCount;
+      const ramTotalGB = current.ramTotalGb;
+      const processCount = current.processCount;
+      const localSampleReady =
+        current.state === "live" &&
+        typeof current.cpuUsagePct === "number" &&
+        Number.isFinite(current.cpuUsagePct) &&
+        typeof cpuCores === "number" &&
+        Number.isInteger(cpuCores) &&
+        cpuCores > 0 &&
+        typeof current.ramUsedGb === "number" &&
+        Number.isFinite(current.ramUsedGb) &&
+        typeof ramTotalGB === "number" &&
+        Number.isFinite(ramTotalGB) &&
+        ramTotalGB > 0 &&
+        typeof current.ramUsagePct === "number" &&
+        Number.isFinite(current.ramUsagePct) &&
+        typeof processCount === "number" &&
+        Number.isInteger(processCount) &&
+        processCount > 0;
+
+      if (!localSampleReady) {
+        if (!cancelled) {
+          setData(
+            lastReadyLatencyRef.current
+              ? {
+                  ...lastReadyLatencyRef.current,
+                  stale: true,
+                  reason: current.reason || waiting.reason,
+                }
+              : waiting,
+          );
+        }
+        timer = setTimeout(() => void poll(), 8_000);
+        return;
+      }
+
+      inFlight = true;
+      try {
+        const next = await fetchJSON<LatencyEstimateData>(getLatencyEstimateUrl(current));
+        if (cancelled) return;
+        if (next.ready && typeof next.estimatedMs === "number" && Number.isFinite(next.estimatedMs)) {
+          lastReadyLatencyRef.current = next;
+          setData(next);
+        } else if (lastReadyLatencyRef.current) {
+          setData({
+            ...lastReadyLatencyRef.current,
+            stale: true,
+            reason: next.reason || waiting.reason,
+          });
+        } else {
+          setData(next);
+        }
+      } catch {
+        if (!cancelled) {
+          setData(
+            lastReadyLatencyRef.current
+              ? {
+                  ...lastReadyLatencyRef.current,
+                  stale: true,
+                  reason: "The latest complete estimate is being kept while Windows telemetry refreshes.",
+                }
+              : waiting,
+          );
+        }
+      } finally {
+        inFlight = false;
+        if (!cancelled) timer = setTimeout(() => void poll(), 8_000);
+      }
+    };
+
+    pollRef.current = () => { void poll(); };
+    const onVisibility = () => {
+      if (!document.hidden) pollRef.current();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    void poll();
+
+    return () => {
+      cancelled = true;
+      inFlight = false;
+      if (timer) clearTimeout(timer);
+      pollRef.current = () => {};
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [enabled]);
+
+  return { data, refresh };
+}
+
 export function useDashboardIntelligence(enabled = true): DashboardIntelligenceState {
   const [instability,   setInstability]   = useState<InstabilityData | null>(null);
   const [problems,      setProblems]      = useState<ActiveProblemsData | null>(null);
   const { data: systemLoad, refresh: refreshSystemLoad } = useMeasuredSystemLoad(enabled);
+  const { data: latencyEstimate, refresh: refreshLatencyEstimate } = useLatencyEstimate(enabled, systemLoad);
   const [loading,       setLoading]       = useState(true);
   const initRef = useRef(false);
   // F-3: AbortController so an unmount mid-fetch cancels the network requests
@@ -102,7 +270,8 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
     setLoading(true);
     fetchAll();
     refreshSystemLoad();
-  }, [fetchAll, refreshSystemLoad]);
+    refreshLatencyEstimate();
+  }, [fetchAll, refreshSystemLoad, refreshLatencyEstimate]);
 
   const runningRef = useRef(false);
   const inFlightRef = useRef(false);
@@ -217,5 +386,5 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
     };
   }, [enabled, fetchAll]);
 
-  return { instability, problems, systemLoad, loading, refresh };
+  return { instability, problems, systemLoad, latencyEstimate, loading, refresh };
 }

@@ -87,12 +87,24 @@ test("normal desktop navigation and stale NIC URL resolve without a scan or blan
       React: { createElement: (type, props, ...children) => ({ type, props, children }) },
       useLocation: () => [location, (...args) => navigations.push(args)],
       useStore: () => true,
+      useUserPreferencesStore: selector => selector({ reducedMotion: false }),
       useEffect: fn => fn(),
       telemetryManager: { setDemandMode: v => mode.push(v), pause() {} },
+      AnimatePresence: "AnimatePresence",
+      DriverIntelRouteTransition: "DriverIntelRouteTransition",
       desktopRoutes: routes, ErrorBoundary: "ErrorBoundary", Route: "Route", Switch: "Switch", console: quiet,
     });
     const tree = render();
-    const routeElements = tree.children[0].children[0].children;
+    const findNode = (node, type) => {
+      if (!node || typeof node !== "object") return null;
+      if (node.type === type) return node;
+      for (const child of node.children ?? []) {
+        const found = findNode(child, type);
+        if (found) return found;
+      }
+      return null;
+    };
+    const routeElements = findNode(tree, "Switch").children;
     assert.ok(!routeElements.some(route => route.props?.path === "/nic-tuning"));
     assert.equal(routeElements.at(-1).props.component, "Home");
     assert.ok(routeElements.some(route => route.props?.path === "/network" && route.props.component === "NetworkTweaks"));

@@ -14,6 +14,7 @@ import { ResponsivenessModelSummary, SignalBenchModel } from "@/components/laten
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 import { useMeasuredSystemLoad } from "@/hooks/useMeasuredSystemLoad";
+import { useLatencyEstimate } from "@/hooks/useDashboardIntelligence";
 import { useSoftwareLatencyProbe } from "@/hooks/useSoftwareLatencyProbe";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useLatencyAnalyzerStore, type DriverRow } from "@/stores/latencyAnalyzerStore";
@@ -125,6 +126,8 @@ export default function LatencyAnalyzer() {
     [store.chartSamples],
   );
   const { data: systemLoad } = useMeasuredSystemLoad(!locked);
+  const { data: latency } = useLatencyEstimate(!locked, systemLoad);
+  const hasEstimate = !!latency?.ready && latency.estimatedMs != null;
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const durationRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelRef = useRef<(() => void) | null>(null);
@@ -276,6 +279,38 @@ export default function LatencyAnalyzer() {
             <strong>{t("Not measured")}</strong>
           </div>
         </header>
+        <GlassCard className="la-bench-panel p-4" data-testid="card-latency-estimate">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-sm font-semibold">{t("System responsiveness estimate")}</h2>
+              <p className="mt-1 text-[11px] text-[#8A95A4]">
+                {t("Derived from live OS metrics — not a hardware measurement")}
+              </p>
+              <p className="mt-1 text-[10px] text-[#778292]">
+                {t("Load-based estimate — not directly measured")}
+              </p>
+            </div>
+            <div className="text-right">
+              {latency ? (
+                hasEstimate ? (
+                  <strong className="text-lg tabular-nums">
+                    {latency.estimatedMs!.toFixed(1)} ms · {t(latency.quality)}
+                  </strong>
+                ) : (
+                  <strong className="text-sm text-[#8A95A4]">{t("Not enough data")}</strong>
+                )
+              ) : (
+                <strong className="text-sm text-[#8A95A4]">{t("Not enough data")}</strong>
+              )}
+              {latency && !hasEstimate && (
+                <p className="mt-1 text-[10px] text-[#778292]">{t(latency.reason)}</p>
+              )}
+              {latency?.stale && (
+                <p className="mt-1 text-[10px] text-amber-300">{t("Showing the last complete sample")}</p>
+              )}
+            </div>
+          </div>
+        </GlassCard>
         <div className="la-bench-controls-model">
           <div className="la-bench-capture-column">
             <Controls onStart={() => { void handleStart(); }} onStop={() => { void handleStop(); }} onReset={handleReset} />

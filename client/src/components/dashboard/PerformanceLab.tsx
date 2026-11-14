@@ -21,6 +21,7 @@ import {
   type InstabilityData,
   type ActiveProblemsData,
   type ActiveProblem,
+  type LatencyEstimateData,
 } from "@/hooks/useDashboardIntelligence";
 import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 import {
@@ -352,6 +353,44 @@ function SystemResponsivenessCard({ data }: { data: SystemLoadMeasurement }) {
   );
 }
 
+function LatencyEstimateCard({ data }: { data: LatencyEstimateData | null }) {
+  const hasEstimate = !!data?.ready && data.estimatedMs != null;
+
+  return (
+    <GlassCard className="md:col-span-3" data-testid="card-latency-estimate">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4">
+        <div className="space-y-1">
+          <h3 className="text-sm font-medium text-[#E6EAF0]">Load-based responsiveness estimate</h3>
+          <p className="text-[11px] text-muted-foreground">
+            Load-based estimate — not directly measured
+          </p>
+          <p className="text-[10px] text-muted-foreground/70">
+            Derived from live OS metrics — not a hardware measurement
+          </p>
+        </div>
+        <div className="min-w-36 text-right">
+          {!data && <div className="ml-auto h-5 w-24 rounded bg-[#21262D] animate-pulse" />}
+          {data && !hasEstimate && (
+            <p className="text-xs text-muted-foreground">
+              {data.reason ?? "Waiting for a complete Windows telemetry sample."}
+            </p>
+          )}
+          {hasEstimate && data && (
+            <div className="space-y-1">
+              <p className="text-lg font-semibold tabular-nums text-[#E6EAF0]">
+                {data.estimatedMs!.toFixed(1)} ms
+              </p>
+              <p className="text-[10px] text-muted-foreground" data-testid="text-latency-quality">
+                {data.stale ? "Last complete estimate" : data.quality}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </GlassCard>
+  );
+}
+
 // ── Reveal wrapper ────────────────────────────────────────────────────────────
 
 function RevealCard({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
@@ -373,7 +412,7 @@ function RevealCard({ children, delay = 0 }: { children: ReactNode; delay?: numb
 
 export function PerformanceLab() {
   const { user } = useAuth();
-  const { instability, problems, systemLoad } = useDashboardIntelligence(!!user?.loggedIn);
+  const { instability, problems, systemLoad, latencyEstimate } = useDashboardIntelligence(!!user?.loggedIn);
   const showHealthAlerts = useUserPreferencesStore((s) => s.showHealthAlerts);
   const { prefersReducedMotion } = useMotion();
 
@@ -402,6 +441,7 @@ export function PerformanceLab() {
         <RevealCard delay={0.05}><StabilityScoreCard data={instability} /></RevealCard>
         <RevealCard delay={0.10}><ActiveProblemsCard data={showHealthAlerts ? problems : null} alertsEnabled={showHealthAlerts} /></RevealCard>
         <RevealCard delay={0.15}><SystemResponsivenessCard data={systemLoad} /></RevealCard>
+        <LatencyEstimateCard data={latencyEstimate} />
       </div>
 
     </div>

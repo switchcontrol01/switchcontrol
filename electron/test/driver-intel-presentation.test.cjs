@@ -6,6 +6,8 @@ const path = require("node:path");
 const read = file => fs.readFileSync(path.resolve(__dirname, "../..", file), "utf8");
 const page = read("client/src/pages/DriverIntelligence.tsx");
 const layout = read("client/src/components/layout/AppLayout.tsx");
+const app = read("client/src/App.tsx");
+const transition = read("client/src/components/driver-intel/DriverIntelRouteTransition.tsx");
 
 test("immersive driver content bypasses the standard constrained wrapper", () => {
   assert.match(layout, /immersiveContent = false/);
@@ -15,18 +17,18 @@ test("immersive driver content bypasses the standard constrained wrapper", () =>
 });
 
 test("driver exit navigation follows completed motion rather than a timer", () => {
-  assert.match(page, /onAnimationComplete=\{definition => \{\s*if \(definition === "exit"\) handleExitComplete\(\)/);
-  assert.match(page, /pendingNavigation\.current = destination;\s*setIsExiting\(true\)/);
-  assert.match(page, /navigateAfterExit\("\/dashboard"\)/);
-  assert.match(page, /navigateAfterExit\("\/ai-advisor"\)/);
+  assert.match(app, /<AnimatePresence mode="wait" initial=\{false\}>[\s\S]*<DriverIntelRouteTransition/);
+  assert.match(transition, /exit=\{\{[\s\S]*pointerEvents: "none"[\s\S]*transition: \{ duration/);
+  assert.match(page, /navigateWithRouteTransition\("\/dashboard"\)/);
+  assert.match(page, /navigateWithRouteTransition\("\/ai-advisor"\)/);
   assert.doesNotMatch(page, /setTimeout/);
-  assert.match(page, /inert=\{isExiting\}/);
 });
 
 test("driver transitions are deliberate while reduced motion remains immediate", () => {
-  assert.match(page, /duration: prefersReducedMotion \? 0 : 0\.72/);
-  assert.match(page, /duration: prefersReducedMotion \? 0 : 0\.62/);
-  assert.match(page, /if \(prefersReducedMotion\) \{\s*navigate\(destination\);\s*return;/);
+  assert.match(transition, /const ROUTE_TRANSITION_SECONDS = 1\.5/);
+  assert.match(transition, /const duration = reducedMotion \? 0 : ROUTE_TRANSITION_SECONDS/);
+  assert.match(transition, /initial=\{reducedMotion \? false : hidden\}/);
+  assert.match(app, /reducedMotion=\{appReducedMotion\}/);
 });
 
 test("the authentic board artwork retains its packaged-app relative base", () => {

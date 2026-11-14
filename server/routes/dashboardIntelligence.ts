@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getCachedSnapshot, getSnapshot } from "../lib/telemetry";
+import { buildLatencyEstimate, mergeRendererTelemetry } from "../lib/latencyEstimate";
 import si from "systeminformation";
 import { execFile } from "child_process";
 import { promisify } from "util";
@@ -247,6 +248,40 @@ let displaySignalCache:    { data: any; ts: number } | null = null;
 // In-flight dedup: prevents multiple simultaneous si.processes() WMI enumerations
 // when "Analyze Again" is clicked rapidly. New requests wait for the running call.
 let _whatCausedThatFlight: Promise<any> | null = null;
+
+router.get("/latency-estimate", async (req, res) => {
+  try {
+    const serverSnapshot = await getSnapshot();
+    const queryNumber = (key: string, min: number, max: number, integer = false): number | null => {
+      const raw = req.query[key];
+      if (typeof raw !== "string" || raw.length > 32) return null;
+      const value = Number(raw);
+      if (!Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value))) {
+        return null;
+      }
+      return value;
+    };
+
+    const serverHasProcessCount =
+      serverSnapshot.status === "ready" &&
+      Number.isInteger(serverSnapshot.processes.total) &&
+      serverSnapshot.processes.total > 0;
+    const snap = mergeRendererTelemetry(serverSnapshot, {
+      cpuLoad: queryNumber("cpuLoad", 0, 100),
+      cpuCores: queryNumber("cpuCores", 1, 4096, true),
+      ramUsedGB: queryNumber("ramUsedGB", 0, 1_000_000),
+      ramTotalGB: queryNumber("ramTotalGB", 0.01, 1_000_000),
+      ramUsedPercent: queryNumber("ramUsedPercent", 0, 100),
+      processCount: serverHasProcessCount
+        ? null
+        : queryNumber("processCount", 1, 100_000, true),
+    });
+    res.setHeader("Cache-Control", "no-store");
+    res.json(buildLatencyEstimate(snap));
+  } catch {
+    res.status(503).json({ error: "The current Windows telemetry snapshot is unavailable." });
+  }
+});
 
 // ── Stability / Instability score ──────────────────────────────────────────────
 

@@ -129,3 +129,51 @@ test("startup sentinel remains an honest no-data response", async () => {
   assert.deepEqual(result.breakdown, []);
   assert.match(result.reason, /complete Windows telemetry sample/);
 });
+
+test("renderer telemetry completes missing backend fields without replacing valid server data", async () => {
+  const { mergeRendererTelemetry } = await import("../../server/lib/latencyEstimate.ts");
+  const incompleteBackend = {
+    ts: Date.now(),
+    status: "loading",
+    cpu: { load: 0, speed: 0, cores: 0 },
+    ram: { totalGB: 0, usedGB: 0, usedPercent: 0 },
+    network: { rx_sec: 0, tx_sec: 0, latency_ms: 0 },
+    temps: { cpu: null, gpu: null },
+    gpu: { load: null, vramUsedMb: null, vramTotalMb: null, vramPercent: null, tempC: null, clockMhz: null, name: null },
+    disk: { activeTimePct: null, readKBps: null, writeKBps: null, available: false },
+    processes: { running: 0, total: 0 },
+    load_trend: "stable",
+  };
+  const renderer = {
+    cpuLoad: 24,
+    cpuCores: 12,
+    ramUsedGB: 8,
+    ramTotalGB: 32,
+    ramUsedPercent: 25,
+    processCount: 144,
+  };
+
+  const completed = mergeRendererTelemetry(incompleteBackend, renderer);
+  assert.equal(completed.status, "ready");
+  assert.equal(completed.cpu.load, 24);
+  assert.equal(completed.ram.totalGB, 32);
+  assert.equal(completed.processes.total, 144);
+
+  const validBackend = {
+    ...completed,
+    cpu: { ...completed.cpu, load: 9, cores: 8 },
+    ram: { totalGB: 16, usedGB: 4, usedPercent: 25 },
+    processes: { running: 91, total: 91 },
+  };
+  const preserved = mergeRendererTelemetry(validBackend, {
+    ...renderer,
+    cpuLoad: 90,
+    cpuCores: 64,
+    ramTotalGB: 256,
+    processCount: 600,
+  });
+  assert.equal(preserved.cpu.load, 9);
+  assert.equal(preserved.cpu.cores, 8);
+  assert.equal(preserved.ram.totalGB, 16);
+  assert.equal(preserved.processes.total, 91);
+});
