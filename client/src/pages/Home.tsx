@@ -16,7 +16,6 @@ import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Sparkles, Brain, Ta
 import { useLiveTelemetry, useLiveTelemetryValues, formatKbps } from "@/hooks/useLiveTelemetry";
 import { useTelemetryStore } from "@/stores/telemetryStore";
 import { useShallow } from "zustand/react/shallow";
-import { PredictiveWarnings } from "@/components/intelligence/PredictiveWarnings";
 import { LatencyMap } from "@/components/intelligence/LatencyMap";
 import { SystemAura } from "@/components/intelligence/SystemAura";
 import { Button } from "@/components/ui/button";
@@ -380,7 +379,7 @@ export default function Home() {
   const { stats, account, setStats } = useStore(
     useShallow((s) => ({ stats: s.stats, account: s.account, setStats: s.setStats })),
   );
-  const { telemetry: liveTel, status: telStatus, warmingUp } = useLiveTelemetryValues();
+  const { telemetry: liveTel, status: telStatus } = useLiveTelemetryValues();
 
   // ── Mount/remount lifecycle logging ─────────────────────────────────────────
   const mountCountRef = useRef(0);
@@ -871,9 +870,6 @@ export default function Home() {
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           className="space-y-8"
         >
-
-        {/* Predictive warnings strip, only renders when there are real warnings */}
-        <PredictiveWarnings telemetry={liveTel} warmingUp={warmingUp} />
 
         {/* Activity Monitor Grid */}
         <Reveal className="space-y-4">

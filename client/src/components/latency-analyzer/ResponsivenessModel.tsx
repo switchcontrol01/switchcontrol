@@ -20,10 +20,10 @@ type ResponsivenessModelProps = {
 };
 
 const METRIC_DEFINITIONS: Omit<ProjectedMetric, "values">[] = [
-  { key: "service", label: "Combined service", unit: "% CPU time", color: "#61A9BD" },
-  { key: "dpc", label: "DPC", unit: "% CPU time", color: "#CED14E" },
-  { key: "interrupt", label: "Interrupt", unit: "% CPU time", color: "#DD83C9" },
-  { key: "faults", label: "Page faults", unit: "faults/sec", color: "#1F74AD" },
+  { key: "service", label: "Combined service", unit: "% CPU time", color: "#9bc8ae" },
+  { key: "dpc", label: "DPC", unit: "% CPU time", color: "#d2f36b" },
+  { key: "interrupt", label: "Interrupt", unit: "% CPU time", color: "#82c7c0" },
+  { key: "faults", label: "Page faults", unit: "faults/sec", color: "#efb66a" },
 ];
 
 const fmt = (value: number) =>
@@ -49,7 +49,7 @@ function Stat({
 }) {
   const available = value !== null && Number.isFinite(value);
   return (
-    <div className={`min-w-0 ${prominent ? "rounded-xl border border-[#61A9BD]/20 bg-[#61A9BD]/[0.055] p-4" : "px-1 py-2"}`}>
+    <div className={`min-w-0 ${prominent ? "rounded-xl border border-[#82c7c0]/20 bg-[#82c7c0]/[0.055] p-4" : "px-1 py-2"}`}>
       <div className="text-[9px] font-medium uppercase tracking-[0.14em] text-[#84909F]">{label}</div>
       <div className={`mt-2 flex flex-wrap items-baseline gap-x-1.5 tabular-nums ${prominent ? "text-[26px]" : "text-[18px]"} font-semibold leading-none text-[#E6EAF0]`}>
         <span>{available ? fmt(value) : "—"}</span>
@@ -302,15 +302,15 @@ export function ResponsivenessModel({ samples, model }: ResponsivenessModelProps
   const modeled = model !== null;
 
   return (
-      <GlassCard hoverEffect={false} className="overflow-hidden border-[#61A9BD]/20 bg-[#151B24]">
+      <GlassCard hoverEffect={false} className="overflow-hidden border-[#82c7c0]/20 bg-[#1b2922]">
       <div className="border-b border-[#2A333E] px-5 py-5 lg:px-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#61A9BD]/25 bg-[#61A9BD]/[0.08]">
-              <Activity className="size-4 text-[#76B8C8]" aria-hidden="true" />
+            <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#82c7c0]/25 bg-[#82c7c0]/[0.08]">
+              <Activity className="size-4 text-[#82c7c0]" aria-hidden="true" />
             </div>
             <div>
-              <div className="text-[9px] font-semibold uppercase tracking-[0.19em] text-[#75B4C4]">{t("Premium model · Windows PerfOS")}</div>
+              <div className="text-[9px] font-semibold uppercase tracking-[0.19em] text-[#82c7c0]">{t("Premium model · Windows PerfOS")}</div>
               <h2 className="mt-1 text-base font-semibold tracking-[-0.02em] text-[#E6EAF0]">{t("System responsiveness model")}</h2>
               <p className="mt-1 max-w-2xl text-[10px] leading-relaxed text-[#8995A2]">
                 {t("A measured view of kernel-service CPU-time pressure, built from the latest supplied counter samples.")}
@@ -382,7 +382,7 @@ export function ResponsivenessModel({ samples, model }: ResponsivenessModelProps
           </section>
         )}
 
-        <section className="rounded-xl border border-[#2A333E] bg-[#121922] p-4 sm:p-5" aria-label={t("Three-dimensional responsiveness sample graph")}>
+        <section className="rounded-xl border border-[#35453a] bg-[#16221c] p-4 sm:p-5" aria-label={t("Three-dimensional responsiveness sample graph")}>
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">

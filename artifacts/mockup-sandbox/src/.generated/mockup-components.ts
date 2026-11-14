@@ -7,5 +7,6 @@ export const modules: ModuleMap = {
   "./components/mockups/driver-intel-3d/TiltedWorkstation.tsx": () => import("../components/mockups/driver-intel-3d/TiltedWorkstation.tsx"),
   "./components/mockups/driver-intel-3d/XrayInspection.tsx": () => import("../components/mockups/driver-intel-3d/XrayInspection.tsx"),
   "./components/mockups/driver-intel-current/Current.tsx": () => import("../components/mockups/driver-intel-current/Current.tsx"),
+  "./components/mockups/switchcontrol-depth/ExplodedAssembly.tsx": () => import("../components/mockups/switchcontrol-depth/ExplodedAssembly.tsx"),
   "./components/mockups/templates/OrangePortraitEventPoster-Q7XABJ/index.tsx": () => import("../components/mockups/templates/OrangePortraitEventPoster-Q7XABJ/index.tsx")
 };

@@ -107,13 +107,13 @@ export function CounterTimeline() {
             <div className="h-48" role="img" aria-label={t("Recorded DPC and interrupt CPU-time percentages")}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartSamples} accessibilityLayer>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(159,119,79,0.2)" />
-                  <XAxis type="number" dataKey="ts" domain={["dataMin", "dataMax"]} tickFormatter={formatTime} tick={{ fontSize: 9, fill: "#a99e91" }} />
-                  <YAxis domain={[0, "auto"]} unit="%" tick={{ fontSize: 9, fill: "#a99e91" }} width={42} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(165,194,174,0.18)" />
+                  <XAxis type="number" dataKey="ts" domain={["dataMin", "dataMax"]} tickFormatter={formatTime} tick={{ fontSize: 9, fill: "#9eaca0" }} />
+                  <YAxis domain={[0, "auto"]} unit="%" tick={{ fontSize: 9, fill: "#9eaca0" }} width={42} />
                   <Tooltip contentStyle={tooltipStyle} labelFormatter={(value) => new Date(Number(value)).toLocaleString()} formatter={(value: any, name: string) => [`${Number(value).toLocaleString(undefined, { maximumFractionDigits: 3 })}% CPU time`, name === "dpcPct" ? t("DPC") : t("Interrupt")]} />
                   <Legend formatter={(value) => value === "dpcPct" ? t("DPC") : t("Interrupt")} wrapperStyle={{ fontSize: 10 }} />
-                  <Line type="linear" dataKey="dpcPct" stroke="#efb66a" dot={false} isAnimationActive={false} />
-                  <Line type="linear" dataKey="intrPct" stroke="#e77e69" dot={false} isAnimationActive={false} />
+                  <Line type="linear" dataKey="dpcPct" stroke="#d2f36b" dot={false} isAnimationActive={false} />
+                  <Line type="linear" dataKey="intrPct" stroke="#82c7c0" dot={false} isAnimationActive={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -123,11 +123,11 @@ export function CounterTimeline() {
             <div className="h-48" role="img" aria-label={t("Recorded total page faults per second")}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartSamples} accessibilityLayer>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(159,119,79,0.2)" />
-                  <XAxis type="number" dataKey="ts" domain={["dataMin", "dataMax"]} tickFormatter={formatTime} tick={{ fontSize: 9, fill: "#a99e91" }} />
-                  <YAxis domain={[0, "auto"]} tick={{ fontSize: 9, fill: "#a99e91" }} width={48} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(165,194,174,0.18)" />
+                  <XAxis type="number" dataKey="ts" domain={["dataMin", "dataMax"]} tickFormatter={formatTime} tick={{ fontSize: 9, fill: "#9eaca0" }} />
+                  <YAxis domain={[0, "auto"]} tick={{ fontSize: 9, fill: "#9eaca0" }} width={48} />
                   <Tooltip contentStyle={tooltipStyle} labelFormatter={(value) => new Date(Number(value)).toLocaleString()} formatter={(value: any) => [`${Number(value).toLocaleString(undefined, { maximumFractionDigits: 3 })} faults/sec`, t("Total page faults")]} />
-                  <Line type="linear" dataKey="pageFaultsSec" stroke="#e9d1a7" dot={false} isAnimationActive={false} />
+                  <Line type="linear" dataKey="pageFaultsSec" stroke="#efb66a" dot={false} isAnimationActive={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -140,4 +140,4 @@ export function CounterTimeline() {
 }
 
 const formatTime = (timestamp: number) => new Date(timestamp).toLocaleTimeString();
-const tooltipStyle = { background: "#191714", border: "1px solid rgba(218,172,119,0.24)", borderRadius: 7, fontSize: 10, color: "#F2EDE5" };
+const tooltipStyle = { background: "#14211b", border: "1px solid rgba(165,194,174,0.25)", borderRadius: 7, fontSize: 10, color: "#e8eee0" };

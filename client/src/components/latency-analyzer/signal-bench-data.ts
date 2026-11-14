@@ -9,9 +9,9 @@ export const SIGNAL_LANES: {
   color: string;
   value: (sample: ResponsivenessModelSample) => number;
 }[] = [
-  { key: "dpc", label: "DPC CPU time", unit: "% CPU time", color: "#efb66a", value: (sample) => sample.dpcPct },
-  { key: "interrupt", label: "Interrupt CPU time", unit: "% CPU time", color: "#e77e69", value: (sample) => sample.intrPct },
-  { key: "faults", label: "Total page faults", unit: "faults/sec", color: "#e9d1a7", value: (sample) => sample.pageFaultsSec },
+  { key: "dpc", label: "DPC CPU time", unit: "% CPU time", color: "#d2f36b", value: (sample) => sample.dpcPct },
+  { key: "interrupt", label: "Interrupt CPU time", unit: "% CPU time", color: "#82c7c0", value: (sample) => sample.intrPct },
+  { key: "faults", label: "Total page faults", unit: "faults/sec", color: "#efb66a", value: (sample) => sample.pageFaultsSec },
 ];
 
 export interface SignalLanePoint {

@@ -76,16 +76,16 @@ function ThreeSignalDeck({
     renderer.toneMappingExposure = 1.12;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#171614");
+    scene.background = new THREE.Color("#101816");
     const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 80);
     camera.position.set(7.4, 6.8, 10.8);
     camera.lookAt(0, 0.55, 0);
 
-    scene.add(new THREE.HemisphereLight(0xffe4c4, 0x271b15, 1.8));
-    const keyLight = new THREE.DirectionalLight(0xffd2a0, 2.7);
+    scene.add(new THREE.HemisphereLight(0xe2f2ce, 0x17211d, 1.8));
+    const keyLight = new THREE.DirectionalLight(0xf6f4dc, 2.5);
     keyLight.position.set(-4, 8, 5);
     scene.add(keyLight);
-    const rimLight = new THREE.DirectionalLight(0xe77e69, 1.35);
+    const rimLight = new THREE.DirectionalLight(0x82c7c0, 1.35);
     rimLight.position.set(5, 4, -7);
     scene.add(rimLight);
 
@@ -93,7 +93,7 @@ function ThreeSignalDeck({
     scene.add(root);
     const deck = new THREE.Mesh(
       new THREE.BoxGeometry(9.4, 0.22, 6.35),
-      new THREE.MeshStandardMaterial({ color: 0x3a3027, metalness: 0.55, roughness: 0.47 }),
+      new THREE.MeshStandardMaterial({ color: 0x26382e, metalness: 0.55, roughness: 0.47 }),
     );
     deck.position.y = -0.19;
     root.add(deck);
@@ -104,7 +104,7 @@ function ThreeSignalDeck({
       const floor = new THREE.Mesh(
         new THREE.PlaneGeometry(8.7, 1.65),
         new THREE.MeshStandardMaterial({
-          color: 0x26221d,
+          color: 0x1a2721,
           metalness: 0.34,
           roughness: 0.7,
           side: THREE.DoubleSide,
@@ -122,7 +122,7 @@ function ThreeSignalDeck({
             new THREE.Vector3(x, -0.045, z + 0.78),
           ]),
           new THREE.LineDashedMaterial({
-            color: 0xa78a6b,
+            color: 0x73877b,
             dashSize: 0.08,
             gapSize: 0.08,
             transparent: true,
@@ -137,7 +137,7 @@ function ThreeSignalDeck({
     for (const x of [-4.55, 4.55]) {
       const rail = new THREE.Mesh(
         new THREE.BoxGeometry(0.055, 0.055, 6.15),
-        new THREE.MeshStandardMaterial({ color: 0x8f6547, metalness: 0.78, roughness: 0.3 }),
+        new THREE.MeshStandardMaterial({ color: 0x72998e, metalness: 0.78, roughness: 0.3 }),
       );
       rail.position.set(x, -0.04, 0);
       root.add(rail);
