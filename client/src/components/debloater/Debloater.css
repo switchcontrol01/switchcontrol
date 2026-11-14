@@ -19,7 +19,7 @@
 }
 
 .debloater-page {
-  --paper: #f0eee5; --paper-light: #fbf9f0; --ink: #263438; --ink-soft: #4d5c5f;
+  --paper: #e9e7dc; --paper-light: #f2efe4; --ink: #263438; --ink-soft: #4d5c5f;
   --ink-dim: #647274; --teal: #286c70; --line: rgba(52,66,68,.19);
   position: relative; isolation: isolate; overflow: hidden;
   padding: clamp(16px, 2.4vw, 30px); border: 1px solid rgba(222,224,214,.62);
@@ -560,7 +560,7 @@ html.sc-reduced-motion .debloater-scan-root * {
   background:
     radial-gradient(ellipse at 92% 5%, rgba(21, 111, 111, .16), transparent 22%),
     repeating-linear-gradient(0deg, rgba(77, 66, 47, .025) 0 1px, transparent 1px 4px),
-    linear-gradient(110deg, #fbf7e9, #f3efdf 68%, #eae4d4);
+    linear-gradient(110deg, #f4f0e3, #e9e4d6 68%, #dfd9ca);
   clip-path: polygon(0 0, 98.8% 0, 99.1% 3%, 98.5% 6%, 99.2% 10%, 98.7% 14%, 99.25% 18%, 98.65% 22%, 99.2% 27%, 98.7% 32%, 99.15% 37%, 98.6% 42%, 99.3% 47%, 98.65% 52%, 99.25% 57%, 98.6% 62%, 99.2% 67%, 98.65% 72%, 99.2% 77%, 98.6% 82%, 99.25% 87%, 98.55% 92%, 99.1% 96%, 98.5% 100%, 0 100%);
   filter: drop-shadow(4px 4px 7px rgba(5, 15, 31, .34));
 }
@@ -572,7 +572,7 @@ html.sc-reduced-motion .debloater-scan-root * {
     radial-gradient(ellipse at 97% 10%, rgba(73, 153, 157, .24), transparent 24%),
     radial-gradient(ellipse at 3% 100%, rgba(48, 138, 142, .32), transparent 25%),
     repeating-linear-gradient(0deg, rgba(77, 66, 47, .025) 0 1px, transparent 1px 4px),
-    linear-gradient(105deg, #fbf7e9, #f5f0df);
+    linear-gradient(105deg, #f4f0e3, #eae4d6);
   clip-path: polygon(0 0, 97.8% 0, 98.7% 5%, 98.1% 11%, 99% 17%, 98.1% 23%, 98.8% 30%, 97.9% 36%, 98.7% 43%, 98% 50%, 98.9% 57%, 98% 64%, 98.8% 71%, 97.9% 78%, 98.7% 85%, 98% 92%, 98.8% 97%, 97.8% 100%, 0 100%);
   box-shadow: inset 10px 0 18px rgba(27, 46, 55, .11);
 }
@@ -653,9 +653,9 @@ html.sc-reduced-motion .debloater-scan-root * {
   border: 1px solid rgba(54, 79, 82, .2) !important;
   border-radius: 12px !important;
   background:
-    radial-gradient(ellipse at 100% 0%, rgba(72, 167, 174, .21), transparent 46%),
-    linear-gradient(145deg, #fffbed, #e8f1e9) !important;
-  box-shadow: 0 2px 7px rgba(54, 63, 56, .1), inset 0 1px rgba(255,255,255,.76) !important;
+    radial-gradient(ellipse at 100% 0%, rgba(72, 167, 174, .15), transparent 46%),
+    linear-gradient(145deg, #f1ecdf, #dfe8df) !important;
+  box-shadow: 0 2px 7px rgba(54, 63, 56, .12), inset 0 1px rgba(255,255,255,.48) !important;
 }
 .debloater-stat-grid [data-testid^="stat-"] p:first-child { color: #435960 !important; }
 .debloater-stat-grid [data-testid^="stat-"] p:nth-child(2) {
@@ -681,27 +681,30 @@ html.sc-reduced-motion .debloater-scan-root * {
   min-height: 108px;
   padding: 9px !important;
   border-radius: 13px !important;
-  box-shadow: inset 0 1px rgba(255,255,255,.5), 0 3px 8px rgba(32, 50, 53, .1) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.32), 0 3px 8px rgba(32, 50, 53, .12) !important;
+  transition: none !important;
 }
+.debloater-level-selected-background { z-index: 0; }
+.debloater-level-card > .relative { z-index: 1; }
 .debloater-level-card[data-testid="level-safe"] {
   background:
-    radial-gradient(ellipse at 94% 2%, rgba(66, 182, 191, .44), transparent 56%),
-    linear-gradient(145deg, #e9f5ef, #cce8e8) !important;
+    radial-gradient(ellipse at 94% 2%, rgba(66, 150, 151, .30), transparent 56%),
+    linear-gradient(145deg, #dce8df, #c5d9d8) !important;
 }
 .debloater-level-card[data-testid="level-balanced"] {
   background:
-    radial-gradient(ellipse at 94% 0%, rgba(62, 130, 199, .43), transparent 58%),
-    linear-gradient(145deg, #e6eff2, #c9d8ea) !important;
+    radial-gradient(ellipse at 94% 0%, rgba(62, 130, 199, .30), transparent 58%),
+    linear-gradient(145deg, #d9e4e5, #bdccdd) !important;
 }
 .debloater-level-card[data-testid="level-aggressive"] {
   background:
-    radial-gradient(ellipse at 100% 0%, rgba(43, 75, 126, .52), transparent 61%),
-    linear-gradient(145deg, #dbe1e8, #b9c5d7) !important;
+    radial-gradient(ellipse at 100% 0%, rgba(43, 75, 126, .36), transparent 61%),
+    linear-gradient(145deg, #d0d7df, #b2becd) !important;
 }
 .debloater-level-card[data-testid="level-extreme"] {
   background:
-    radial-gradient(ellipse at 100% 0%, rgba(206, 70, 106, .53), transparent 58%),
-    linear-gradient(145deg, #f6e6df, #e8b9c4) !important;
+    radial-gradient(ellipse at 100% 0%, rgba(180, 70, 96, .36), transparent 58%),
+    linear-gradient(145deg, #e9d9d2, #d5b1b9) !important;
 }
 .debloater-level-card[data-selected="true"] {
   border-color: #a31f42 !important;

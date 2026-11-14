@@ -28,7 +28,6 @@ export interface DebloaterIntensityCardData {
   icon: ComponentType<{ className?: string }>;
   impact: number;
   accent: string;
-  glow: string;
   ring: string;
   gradient: string;
   iconGlow: string;
@@ -39,33 +38,33 @@ export const BATCH_PANELS: DebloaterIntensityCardData[] = [
     id: "safe", title: "Safe Debloat", tagline: "Fully reversible",
     description: "Registry & policy tweaks only. Nothing is uninstalled.",
     gain: "Light cleanup", risk: "Low risk", icon: Shield, impact: 1,
-    accent: "text-emerald-300", glow: "rgba(16,185,129,0.35)", ring: "border-emerald-400/60",
-    gradient: "linear-gradient(135deg, rgba(16,185,129,0.22) 0%, rgba(16,185,129,0.06) 60%, rgba(13,17,23,0.4) 100%)",
-    iconGlow: "0 0 26px rgba(16,185,129,0.55)",
+    accent: "text-emerald-300", ring: "border-emerald-400/60",
+    gradient: "linear-gradient(135deg, rgba(16,185,129,0.16) 0%, rgba(16,185,129,0.08) 60%, rgba(13,17,23,0.1) 100%)",
+    iconGlow: "0 0 14px rgba(16,185,129,0.25)",
   },
   {
     id: "balanced", title: "Recommended", tagline: "Best for most",
     description: "Removes consumer apps and telemetry. Balanced & safe.",
     gain: "Balanced boost", risk: "Low–med risk", icon: Sparkles, impact: 2,
-    accent: "text-cyan-300", glow: "rgba(0,212,255,0.35)", ring: "border-cyan-400/60",
-    gradient: "linear-gradient(135deg, rgba(0,212,255,0.22) 0%, rgba(0,212,255,0.06) 60%, rgba(13,17,23,0.4) 100%)",
-    iconGlow: "0 0 26px rgba(0,212,255,0.55)",
+    accent: "text-cyan-300", ring: "border-cyan-400/60",
+    gradient: "linear-gradient(135deg, rgba(0,170,198,0.16) 0%, rgba(0,170,198,0.08) 60%, rgba(13,17,23,0.1) 100%)",
+    iconGlow: "0 0 14px rgba(0,170,198,0.25)",
   },
   {
     id: "aggressive", title: "Aggressive", tagline: "Deep clean",
     description: "Strips Cortana, Copilot, Widgets and the Xbox overlay.",
     gain: "Big reduction", risk: "Medium risk", icon: Flame, impact: 3,
-    accent: "text-orange-300", glow: "rgba(249,115,22,0.35)", ring: "border-orange-400/60",
-    gradient: "linear-gradient(135deg, rgba(249,115,22,0.22) 0%, rgba(249,115,22,0.06) 60%, rgba(13,17,23,0.4) 100%)",
-    iconGlow: "0 0 26px rgba(249,115,22,0.55)",
+    accent: "text-orange-300", ring: "border-orange-400/60",
+    gradient: "linear-gradient(135deg, rgba(215,104,42,0.16) 0%, rgba(215,104,42,0.08) 60%, rgba(13,17,23,0.1) 100%)",
+    iconGlow: "0 0 14px rgba(215,104,42,0.25)",
   },
   {
     id: "extreme", title: "Maximum Performance", tagline: "Power users",
     description: "Service-level changes for the leanest possible system.",
     gain: "Maximum gains", risk: "High risk", icon: Rocket, impact: 4,
-    accent: "text-rose-300", glow: "rgba(244,63,94,0.35)", ring: "border-rose-400/60",
-    gradient: "linear-gradient(135deg, rgba(244,63,94,0.22) 0%, rgba(244,63,94,0.06) 60%, rgba(13,17,23,0.4) 100%)",
-    iconGlow: "0 0 26px rgba(244,63,94,0.55)",
+    accent: "text-rose-300", ring: "border-rose-400/60",
+    gradient: "linear-gradient(135deg, rgba(206,76,98,0.17) 0%, rgba(206,76,98,0.08) 60%, rgba(13,17,23,0.1) 100%)",
+    iconGlow: "0 0 14px rgba(206,76,98,0.26)",
   },
 ];
 
@@ -136,42 +135,40 @@ export function DebloaterIntensityCards({
             key={panel.id}
             type="button"
             onClick={() => onSelect(panel.id)}
+            aria-pressed={active}
             data-testid={`level-${panel.id}`}
-            initial={{ opacity: 0, y: 18 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.05 * i, ease: [0.22, 1, 0.36, 1] }}
-            whileHover={prefersReducedMotion ? {} : { y: -5, scale: 1.015 }}
-            whileTap={prefersReducedMotion ? {} : { scale: 0.985 }}
-            className={cn("debloater-level-card group relative overflow-hidden rounded-2xl border p-4 text-left transition-colors duration-300",
+            className={cn("debloater-level-card group relative isolate overflow-hidden rounded-2xl border p-4 text-left",
               active ? panel.ring : "border-[#2A313A] hover:border-white/15")}
             data-selected={active}
-            style={{
-              background: active ? panel.gradient : "linear-gradient(135deg, rgba(26,31,38,0.9) 0%, rgba(13,17,23,0.85) 100%)",
-              boxShadow: active ? `0 12px 40px ${panel.glow}, 0 0 0 1px ${panel.glow} inset` : "0 4px 16px rgba(0,0,0,0.25)",
-            }}
           >
-            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/8 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-            <span className={cn("pointer-events-none absolute -top-8 -right-8 size-24 rounded-full blur-2xl transition-opacity duration-300",
-              active ? "opacity-60" : "opacity-0 group-hover:opacity-30")} style={{ background: panel.glow }} />
-            <div className="relative">
+            <motion.span
+              aria-hidden="true"
+              className="debloater-level-selected-background pointer-events-none absolute inset-0 rounded-[inherit]"
+              initial={false}
+              animate={{ opacity: active ? 1 : 0 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
+              style={{ background: panel.gradient }}
+            />
+            <div className="relative z-10">
               <div className="flex items-center justify-between mb-3">
-                <motion.div className="size-11 rounded-xl flex items-center justify-center"
-                  style={{ background: active ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)", boxShadow: active ? panel.iconGlow : "none" }}
-                  animate={active && !prefersReducedMotion ? { scale: [1, 1.08, 1] } : {}}
-                  transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}>
-                  <Icon className={cn("size-5.5 transition-colors", active ? panel.accent : "text-muted-foreground group-hover:text-[#E6EAF0]")} />
-                </motion.div>
-                {active && <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}
+                <div className="size-11 rounded-xl flex items-center justify-center"
+                  style={{ background: active ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)", boxShadow: active ? panel.iconGlow : "none" }}>
+                  <Icon className={cn("size-5.5", active ? panel.accent : "text-muted-foreground group-hover:text-[#E6EAF0]")} />
+                </div>
+                {active && <span
                   className={cn("flex items-center gap-1 text-[10px] font-semibold", panel.accent)}>
                   <CheckCircle className="size-3" />{t("Active")}
-                </motion.span>}
+                </span>}
               </div>
               <p className={cn("text-[10px] uppercase tracking-wider font-medium mb-0.5", active ? panel.accent : "text-muted-foreground/70")}>{t(panel.tagline)}</p>
               <h3 className={cn("text-sm font-bold leading-tight", active ? "text-[#E6EAF0]" : "text-foreground/90")}>{t(panel.title)}</h3>
               <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed min-h-[44px]">{t(panel.description)}</p>
               <div className="flex items-center gap-1 mt-2">
                 {[0, 1, 2, 3].map(bar => (
-                  <span key={bar} className={cn("h-1 flex-1 rounded-full transition-colors",
+                  <span key={bar} className={cn("h-1 flex-1 rounded-full",
                     bar < panel.impact ? (active ? cn(panel.accent, "bg-current") : "bg-foreground/30") : "bg-[#21262D")} />
                 ))}
               </div>
