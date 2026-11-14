@@ -20,7 +20,7 @@ import { useAiChatStore } from "@/lib/ai-chat-store";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { getUserFriendlyError } from "@/lib/api";
 import { cloudApiPost } from "@/lib/cloud-api";
-import { getAiUnavailable } from "@/lib/ai-availability";
+import { clearAiUnavailable, getAiUnavailable } from "@/lib/ai-availability";
 import { useAiAvailability } from "@/hooks/useAiAvailability";
 import { useAuth } from "@/hooks/use-auth";
 import { useNetworkStatus } from "@/hooks/use-network-status";
@@ -2165,6 +2165,8 @@ export default function AiAdvisor() {
         setMessages(prev => prev.filter(m => m.id !== assistantId));
         setLoading(false);
         setIsStreaming(false);
+        setInput(imgData ? trimmed : messageContent);
+        if (imgData) setAttachedImage(imgData);
         inputRef.current?.focus();
         return;
       }
@@ -2181,7 +2183,19 @@ export default function AiAdvisor() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // A send triggered by Enter/button is an explicit user retry. Clear the
+    // client cooldown once so both input paths can reach the cloud again.
+    if (getAiUnavailable()) clearAiUnavailable();
     sendMessage(input, attachedImage);
+  };
+
+  const handleRetryAi = () => {
+    clearAiUnavailable();
+    if (input.trim() || attachedImage) {
+      void sendMessage(input, attachedImage);
+    } else {
+      inputRef.current?.focus();
+    }
   };
 
   const handleReset = () => {
@@ -2520,8 +2534,16 @@ export default function AiAdvisor() {
           >
 
             {aiUnavailable && (
-              <div role="status" data-testid="ai-unavailable-notice" className="mb-3 rounded-xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
-                {aiUnavailable.message}
+              <div role="status" data-testid="ai-unavailable-notice" className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+                <span>{aiUnavailable.message}</span>
+                <button
+                  type="button"
+                  onClick={handleRetryAi}
+                  className="shrink-0 rounded-lg border border-amber-200/25 px-3 py-1.5 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-200/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60"
+                  data-testid="button-retry-ai"
+                >
+                  {t("Retry chat")}
+                </button>
               </div>
             )}
             {/* Messages */}
@@ -2645,7 +2667,7 @@ export default function AiAdvisor() {
               <Button
                 type="submit"
                 size="sm"
-                disabled={(!input.trim() && !attachedImage) || isBusy || !isOnline || !!aiUnavailable}
+                disabled={(!input.trim() && !attachedImage) || isBusy || !isOnline}
                 className="h-8 w-8 p-0 rounded-xl bg-primary/20 hover:bg-primary/30 text-primary border-0 disabled:opacity-30"
                 data-testid="button-send-message"
                 title={!isOnline ? t("Offline, cannot send") : undefined}

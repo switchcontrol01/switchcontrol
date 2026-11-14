@@ -7,7 +7,7 @@ import {
   compactChatHistory, compactAdvisorContext, instrumentAiFetch, sendAiFailure,
 } from "../server/lib/aiService";
 import { isBillableAiPath, shouldRetryCloudPost } from "../shared/aiRequestPolicy";
-import { getAiUnavailable, rememberAiUnavailable } from "../client/src/lib/ai-availability";
+import { clearAiUnavailable, getAiUnavailable, rememberAiUnavailable } from "../client/src/lib/ai-availability";
 
 test("quota is not confused with temporary rate limiting or cloud login failure", () => {
   const quota = classifyAiFailure({ status: 429, code: "insufficient_quota" });
@@ -100,6 +100,11 @@ test("availability persists quota/config failures only and recovers without perm
     rememberAiUnavailable("AI_QUOTA", "Credits exhausted; rules still available.", 300);
     assert.equal(getAiUnavailable()?.code, "AI_QUOTA");
     assert.equal(storage.size, 1);
+    clearAiUnavailable();
+    assert.equal(getAiUnavailable(), null);
+    assert.equal(storage.size, 0);
+    rememberAiUnavailable("AI_QUOTA", "Credits exhausted; rules still available.", 300);
+    assert.equal(getAiUnavailable()?.code, "AI_QUOTA");
     now += 300_001;
     assert.equal(getAiUnavailable(), null);
     assert.equal(storage.size, 0);

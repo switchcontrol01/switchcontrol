@@ -30,3 +30,9 @@ export function rememberAiUnavailable(code: string | undefined, message: string,
   try { localStorage.setItem(KEY, JSON.stringify(memory)); } catch {}
   if (typeof window !== "undefined") window.dispatchEvent(new Event(AI_AVAILABILITY_EVENT));
 }
+
+export function clearAiUnavailable(): void {
+  memory = null;
+  try { localStorage.removeItem(KEY); } catch {}
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(AI_AVAILABILITY_EVENT));
+}
