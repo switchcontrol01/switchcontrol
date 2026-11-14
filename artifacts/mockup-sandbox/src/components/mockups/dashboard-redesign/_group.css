@@ -1,0 +1,125 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap");
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+:root {
+  color-scheme: dark;
+  --background: 215 18% 10%;
+  --foreground: 220 20% 92%;
+  --card: 215 16% 15%;
+  --card-foreground: 220 20% 92%;
+  --popover: 215 16% 17%;
+  --popover-foreground: 220 20% 92%;
+  --primary: 193 100% 50%;
+  --primary-foreground: 210 25% 7%;
+  --secondary: 38 92% 50%;
+  --secondary-foreground: 210 25% 7%;
+  --muted: 215 16% 12%;
+  --muted-foreground: 220 12% 55%;
+  --accent: 193 100% 50%;
+  --accent-foreground: 210 25% 7%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 210 20% 98%;
+  --border: 215 14% 17%;
+  --input: 215 14% 17%;
+  --ring: 193 100% 50%;
+  --chart-1: 193 100% 50%;
+  --chart-2: 38 92% 50%;
+  --chart-3: 160 60% 45%;
+  --chart-4: 0 72% 51%;
+  --chart-5: 220 12% 55%;
+  --sidebar: 215 18% 10%;
+  --sidebar-foreground: 220 20% 92%;
+  --sidebar-primary: 193 100% 50%;
+  --sidebar-primary-foreground: 210 25% 7%;
+  --sidebar-accent: 215 16% 15%;
+  --sidebar-accent-foreground: 220 20% 92%;
+  --sidebar-border: 215 14% 17%;
+  --sidebar-ring: 193 100% 50%;
+  --radius: 0.75rem;
+}
+
+.dashboard-current {
+  color-scheme: dark;
+  color: #e6eaf0;
+  background: #14181d;
+  font-family: "Inter", sans-serif;
+}
+
+.dashboard-current .font-data {
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: -0.025em;
+}
+
+.dashboard-current .greeting-glow {
+  text-shadow: 0 0 24px rgba(0, 212, 255, 0.12);
+}
+
+.dashboard-current .username-gradient {
+  background: linear-gradient(90deg, #a8f0ff 0%, #00d4ff 50%, #72e7ff 100%);
+  color: transparent;
+  background-clip: text;
+}
+
+.dashboard-current .sc-current-card {
+  background: rgba(33, 38, 45, 0.82);
+  border: 1px solid #2a313a;
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.13);
+  backdrop-filter: blur(12px);
+}
+
+.dashboard-current .sc-current-progress {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #343b44;
+}
+
+.dashboard-current .sc-current-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #00d4ff, #39e4c4);
+}
+
+.dashboard-current .sc-monitor-grid line {
+  stroke: rgba(160, 168, 179, 0.12);
+  stroke-width: 1;
+}
+
+.dashboard-current .sc-sidebar-link {
+  color: #818a96;
+  transition: color 160ms ease, background 160ms ease;
+}
+
+.dashboard-current .sc-sidebar-link.active {
+  color: #00d4ff;
+  background: rgba(0, 212, 255, 0.09);
+}

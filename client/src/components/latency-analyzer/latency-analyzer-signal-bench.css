@@ -28,6 +28,8 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  border: 0;
+  outline: 0;
   background:
     radial-gradient(ellipse at 76% 3%, rgba(130, 199, 192, 0.11), transparent 44%),
     var(--la-bench-bg);
@@ -41,6 +43,8 @@
 
 .la-bench-intro {
   padding: 2px 2px 5px;
+  border: 0;
+  box-shadow: none;
 }
 
 .la-bench-kicker {

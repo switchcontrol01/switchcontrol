@@ -12,7 +12,7 @@
 .driver-intel-page button { cursor: pointer; }
 .driver-intel-page button:disabled { opacity: .5; cursor: not-allowed; }
 .driver-intel-page button:focus-visible { outline: 2px solid var(--di-copper); outline-offset: 4px; }
-.driver-intel-page .di-topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 84px; border-bottom: 1px solid var(--di-line); }
+.driver-intel-page .di-topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 84px; border: 0; }
 .driver-intel-page .di-brand { display: flex; align-items: center; gap: 12px; }
 .driver-intel-page .di-brand-icon { color: var(--di-blue); padding: 9px; border: 1px solid #8ecde744; border-radius: 10px; background: #8ecde70c; }
 .driver-intel-page .di-brand h1 { font-size: 12px; font-weight: 800; letter-spacing: .09em; margin: 0; }

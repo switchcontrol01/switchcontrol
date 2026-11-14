@@ -2,6 +2,12 @@
 type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
 export const modules: ModuleMap = {
   "./components/mockups/cleaner-redesign/Current.tsx": () => import("../components/mockups/cleaner-redesign/Current.tsx"),
+  "./components/mockups/dashboard-redesign/Assembly.tsx": () => import("../components/mockups/dashboard-redesign/Assembly.tsx"),
+  "./components/mockups/dashboard-redesign/Current.tsx": () => import("../components/mockups/dashboard-redesign/Current.tsx"),
+  "./components/mockups/dashboard-redesign/CurrentFlow.tsx": () => import("../components/mockups/dashboard-redesign/CurrentFlow.tsx"),
+  "./components/mockups/dashboard-redesign/Instrument.tsx": () => import("../components/mockups/dashboard-redesign/Instrument.tsx"),
+  "./components/mockups/dashboard-redesign/Observatory.tsx": () => import("../components/mockups/dashboard-redesign/Observatory.tsx"),
+  "./components/mockups/dashboard-redesign/Studio.tsx": () => import("../components/mockups/dashboard-redesign/Studio.tsx"),
   "./components/mockups/driver-intel-3d/BoardAtlas.tsx": () => import("../components/mockups/driver-intel-3d/BoardAtlas.tsx"),
   "./components/mockups/driver-intel-3d/BoardHotspots.tsx": () => import("../components/mockups/driver-intel-3d/BoardHotspots.tsx"),
   "./components/mockups/driver-intel-3d/Current.tsx": () => import("../components/mockups/driver-intel-3d/Current.tsx"),
