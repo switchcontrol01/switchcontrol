@@ -24,6 +24,7 @@
   import { motion, AnimatePresence, useMotion, Reveal } from "@/lib/motion";
   import { PieChart, Pie, Cell } from "recharts";
   import { useTranslation } from "@/lib/i18n";
+  import "@/components/debloater/Debloater.css";
   
   // ── Types ─────────────────────────────────────────────────────────────────────
   
@@ -231,7 +232,7 @@
     const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending;
     const Icon = cfg.icon;
     return (
-      <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium", cfg.color)}>
+      <span className={cn("debloater-status inline-flex items-center gap-1 text-[10px] font-medium", `debloater-status-${status}`, cfg.color)}>
         <Icon className="size-3" />
         {t(cfg.label)}
       </span>
@@ -537,7 +538,7 @@
   
     return (
       <div
-        className="relative rounded-2xl overflow-hidden"
+        className="debloater-impact relative rounded-2xl overflow-hidden"
         style={{
           background: "linear-gradient(145deg, rgba(18,22,30,0.97) 0%, rgba(11,14,20,0.98) 100%)",
           border: `1px solid ${lc.glow}35`,
@@ -719,12 +720,12 @@
   
     return (
       <motion.div
-        className="fixed inset-0 z-[70] flex items-center justify-center bg-[#0D1117]/80 backdrop-blur-md"
+        className="debloater-scan-root fixed inset-0 z-[70] flex items-center justify-center bg-[#0D1117]/80 backdrop-blur-md"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         data-testid="overlay-scan"
       >
         <motion.div
-          className="relative w-[420px] max-w-[90vw] rounded-2xl border border-cyan-400/20 p-7 overflow-hidden"
+          className="debloater-scan-card relative w-[420px] max-w-[90vw] rounded-2xl border border-cyan-400/20 p-7 overflow-hidden"
           style={{
             background: "linear-gradient(145deg, rgba(20,26,33,0.95) 0%, rgba(13,17,23,0.95) 100%)",
             boxShadow: "0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,212,255,0.08) inset",
@@ -1615,7 +1616,7 @@
   
     return (
       <AppLayout>
-        <Reveal className="sc-page-blur-in space-y-5">
+        <Reveal className="debloater-page sc-page-blur-in space-y-5">
   
           {/* Header */}
           <PageHeader
@@ -1625,7 +1626,7 @@
           />
   
           {/* ── Main tab bar ─────────────────────────────────────────────────── */}
-          <div className="flex gap-1 p-1 rounded-xl bg-[#21262D] border border-[#2A313A] w-fit">
+          <div className="debloater-tabs flex gap-1 p-1 rounded-xl bg-[#21262D] border border-[#2A313A] w-fit">
               {([
               { id: "curated",   label: "Curated Removals",  icon: ShieldCheck },
               { id: "installed", label: "Installed Apps",     icon: Package },
@@ -1660,7 +1661,7 @@
           {/* Live telemetry strip */}
           {liveTel && (
             <motion.div
-              className="flex items-center gap-4 px-3 py-2 rounded-lg border border-[#2A313A] bg-[#1A1F26] text-[11px] text-muted-foreground"
+              className="debloater-telemetry flex items-center gap-4 px-3 py-2 rounded-lg border border-[#2A313A] bg-[#1A1F26] text-[11px] text-muted-foreground"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}
             >
               <span>{liveTel.processes.total} {t("processes")}</span>
@@ -1691,7 +1692,7 @@
           )}
   
           {/* ── Overview stat cards ────────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+          <div className="debloater-stat-grid grid grid-cols-2 xl:grid-cols-4 gap-3">
             {[
               {
                 key: "apps", label: "Removable items", value: availableItems.length, unit: "", icon: Boxes, color: "#00D4FF",
@@ -1762,14 +1763,14 @@
           </div>
   
           {/* ── Batch section, large intensity action panels ──────────────────── */}
-          <div className="space-y-3">
+          <div className="debloater-intensity space-y-3">
             <div className="flex items-center gap-2">
               <Zap className="size-4 text-[#00D4FF]" />
               <span className="text-sm font-semibold text-[#E6EAF0]">{t("Choose your intensity")}</span>
               <span className="text-xs text-muted-foreground">{t("Pick how deep the cleanup goes")}</span>
             </div>
   
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            <div className="debloater-level-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
               {BATCH_PANELS.map((panel, i) => {
                 const PIcon = panel.icon;
                 const active = level === panel.id;
@@ -1785,9 +1786,10 @@
                     whileHover={prefersReducedMotion ? {} : { y: -5, scale: 1.015 }}
                     whileTap={prefersReducedMotion ? {} : { scale: 0.985 }}
                     className={cn(
-                      "group relative overflow-hidden rounded-2xl border p-4 text-left transition-colors duration-300",
+                      "debloater-level-card group relative overflow-hidden rounded-2xl border p-4 text-left transition-colors duration-300",
                       active ? panel.ring : "border-[#2A313A] hover:border-white/15"
                     )}
+                    data-selected={active}
                     style={{
                       background: active ? panel.gradient : "linear-gradient(135deg, rgba(26,31,38,0.9) 0%, rgba(13,17,23,0.85) 100%)",
                       boxShadow: active
@@ -1872,7 +1874,7 @@
   
           {/* Action bar */}
           <motion.div
-            className="flex flex-wrap items-center justify-between gap-3"
+            className="debloater-actionbar flex flex-wrap items-center justify-between gap-3"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.3 }}
@@ -1976,7 +1978,7 @@
                       const allCatSelected = selCount === catItems.length;
   
                       return (
-                        <div key={category} className="rounded-2xl border border-[#1E252D] bg-[#0D1117]/80 overflow-hidden">
+                        <div key={category} className="debloater-category rounded-2xl border border-[#1E252D] bg-[#0D1117]/80 overflow-hidden">
                           {/* Category header */}
                           <div className="flex items-center gap-3 px-4 py-2.5">
                             {/* Expand toggle, left part clickable */}
@@ -1986,7 +1988,7 @@
                               data-testid={`category-${category}`}
                             >
                               <Icon className={cn("size-3.5 shrink-0", meta.color)} />
-                              <span className="font-semibold text-[#E6EAF0] text-[13px] leading-none">{t(meta.label)}</span>
+                              <span className="debloater-category-label font-semibold text-[#E6EAF0] text-[13px] leading-none">{t(meta.label)}</span>
                               <span className="text-[10px] text-muted-foreground/60 font-mono shrink-0">
                                 {selCount}/{catItems.length}
                               </span>
@@ -1996,7 +1998,7 @@
                             <button
                               onClick={e => { e.stopPropagation(); toggleCategorySelection(category, catItems); }}
                               className={cn(
-                                "shrink-0 text-[10px] font-medium px-2.5 py-0.5 rounded-full border transition-all duration-150",
+                                "debloater-category-toggle shrink-0 text-[10px] font-medium px-2.5 py-0.5 rounded-full border transition-all duration-150",
                                 allCatSelected
                                   ? "bg-primary/20 border-primary/40 text-primary hover:bg-primary/10"
                                   : "bg-[#1A1F26] border-[#2A313A] text-muted-foreground hover:border-[#3A424D] hover:text-[#E6EAF0]"
@@ -2043,16 +2045,18 @@
                                         viewport={{ once: true, amount: 0.08 }}
                                         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                                         data-testid={`item-${item.id}`}
+                                        className="debloater-item"
                                       >
                                         {/* Compact row */}
                                         <div
                                           className={cn(
-                                            "flex items-center gap-3 px-4 py-2 cursor-pointer transition-colors duration-100 group",
+                                            "debloater-item-row flex items-center gap-3 px-4 py-2 cursor-pointer transition-colors duration-100 group",
                                             isSelected
                                               ? "bg-primary/6 hover:bg-primary/10"
                                               : "hover:bg-[#111820]",
                                             isProcessing && "opacity-50 pointer-events-none"
                                           )}
+                                          data-selected={isSelected}
                                           onClick={() => toggleItem(item.id)}
                                         >
                                           {/* Custom checkbox */}
@@ -2082,29 +2086,29 @@
                                             )}>{item.type}</span>
   
                                             <span className={cn(
-                                              "text-[9px] px-1.5 py-0 rounded border shrink-0",
+                                              `debloater-safety-chip debloater-safety-${item.safety} text-[9px] px-1.5 py-0 rounded border shrink-0`,
                                               safety.bg, safety.color
                                             )}>{t(safety.label)}</span>
   
                                             {item.canRestore && (
-                                              <span className="text-[9px] px-1.5 py-0 rounded border bg-blue-500/10 border-blue-500/20 text-blue-400 shrink-0 flex items-center gap-0.5">
+                                              <span className="debloater-restorable text-[9px] px-1.5 py-0 rounded border bg-blue-500/10 border-blue-500/20 text-blue-400 shrink-0 flex items-center gap-0.5">
                                                 <RotateCcw className="size-2" />{t("Restorable")}
                                               </span>
                                             )}
   
                                             {scanStatus === "absent" && (
-                                              <span className="text-[9px] px-1.5 py-0 rounded border bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shrink-0">
+                                              <span className="debloater-scan-absent text-[9px] px-1.5 py-0 rounded border bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shrink-0">
                                                 {t("Removed")}
                                               </span>
                                             )}
                                             {scanStatus === "present" && (
-                                              <span className="text-[9px] px-1.5 py-0 rounded border bg-cyan-500/10 border-cyan-500/20 text-cyan-300 shrink-0">
+                                              <span className="debloater-scan-present text-[9px] px-1.5 py-0 rounded border bg-cyan-500/10 border-cyan-500/20 text-cyan-300 shrink-0">
                                                 {t("Detected")}
                                               </span>
                                             )}
                                             {scanStatus === "unknown" && (
                                               <span
-                                                className="text-[9px] px-1.5 py-0 rounded border bg-amber-500/10 border-amber-500/20 text-amber-400 shrink-0"
+                                                className="debloater-scan-unknown text-[9px] px-1.5 py-0 rounded border bg-amber-500/10 border-amber-500/20 text-amber-400 shrink-0"
                                                 title={t("Windows could not verify this item. Scan again before applying changes.")}
                                               >
                                                 {t("Unable to verify")}
@@ -2157,20 +2161,20 @@
                                               transition={{ duration: 0.15 }}
                                               className="overflow-hidden"
                                             >
-                                              <div className="px-11 pb-3 pt-0.5 space-y-1.5 bg-[#080D14]">
+                                              <div className="debloater-item-details px-11 pb-3 pt-0.5 space-y-1.5 bg-[#080D14]">
                                                 <p className="text-[11px] text-muted-foreground leading-relaxed">{t(item.description)}</p>
                                                 {item.requiresAdmin && (
-                                                  <p className="text-[10px] text-amber-500/80 flex items-center gap-1">
+                                                  <p className="debloater-warning debloater-warning-admin text-[10px] text-amber-500/80 flex items-center gap-1">
                                                     <ShieldCheck className="size-2.5" />{t("Requires admin")}
                                                   </p>
                                                 )}
                                                 {item.requiresSignOut && (
-                                                  <p className="text-[10px] text-amber-500/80 flex items-center gap-1">
+                                                  <p className="debloater-warning debloater-warning-signout text-[10px] text-amber-500/80 flex items-center gap-1">
                                                     <AlertTriangle className="size-2.5" />{t("Sign-out required to take effect")}
                                                   </p>
                                                 )}
                                                 {item.requiresRestart && (
-                                                  <p className="text-[10px] text-orange-500/80 flex items-center gap-1">
+                                                  <p className="debloater-warning debloater-warning-restart text-[10px] text-orange-500/80 flex items-center gap-1">
                                                     <RefreshCw className="size-2.5" />{t("Restart required")}
                                                   </p>
                                                 )}
@@ -2215,7 +2219,7 @@
               >
                 <Confetti active={session.action === "apply" && session.successCount > 0} />
                 <Card className={cn(
-                  "border overflow-hidden",
+                  "debloater-results-card border overflow-hidden",
                   session.action === "apply" ? "border-primary/30" : "border-blue-500/30"
                 )}>
                   <CardHeader className="pb-3">
@@ -2273,7 +2277,7 @@
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                          className="mb-4 rounded-2xl border border-white/8 p-4"
+                          className="debloater-results-summary mb-4 rounded-2xl border border-white/8 p-4"
                           style={{ background: "linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(13,17,23,0.4) 100%)" }}
                         >
                           <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-5 items-center">
@@ -2322,7 +2326,7 @@
                           key={result.id}
                           data-testid={`result-${result.id}`}
                           className={cn(
-                            "flex items-center justify-between px-3 py-2.5 rounded-lg border text-sm",
+                            `debloater-result-row debloater-result-${result.status} flex items-center justify-between px-3 py-2.5 rounded-lg border text-sm`,
                             result.status === "removed" || result.status === "restored"
                               ? "bg-emerald-500/6 border-emerald-500/15"
                               : result.status === "failed" || result.status === "verification-failed"
@@ -2336,14 +2340,14 @@
                             <Icon className={cn("size-3.5 shrink-0", cfg.color)} />
                             <span className="text-[#E6EAF0] text-xs font-medium">{t(result.name)}</span>
                             {result.storeRequired && (
-                              <span className="text-[10px] text-amber-400">{t("install from Store")}</span>
+                              <span className="debloater-warning debloater-warning-store text-[10px] text-amber-400">{t("install from Store")}</span>
                             )}
                           </div>
                           <div className="flex items-center gap-3">
                             {result.nativeState && (
                               <span
                                 className={cn(
-                                  "text-[10px] max-w-56 truncate",
+                                  "debloater-result-native text-[10px] max-w-56 truncate",
                                   result.nativeState === "unknown" ? "text-amber-400/80" : "text-muted-foreground/70"
                                 )}
                                 title={result.diagnostic?.target
@@ -2356,7 +2360,7 @@
                               </span>
                             )}
                             {result.error && (
-                              <span className="text-[10px] text-red-400/80 max-w-48 truncate" title={result.error}>
+                              <span className="debloater-result-error text-[10px] text-red-400/80 max-w-48 truncate" title={result.error}>
                                 {result.error}
                               </span>
                             )}
@@ -2407,7 +2411,7 @@
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.25 }}
               >
-                <Card className="border-border/40">
+                <Card className="debloater-history-card border-border/40">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base flex items-center gap-2">
@@ -2430,11 +2434,11 @@
                       history.slice(0, 50).map(entry => (
                         <div
                           key={entry.id}
-                          className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#1A1F26] border border-[#2A313A] text-xs"
+                          className={`debloater-history-row debloater-history-${entry.status} flex items-center justify-between px-3 py-2 rounded-lg bg-[#1A1F26] border border-[#2A313A] text-xs`}
                         >
                           <div className="flex items-center gap-2">
                             <span className={cn(
-                              "font-medium",
+                              "debloater-history-status font-medium",
                               entry.status === "removed" || entry.status === "restored"
                                 ? "text-emerald-400"
                                 : entry.status === "failed"
@@ -2466,7 +2470,7 @@
           {/* Mode info strip */}
           <Reveal delay={0.18}>
             <div className={cn(
-              "px-4 py-3 rounded-xl border text-xs flex items-start gap-3",
+              "debloater-mode-note px-4 py-3 rounded-xl border text-xs flex items-start gap-3",
               currentLevel.bg, currentLevel.border
             )}>
               <Info className={cn("size-4 shrink-0 mt-0.5", currentLevel.accent)} />

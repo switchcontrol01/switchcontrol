@@ -273,7 +273,7 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.22 }}
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#14181D]/80 backdrop-blur-md"
+      className="debloater-progress-root fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#14181D]/80 backdrop-blur-md"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -282,7 +282,7 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
         className="w-full max-w-lg relative"
       >
-        <GlassCard className="p-6 space-y-5 relative overflow-hidden">
+        <GlassCard className="debloater-progress-card p-6 space-y-5 relative overflow-hidden">
           <ScanLine />
 
           {/* Header */}

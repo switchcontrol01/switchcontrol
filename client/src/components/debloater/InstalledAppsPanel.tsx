@@ -522,7 +522,7 @@ function ConfirmDialog({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.18 }}
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#14181D] backdrop-blur-sm"
+      className="debloater-dialog-root fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#14181D] backdrop-blur-sm"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -531,7 +531,7 @@ function ConfirmDialog({
         transition={{ duration: 0.18 }}
         className="w-full max-w-sm"
       >
-        <GlassCard className="p-5 space-y-4">
+        <GlassCard className="debloater-confirm-card p-5 space-y-4">
           <div className="flex items-start gap-3">
             <div className="size-10 rounded-xl bg-red-500/15 border border-red-500/25 flex items-center justify-center shrink-0 mt-0.5">
               <Trash2 className="size-5 text-red-400" />
@@ -552,7 +552,7 @@ function ConfirmDialog({
             </div>
           )}
 
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-[#21262D] border border-[#2A313A]">
+          <div className="debloater-confirm-note flex items-start gap-2 p-3 rounded-lg bg-[#21262D] border border-[#2A313A]">
             <Info className="size-3.5 text-muted-foreground/60 mt-0.5 shrink-0" />
             <p className="text-[11px] text-muted-foreground">
               {t("This will run the app's uninstaller")} ({app.uninstallMethod?.toUpperCase()}).
@@ -621,7 +621,7 @@ function AppRow({
 
   if (result?.kind === "removed") {
     return (
-      <div className="flex items-center gap-3 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] opacity-60">
+      <div className="debloater-installed-row flex items-center gap-3 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] opacity-60">
         <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
         <span className="text-sm text-emerald-400">{app.name} — {t("Uninstalled")}</span>
       </div>
@@ -630,7 +630,7 @@ function AppRow({
 
   if (result?.kind === "restart-required") {
     return (
-      <div className="flex items-center gap-3 p-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] opacity-80">
+      <div className="debloater-installed-row flex items-center gap-3 p-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] opacity-80">
         <CheckCircle2 className="size-4 text-amber-400 shrink-0" />
         <span className="text-sm text-amber-400">{app.name} — {t("Uninstalled (restart required)")}</span>
       </div>
@@ -639,7 +639,7 @@ function AppRow({
 
   return (
     <div className={cn(
-      "rounded-xl border border-[#2A313A] overflow-hidden transition-all",
+      "debloater-installed-row rounded-xl border border-[#2A313A] overflow-hidden transition-all",
       app.isProtected && "opacity-70",
       result?.kind === "failed" && "border-red-500/20 bg-red-500/[0.03]",
     )} data-testid={`app-row-${app.id}`}>
@@ -652,11 +652,11 @@ function AppRow({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-medium text-sm truncate max-w-[200px] sm:max-w-xs">{app.name}</span>
-            <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 border shrink-0", tCfg.cls)}>
+            <Badge variant="outline" className={cn(`debloater-trust-${app.trustLabel} text-[10px] px-1.5 py-0 border shrink-0`, tCfg.cls)}>
               {t(tCfg.label)}
             </Badge>
             {app.uninstallMethod !== "none" && (
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 border shrink-0", mCfg.cls)}>
+              <Badge variant="outline" className={cn(`debloater-method-${app.uninstallMethod} text-[10px] px-1.5 py-0 border shrink-0`, mCfg.cls)}>
                 {t(mCfg.label)}
               </Badge>
             )}
@@ -1019,7 +1019,7 @@ export function InstalledAppsPanel() {
   // ── Non-Electron placeholder ─────────────────────────────────────────────
   if (!isElectronAvail) {
     return (
-      <GlassCard className="p-8 text-center space-y-3">
+      <GlassCard className="debloater-installed-empty p-8 text-center space-y-3">
         <div className="size-12 rounded-full bg-[#21262D] border border-[#2A313A] flex items-center justify-center mx-auto">
           <Monitor className="size-5 text-muted-foreground/50" />
         </div>
@@ -1034,7 +1034,7 @@ export function InstalledAppsPanel() {
   // ── Unscan state ──────────────────────────────────────────────────────────
   if (!scannedAt && !scanning) {
     return (
-      <GlassCard className="p-8 text-center space-y-4">
+      <GlassCard className="debloater-installed-empty p-8 text-center space-y-4">
         <div className="size-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
           <Package className="size-6 text-primary" />
         </div>
@@ -1055,7 +1055,7 @@ export function InstalledAppsPanel() {
   }
 
   return (
-    <div className="sc-page-blur-in space-y-4">
+    <div className="debloater-installed sc-page-blur-in space-y-4">
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -1104,7 +1104,7 @@ export function InstalledAppsPanel() {
       )}
 
       {/* ── Safety rail ──────────────────────────────────────────────────────── */}
-      <div className="flex items-start gap-2 p-3 rounded-xl bg-[#1A1F26] border border-[#2A313A]">
+      <div className="debloater-installed-safety flex items-start gap-2 p-3 rounded-xl bg-[#1A1F26] border border-[#2A313A]">
         <ShieldOff className="size-3.5 text-muted-foreground/50 mt-0.5 shrink-0" />
         <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
            {t("Protected system apps (Defender, Firewall, Windows Update) are locked and cannot be removed.")}
@@ -1132,7 +1132,7 @@ export function InstalledAppsPanel() {
             )}
           </div>
           {/* Sort dropdown (simple buttons) */}
-          <div className="flex gap-0.5 bg-[#21262D] border border-[#2A313A] rounded-lg p-0.5 shrink-0">
+          <div className="debloater-installed-sort flex gap-0.5 bg-[#21262D] border border-[#2A313A] rounded-lg p-0.5 shrink-0">
             <ArrowUpDown className="size-3.5 text-muted-foreground/50 m-auto ml-2 mr-1" />
             <select
               value={sort}
@@ -1172,7 +1172,7 @@ export function InstalledAppsPanel() {
 
       {/* ── Scanning state ───────────────────────────────────────────────────── */}
       {scanning && (
-        <GlassCard className="p-6 text-center">
+        <GlassCard className="debloater-installed-scan p-6 text-center">
           <Loader2 className="size-6 animate-spin mx-auto mb-2 text-primary" />
            <p className="text-sm text-muted-foreground">{t("Scanning installed apps…")}</p>
            <p className="text-[11px] text-muted-foreground/50 mt-1">{t("Reading Windows registry — this may take a few seconds")}</p>
@@ -1190,7 +1190,7 @@ export function InstalledAppsPanel() {
                  className="text-xs text-primary hover:underline">{t("Clear filters")}</button>
             </GlassCard>
           ) : filtered.length > VIRTUALIZE_THRESHOLD ? (
-            <div className="space-y-2">
+            <div className="debloater-installed-list space-y-2">
               <VirtualizedAppList
                 apps={filtered}
                 results={results}
@@ -1210,7 +1210,7 @@ export function InstalledAppsPanel() {
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="debloater-installed-list space-y-2">
               <AnimatePresence initial={false}>
                 {filtered.map((app, i) => (
                   <motion.div
