@@ -13,6 +13,8 @@ interface SystemConditionsState {
   isAdmin: boolean | null;
   /** Whether Windows Tamper Protection is active. null = not yet checked. */
   tamperProtection: boolean | null;
+  /** Whether startup or a Security-page read has completed. */
+  conditionsChecked: boolean;
 
   setIsAdmin: (v: boolean) => void;
   setTamperProtection: (v: boolean) => void;
@@ -22,8 +24,9 @@ interface SystemConditionsState {
 export const useSystemConditionsStore = create<SystemConditionsState>()((set) => ({
   isAdmin: null,
   tamperProtection: null,
+  conditionsChecked: false,
 
   setIsAdmin: (v) => set({ isAdmin: v }),
-  setTamperProtection: (v) => set({ tamperProtection: v }),
-  setConditions: (isAdmin, tamperProtection) => set({ isAdmin, tamperProtection }),
+  setTamperProtection: (v) => set({ tamperProtection: v, conditionsChecked: true }),
+  setConditions: (isAdmin, tamperProtection) => set({ isAdmin, tamperProtection, conditionsChecked: true }),
 }));

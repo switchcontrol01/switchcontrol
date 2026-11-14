@@ -73,6 +73,8 @@ test('a rejected read clears the shared promise so a later scan can recover', as
 
 test('all Smart Scan read stages share probes; destructive actions do not', () => {
   const source = fs.readFileSync('electron/security-helper.js', 'utf8');
+  assert.ok(source.includes("['IsTamperProtected']"), 'Tamper Protection uses Defender state, not policy source');
+  assert.ok(!source.includes('$mp.TamperProtectionSource'), 'policy source must not be interpreted as enabled/disabled');
   for (const channel of ['getStatus', 'getAdvancedProtection', 'getStartupApps', 'getProcessDetails', 'getTopProcesses']) {
     assert.ok(source.includes(`registerSharedRead('security:${channel}'`));
   }

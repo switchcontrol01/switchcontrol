@@ -181,8 +181,14 @@ registerSharedRead('security:getStatus', async () => {
         $out.DefenderAvailable         = $true
         $out.RealTimeProtectionEnabled = $mp.RealTimeProtectionEnabled
         $out.AntispywareEnabled        = $mp.AntispywareEnabled
-        $tamperSrc                     = $mp.TamperProtectionSource
-        $out.TamperProtectionEnabled   = if ($tamperSrc -ne $null) { [bool]($tamperSrc -ne 0) } else { $null }
+        # IsTamperProtected is the actual Defender state. TamperProtectionSource
+        # identifies where policy came from and must not be treated as on/off.
+        $tamperProp = $mp.PSObject.Properties['IsTamperProtected']
+        $out.TamperProtectionEnabled = if ($tamperProp -and $tamperProp.Value -ne $null) {
+          [bool]$tamperProp.Value
+        } else {
+          $null
+        }
         $out.AMEngineVersion           = $mp.AMEngineVersion
         $out.AntivirusSignatureVersion = $mp.AntivirusSignatureVersion
         if ($mp.QuickScanEndTime -and $mp.QuickScanEndTime.Year -gt 2000) { $out.QuickScanEndTime = $mp.QuickScanEndTime.ToString('o') }

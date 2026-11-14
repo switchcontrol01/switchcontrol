@@ -201,7 +201,7 @@ export function TweaksList() {
   const { toast } = useToast();
   const { isPremium } = useAuth();
   const { openUpgradeModal } = useUpgradeModal();
-  const { isAdmin, tamperProtection } = useSystemConditionsStore();
+  const { isAdmin, tamperProtection, conditionsChecked } = useSystemConditionsStore();
   const { overrides: dynOverrides } = useDynamicRecommendations();
   const {
     showAppliedFirst,
@@ -232,12 +232,16 @@ export function TweaksList() {
   const [revertBannerDismissed, setRevertBannerDismissed] = useState(false);
   const seenWarnings = useRef<Set<string>>(new Set());
 
-  // Banner is visible when Tamper Protection is on OR the app isn't elevated,
-  // AND the user hasn't dismissed it this session.
+  // Show a positive status only when Windows explicitly reports Tamper
+  // Protection is off. Keep the warning for enabled protection or missing
+  // elevation; unknown protection state is never presented as green.
+  const tamperProtectionOff = tamperProtection === false;
+  const showGreenTamperStatus = tamperProtectionOff && isAdmin !== false;
+  const hasRevertRisk = tamperProtection === true || isAdmin === false;
   const showRevertBanner =
     isElectron &&
     !revertBannerDismissed &&
-    (tamperProtection === true || isAdmin === false);
+    (conditionsChecked || isAdmin === false);
 
   // Read ?tweak=<id> deep-link param on mount and scroll to that card.
   // The Electron app uses a hash-based router, so the param may live inside
@@ -494,10 +498,8 @@ export function TweaksList() {
         })}
       </div>
 
-      {/* Root-cause warning banner — shown when Tamper Protection is ON or
-          the app is not running as Administrator. Either condition causes Windows
-          to silently revert registry / service tweaks after they are applied.
-          Dismiss is session-only: re-shows on the next launch if conditions persist. */}
+      {/* Tamper/elevation status. Green is shown only for an explicit OFF result;
+          enabled protection or missing elevation remains a warning. */}
       <AnimatePresence>
         {showRevertBanner && (
           <motion.div
@@ -507,26 +509,70 @@ export function TweaksList() {
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300">
-              <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-400" />
+            <div className={cn(
+              "flex items-start gap-3 px-4 py-3 rounded-xl border",
+              showGreenTamperStatus
+                ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-300"
+                : "bg-amber-500/10 border-amber-500/25 text-amber-300",
+            )}>
+              {showGreenTamperStatus
+                ? <ShieldCheck className="size-4 shrink-0 mt-0.5 text-emerald-400" />
+                : <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-400" />}
               <div className="flex-1 min-w-0 space-y-1.5">
-                <p className="text-sm font-semibold text-amber-200">{t("Tweaks may revert automatically")}</p>
-                <ul className="text-xs text-amber-300/80 space-y-0.5 list-disc list-inside">
+                <p className={cn(
+                  "text-sm font-semibold",
+                  showGreenTamperStatus ? "text-emerald-200" : "text-amber-200",
+                )}>
+                  {showGreenTamperStatus
+                    ? t("Tamper Protection is off")
+                    : isAdmin === false && tamperProtection !== true
+                      ? t("Some tweaks may not apply")
+                      : tamperProtection === null
+                        ? t("Tamper Protection status could not be verified")
+                      : t("Tweaks may revert automatically")}
+                </p>
+                <ul className="text-xs space-y-0.5 list-disc list-inside">
+                  {tamperProtectionOff && (
+                    <li className="text-emerald-300/90">
+                      {t("Windows is less likely to block registry and service tweaks because of Tamper Protection")}
+                    </li>
+                  )}
                   {tamperProtection === true && (
-                    <li>{t("Windows Tamper Protection is enabled — it blocks registry and service changes")}</li>
+                    <li className="text-amber-300/80">{t("Windows Tamper Protection is enabled — it may block registry and service changes")}</li>
+                  )}
+                  {tamperProtection === null && (
+                    <li className="text-amber-300/80">
+                      {t("Windows did not confirm whether Tamper Protection is on or off; do not assume it is off")}
+                    </li>
                   )}
                   {isAdmin === false && (
-                    <li>{t("App is not running as Administrator — some tweaks require elevated privileges")}</li>
+                    <li className="text-amber-300/80">{t("App is not running as Administrator — some tweaks require elevated privileges")}</li>
                   )}
                 </ul>
-                <p className="text-xs text-amber-400/70 font-medium mt-1">
-                  {t("Fix: 1 — Disable Tamper Protection in Windows Security 2 — Run SwitchControl as Administrator 3 — Re-apply tweaks and reboot")}
-                </p>
+                {showGreenTamperStatus && (
+                  <p className="text-xs text-emerald-300/75 font-medium mt-1">
+                    {t("Tamper Protection should not block these changes. Other Windows policies and permissions can still affect whether tweaks stick.")}
+                  </p>
+                )}
+                {hasRevertRisk && (
+                  <p className="text-xs text-amber-400/70 font-medium mt-1">
+                    {tamperProtection === true && isAdmin === false
+                      ? t("Review Tamper Protection in Windows Security, run SwitchControl as Administrator, then re-apply affected tweaks and reboot.")
+                      : tamperProtection === true
+                        ? t("If a tweak does not stick, review Tamper Protection in Windows Security before re-applying it.")
+                        : t("Run SwitchControl as Administrator, then re-apply affected tweaks and reboot.")}
+                  </p>
+                )}
               </div>
               <button
                 onClick={() => setRevertBannerDismissed(true)}
                 aria-label={t("Dismiss warning")}
-                className="shrink-0 rounded-md p-0.5 text-amber-400/60 hover:text-amber-300 hover:bg-amber-500/15 transition-colors"
+                className={cn(
+                  "shrink-0 rounded-md p-0.5 transition-colors",
+                  showGreenTamperStatus
+                    ? "text-emerald-400/60 hover:text-emerald-300 hover:bg-emerald-500/15"
+                    : "text-amber-400/60 hover:text-amber-300 hover:bg-amber-500/15",
+                )}
               >
                 <X className="size-3.5" />
               </button>
