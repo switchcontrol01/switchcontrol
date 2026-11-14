@@ -6,7 +6,16 @@ import { openFileFixture } from "./helpers/chromium";
 
 test("Driver Intelligence fades and blurs in and out over 1.5 seconds, with the app Reduce Motion opt-out", { timeout: 40_000 }, async () => {
   const appSource = readFileSync("client/src/App.tsx", "utf8");
-  assert.match(appSource, /const appReducedMotion = useUserPreferencesStore\(\(state\) => state\.preferences\.reducedMotion\)/);
+  const pageSource = readFileSync("client/src/pages/DriverIntelligence.tsx", "utf8");
+  const inspectorSource = readFileSync("client/src/components/driver-intel/DriverBoardInspector.tsx", "utf8");
+  const preferencesStoreSource = readFileSync("client/src/stores/userPreferencesStore.ts", "utf8");
+  assert.match(appSource, /const appReducedMotion = useUserPreferencesStore\(\(state\) => state\.reducedMotion\)/);
+  assert.match(pageSource, /useUserPreferencesStore\(state => state\.reducedMotion\)/);
+  assert.match(inspectorSource, /useUserPreferencesStore\(state => state\.reducedMotion\)/);
+  assert.match(preferencesStoreSource, /interface UserPreferencesState extends UserPreferences/);
+  for (const source of [appSource, pageSource, inspectorSource]) {
+    assert.doesNotMatch(source, /state\.preferences\.reducedMotion/);
+  }
   assert.match(appSource, /<DriverIntelRouteTransition\s+key="driver-intelligence-route"\s+reducedMotion=\{appReducedMotion\}/);
   const bundle = await build({
     stdin: {

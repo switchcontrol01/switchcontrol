@@ -268,7 +268,7 @@ const DarkFallback = () => (
 
 function ElectronAppRoutes() {
   const [location, navigate] = useLocation();
-  const appReducedMotion = useUserPreferencesStore((state) => state.preferences.reducedMotion);
+  const appReducedMotion = useUserPreferencesStore((state) => state.reducedMotion);
   const routePath = location.split("?")[0].replace(/\/+$/, "") || "/";
   const isDriverIntelRoute = routePath === "/driver-intel";
   const realtimeMetricsEnabled = useStore((state) => state.realtimeMetricsEnabled);

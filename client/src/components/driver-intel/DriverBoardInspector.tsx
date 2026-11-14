@@ -137,7 +137,7 @@ export function DriverBoardInspector({
 }: DriverBoardInspectorProps) {
   const { t } = useTranslation();
   const [selectedKind, setSelectedKind] = useState<ComponentKind>("gpu");
-  const reducedMotion = useUserPreferencesStore(state => state.preferences.reducedMotion);
+  const reducedMotion = useUserPreferencesStore(state => state.reducedMotion);
   const [boardSweepId, setBoardSweepId] = useState(0);
   const metricsReflection = useGlassReflection<HTMLDivElement>();
   const boardReflection = useGlassReflection<HTMLDivElement>();

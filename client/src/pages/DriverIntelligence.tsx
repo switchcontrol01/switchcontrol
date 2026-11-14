@@ -58,7 +58,7 @@ export default function DriverIntelligence() {
   const { openUpgradeModal } = useUpgradeModal();
   // This explicitly requested feature motion follows the app preference, not
   // Windows Animation Effects (which a performance tweak may have disabled).
-  const prefersReducedMotion = useUserPreferencesStore(state => state.preferences.reducedMotion);
+  const prefersReducedMotion = useUserPreferencesStore(state => state.reducedMotion);
   // Preserve the existing Premium-only boundary, including the trial gate.
   const locked = !isPremium;
   const readOnly = false;
