@@ -24,20 +24,20 @@ function createStudioBackdrop(): THREE.CanvasTexture | null {
   canvas.height = 640;
   const context = canvas.getContext("2d");
   if (!context) return null;
-  context.fillStyle = "#0d121c";
+  context.fillStyle = "#18140f";
   context.fillRect(0, 0, canvas.width, canvas.height);
 
   const sunlight = context.createRadialGradient(250, 105, 8, 250, 105, 570);
-  sunlight.addColorStop(0, "rgba(242, 196, 139, 0.27)");
-  sunlight.addColorStop(0.2, "rgba(216, 166, 112, 0.15)");
-  sunlight.addColorStop(0.6, "rgba(171, 135, 110, 0.05)");
-  sunlight.addColorStop(1, "rgba(171, 135, 110, 0)");
+  sunlight.addColorStop(0, "rgba(255, 250, 239, 0.23)");
+  sunlight.addColorStop(0.2, "rgba(224, 199, 161, 0.13)");
+  sunlight.addColorStop(0.6, "rgba(177, 146, 108, 0.045)");
+  sunlight.addColorStop(1, "rgba(177, 146, 108, 0)");
   context.fillStyle = sunlight;
   context.fillRect(0, 0, canvas.width, canvas.height);
 
   const fill = context.createRadialGradient(900, 380, 0, 900, 380, 560);
-  fill.addColorStop(0, "rgba(101, 157, 210, 0.1)");
-  fill.addColorStop(1, "rgba(101, 157, 210, 0)");
+  fill.addColorStop(0, "rgba(237, 226, 205, 0.075)");
+  fill.addColorStop(1, "rgba(237, 226, 205, 0)");
   context.fillStyle = fill;
   context.fillRect(0, 0, canvas.width, canvas.height);
   const texture = new THREE.CanvasTexture(canvas);
@@ -105,16 +105,16 @@ function ThreeSignalDeck({
 
     const scene = new THREE.Scene();
     const studioBackdrop = createStudioBackdrop();
-    scene.background = studioBackdrop ?? new THREE.Color("#0d121c");
+    scene.background = studioBackdrop ?? new THREE.Color("#18140f");
     const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 80);
     camera.position.set(7.4, 6.8, 10.8);
     camera.lookAt(0, 0.55, 0);
 
-    scene.add(new THREE.HemisphereLight(0xdce7f5, 0x111720, 1.6));
-    const keyLight = new THREE.DirectionalLight(0xffdfb5, 2.6);
+    scene.add(new THREE.HemisphereLight(0xf5eee1, 0x211910, 1.45));
+    const keyLight = new THREE.DirectionalLight(0xfff0d5, 2.35);
     keyLight.position.set(-4, 8, 5);
     scene.add(keyLight);
-    const rimLight = new THREE.DirectionalLight(0x83bdea, 1.65);
+    const rimLight = new THREE.DirectionalLight(0xd7bf9a, 1.15);
     rimLight.position.set(5, 4, -7);
     scene.add(rimLight);
 
@@ -122,7 +122,7 @@ function ThreeSignalDeck({
     scene.add(root);
     const deck = new THREE.Mesh(
       new THREE.BoxGeometry(9.4, 0.22, 6.35),
-      new THREE.MeshStandardMaterial({ color: 0x273243, metalness: 0.6, roughness: 0.38 }),
+      new THREE.MeshStandardMaterial({ color: 0x30271e, metalness: 0.46, roughness: 0.5 }),
     );
     deck.position.y = -0.19;
     root.add(deck);
@@ -133,7 +133,7 @@ function ThreeSignalDeck({
       const floor = new THREE.Mesh(
         new THREE.PlaneGeometry(8.7, 1.65),
         new THREE.MeshStandardMaterial({
-          color: 0x17222f,
+          color: 0x211a13,
           metalness: 0.34,
           roughness: 0.7,
           side: THREE.DoubleSide,

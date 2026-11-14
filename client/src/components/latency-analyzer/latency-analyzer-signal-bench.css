@@ -1,14 +1,14 @@
 .la-signal-bench,
 .la-bench-locked {
-  --la-bench-bg: #11151b;
-  --la-bench-panel: #1b222b;
-  --la-bench-panel-raised: #222b36;
-  --la-bench-inset: #141a21;
-  --la-bench-line: rgba(179, 197, 214, 0.16);
-  --la-bench-line-soft: rgba(179, 197, 214, 0.1);
-  --la-bench-copy: #e6edf3;
-  --la-bench-muted: #bdc9d4;
-  --la-bench-dim: #91a0ae;
+  --la-bench-bg: #1a1712;
+  --la-bench-panel: #29231c;
+  --la-bench-panel-raised: #342c22;
+  --la-bench-inset: #201b15;
+  --la-bench-line: rgba(234, 220, 198, 0.18);
+  --la-bench-line-soft: rgba(234, 220, 198, 0.11);
+  --la-bench-copy: #f2eee5;
+  --la-bench-muted: #d2c9bb;
+  --la-bench-dim: #aa9d8a;
   --la-lane-dpc: #8ecde7;
   --la-lane-interrupt: #df9a8a;
   --la-lane-faults: #dfbf85;
@@ -18,6 +18,8 @@
 
 .la-signal-bench {
   box-sizing: border-box;
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -25,7 +27,7 @@
   min-height: 100%;
   margin: 0;
   padding: 30px clamp(16px, 3vw, 42px) 48px;
-  background: var(--la-bench-bg);
+  background: linear-gradient(132deg, #201b15 0%, #191612 52%, #211b14 100%);
 }
 
 .la-signal-bench h1,
@@ -1231,4 +1233,197 @@
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Warm instrument-studio lighting: soft ivory light over a walnut-dark base. */
+.la-signal-bench::before,
+.la-signal-bench::after {
+  position: fixed;
+  z-index: -1;
+  inset: -18vh -12vw;
+  content: "";
+  pointer-events: none;
+  border-radius: 48%;
+  will-change: transform;
+}
+
+.la-signal-bench::before {
+  background:
+    radial-gradient(ellipse at 15% 12%, rgba(255, 251, 239, .23) 0%, rgba(255, 248, 231, .09) 18%, transparent 43%),
+    radial-gradient(ellipse at 82% 28%, rgba(203, 169, 126, .2) 0%, rgba(190, 151, 105, .07) 25%, transparent 48%),
+    radial-gradient(ellipse at 48% 86%, rgba(238, 226, 203, .13) 0%, transparent 42%);
+  animation: la-walnut-ambient-drift 36s ease-in-out infinite alternate;
+}
+
+.la-signal-bench::after {
+  opacity: .35;
+  background:
+    repeating-linear-gradient(108deg, transparent 0 54px, rgba(229, 208, 177, .028) 55px, transparent 57px),
+    linear-gradient(112deg, transparent 25%, rgba(255, 251, 241, .06) 39%, transparent 56%);
+  animation: la-ivory-grain-drift 48s ease-in-out infinite alternate;
+}
+
+@keyframes la-walnut-ambient-drift {
+  from { transform: translate3d(-1.2%, -1%, 0) scale(1.02); }
+  to { transform: translate3d(1.4%, 1.2%, 0) scale(1.06); }
+}
+
+@keyframes la-ivory-grain-drift {
+  from { transform: translate3d(1%, -1.2%, 0) rotate(-.25deg) scale(1.03); }
+  to { transform: translate3d(-1.4%, 1%, 0) rotate(.25deg) scale(1.06); }
+}
+
+@keyframes la-bench-arrive {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.la-signal-bench > .la-bench-intro,
+.la-signal-bench > .la-bench-controls-model,
+.la-signal-bench > .la-bench-signal-deck,
+.la-signal-bench > .la-bench-advanced {
+  animation: la-bench-arrive .62s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.la-signal-bench > .la-bench-controls-model { animation-delay: 80ms; }
+.la-signal-bench > .la-bench-signal-deck { animation-delay: 150ms; }
+.la-signal-bench > .la-bench-advanced { animation-delay: 220ms; }
+
+.la-signal-bench .la-bench-intro h1 { color: #fff9ec; }
+.la-signal-bench .la-bench-intro h1 svg,
+.la-signal-bench .la-bench-card-title svg,
+.la-signal-bench .la-bench-kicker,
+.la-signal-bench .la-bench-advanced > summary,
+.la-signal-bench .la-bench-axis-note span:nth-child(2) {
+  color: #e3cba6;
+}
+
+.la-signal-bench .la-bench-intro > p,
+.la-signal-bench .la-bench-measure-boundary,
+.la-signal-bench .la-bench-small-copy,
+.la-signal-bench .la-bench-deck-heading p,
+.la-signal-bench .la-bench-panel-heading p {
+  color: #d2c8b8;
+}
+
+.la-signal-bench .la-bench-panel,
+.la-signal-bench .la-bench-panel:hover,
+.la-bench-locked .la-bench-panel {
+  color: #f2eee5 !important;
+  background: linear-gradient(145deg, rgba(54, 44, 32, .88), rgba(35, 29, 22, .9)) !important;
+  border-color: rgba(235, 221, 198, .18) !important;
+  box-shadow: inset 0 1px rgba(255, 250, 239, .07), 0 9px 26px rgba(0, 0, 0, .25) !important;
+  backdrop-filter: blur(18px) saturate(112%);
+  -webkit-backdrop-filter: blur(18px) saturate(112%);
+  transition: transform 240ms ease, border-color 240ms ease, box-shadow 240ms ease !important;
+}
+
+.la-signal-bench .la-bench-panel:hover,
+.la-signal-bench .la-bench-panel:focus-within {
+  transform: translateY(-2px) !important;
+  border-color: rgba(241, 226, 201, .34) !important;
+  box-shadow: inset 0 1px rgba(255, 250, 239, .1), 0 14px 32px rgba(0, 0, 0, .32),
+    0 0 28px rgba(230, 210, 176, .08) !important;
+}
+
+.la-signal-bench .la-bench-model-stat,
+.la-signal-bench .la-bench-model-wait,
+.la-signal-bench .la-bench-sample-count,
+.la-signal-bench .la-bench-point-readout,
+.la-signal-bench .la-bench-empty-graph,
+.la-signal-bench .la-bench-capture-stamp,
+.la-signal-bench .la-bench-audio-rows > div,
+.la-signal-bench .la-bench-table-wrap th {
+  color: #eee7da;
+  background: rgba(28, 23, 17, .66) !important;
+  border-color: rgba(232, 217, 193, .15) !important;
+}
+
+.la-signal-bench .la-bench-model-stat strong,
+.la-signal-bench .la-bench-model-wait strong,
+.la-signal-bench .la-bench-estimate-total,
+.la-signal-bench .la-bench-estimate-grid b,
+.la-signal-bench .la-bench-stat-value,
+.la-signal-bench .la-bench-point-readout > strong {
+  color: #f3e6cf;
+}
+
+.la-signal-bench .la-bench-model-stat small,
+.la-signal-bench .la-bench-model-stat span,
+.la-signal-bench .la-bench-model-wait p,
+.la-signal-bench .la-bench-estimate-grid span,
+.la-signal-bench .la-bench-lane-legend > span,
+.la-signal-bench .la-bench-lane-legend small,
+.la-signal-bench .la-bench-readout-unit,
+.la-signal-bench .la-bench-readout-time,
+.la-signal-bench .la-bench-readout-empty,
+.la-signal-bench .la-bench-axis-note {
+  color: #d0c6b7;
+}
+
+.la-signal-bench .la-bench-stage {
+  background:
+    radial-gradient(ellipse at 16% 12%, rgba(255, 249, 231, .12), transparent 38%),
+    linear-gradient(155deg, #282219, #1b1712 78%);
+  border-color: rgba(236, 221, 196, .2);
+  box-shadow: inset 0 1px rgba(255, 250, 239, .07), 0 12px 30px rgba(0, 0, 0, .24);
+}
+
+.la-signal-bench .la-bench-duration button,
+.la-signal-bench .la-bench-quiet-action,
+.la-signal-bench .la-bench-input,
+.la-signal-bench .la-bench-sample-count,
+.la-signal-bench .la-bench-stage-tools button {
+  color: #e9dfce;
+  background-color: rgba(31, 26, 20, .76);
+  border-color: rgba(234, 220, 198, .2);
+}
+
+.la-signal-bench .la-bench-duration button:hover,
+.la-signal-bench .la-bench-duration button.is-selected {
+  color: #fff8e9;
+  background: rgba(226, 202, 166, .16);
+  border-color: rgba(236, 215, 183, .58);
+}
+
+.la-signal-bench .la-bench-primary-action,
+.la-bench-locked .la-bench-primary-action {
+  color: #21190f !important;
+  background: linear-gradient(135deg, #e8d5b5, #c8a77a) !important;
+  border-color: rgba(244, 228, 199, .8) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .52), 0 5px 15px rgba(15, 10, 5, .24);
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease !important;
+}
+
+.la-signal-bench .la-bench-primary-action:hover,
+.la-bench-locked .la-bench-primary-action:hover {
+  background: linear-gradient(135deg, #f4e8d2, #dec49d) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .7), 0 8px 20px rgba(12, 8, 4, .3);
+  transform: translateY(-1px);
+}
+
+.la-signal-bench button:focus-visible,
+.la-bench-locked button:focus-visible,
+.la-signal-bench input:focus-visible {
+  outline-color: #f0dfc2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .la-signal-bench::before,
+  .la-signal-bench::after,
+  .la-signal-bench > .la-bench-intro,
+  .la-signal-bench > .la-bench-controls-model,
+  .la-signal-bench > .la-bench-signal-deck,
+  .la-signal-bench > .la-bench-advanced {
+    animation: none !important;
+  }
+}
+
+html.sc-reduced-motion .la-signal-bench::before,
+html.sc-reduced-motion .la-signal-bench::after,
+html.sc-reduced-motion .la-signal-bench > .la-bench-intro,
+html.sc-reduced-motion .la-signal-bench > .la-bench-controls-model,
+html.sc-reduced-motion .la-signal-bench > .la-bench-signal-deck,
+html.sc-reduced-motion .la-signal-bench > .la-bench-advanced {
+  animation: none !important;
 }
