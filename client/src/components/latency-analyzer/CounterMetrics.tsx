@@ -1,4 +1,3 @@
-import { Activity, Clock, Info } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { GlassCard } from "@/components/ui/glass-card";
 import { useLatencyAnalyzerStore } from "@/stores/latencyAnalyzerStore";
@@ -29,22 +28,16 @@ export function CollectionSummary({ desktop }: { desktop: boolean }) {
     <GlassCard className="la-bench-panel la-bench-collection-summary p-5">
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h2 className="la-bench-card-title">
-            <Activity aria-hidden="true" />
-            {t(label)}
-          </h2>
-          <p className="la-bench-small-copy">
-            {t("Collection readiness is not a performance rating. These counters do not measure scheduler delay or input-to-display latency.")}
-          </p>
+          <h2 className="la-bench-card-title">{t(label)}</h2>
           {sampleCount > 0 && (
-            <p className="la-bench-tiny-copy">
-              Windows PerfOS · {t("system-wide")} · {sampleCount} {t("valid samples")}
+            <p className="la-bench-small-copy">
+              {sampleCount} {t("valid samples")}
               {sampleCount >= MIN_COMPARISON_SAMPLES ? ` · ${t("Enough samples for a baseline")}` : ` · ${t("At least 8 valid samples are required for a baseline")}`}
             </p>
           )}
         </div>
         <div className="la-bench-time-copy">
-          <div className="flex items-center justify-end gap-1.5"><Clock className="size-3" /> {elapsedSec}s {t("elapsed")}</div>
+          <div>{elapsedSec}s {t("elapsed")}</div>
           {lastSampleAt != null && (
             <div className="mt-1" data-testid="text-native-sample-time">
               {t("Last native sample")}: {new Date(lastSampleAt).toLocaleTimeString()}
@@ -96,8 +89,7 @@ export function CounterTimeline() {
   const historical = sessionStatus !== "collecting" && sessionStatus !== "starting";
   return (
     <GlassCard className="la-bench-panel la-bench-trends p-5 lg:p-6" hoverEffect={false}>
-      <h3 className="la-bench-card-title"><Activity aria-hidden="true" />{t(historical ? "Recorded counter samples" : "Native counter timeline")}</h3>
-      <p className="la-bench-small-copy">{t("Native sample times are preserved. Page faults include soft and hard faults; they are not disk paging delay.")}</p>
+      <h3 className="la-bench-card-title">{t(historical ? "Recorded counter samples" : "Native counter timeline")}</h3>
       {chartSamples.length === 0 ? (
         <div className="la-bench-empty-timeline">{t("Start a capture to collect Windows counters.")}</div>
       ) : (
@@ -107,13 +99,13 @@ export function CounterTimeline() {
             <div className="h-48" role="img" aria-label={t("Recorded DPC and interrupt CPU-time percentages")}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartSamples} accessibilityLayer>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(165,194,174,0.18)" />
-                  <XAxis type="number" dataKey="ts" domain={["dataMin", "dataMax"]} tickFormatter={formatTime} tick={{ fontSize: 9, fill: "#9eaca0" }} />
-                  <YAxis domain={[0, "auto"]} unit="%" tick={{ fontSize: 9, fill: "#9eaca0" }} width={42} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(71,91,110,0.16)" />
+                  <XAxis type="number" dataKey="ts" domain={["dataMin", "dataMax"]} tickFormatter={formatTime} tick={{ fontSize: 11, fill: "#697789" }} />
+                  <YAxis domain={[0, "auto"]} unit="%" tick={{ fontSize: 11, fill: "#697789" }} width={42} />
                   <Tooltip contentStyle={tooltipStyle} labelFormatter={(value) => new Date(Number(value)).toLocaleString()} formatter={(value: any, name: string) => [`${Number(value).toLocaleString(undefined, { maximumFractionDigits: 3 })}% CPU time`, name === "dpcPct" ? t("DPC") : t("Interrupt")]} />
-                  <Legend formatter={(value) => value === "dpcPct" ? t("DPC") : t("Interrupt")} wrapperStyle={{ fontSize: 10 }} />
-                  <Line type="linear" dataKey="dpcPct" stroke="#d2f36b" dot={false} isAnimationActive={false} />
-                  <Line type="linear" dataKey="intrPct" stroke="#82c7c0" dot={false} isAnimationActive={false} />
+                  <Legend formatter={(value) => value === "dpcPct" ? t("DPC") : t("Interrupt")} wrapperStyle={{ fontSize: 12 }} />
+                  <Line type="linear" dataKey="dpcPct" stroke="#8ecde7" dot={false} isAnimationActive={false} />
+                  <Line type="linear" dataKey="intrPct" stroke="#df9a8a" dot={false} isAnimationActive={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -123,21 +115,21 @@ export function CounterTimeline() {
             <div className="h-48" role="img" aria-label={t("Recorded total page faults per second")}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartSamples} accessibilityLayer>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(165,194,174,0.18)" />
-                  <XAxis type="number" dataKey="ts" domain={["dataMin", "dataMax"]} tickFormatter={formatTime} tick={{ fontSize: 9, fill: "#9eaca0" }} />
-                  <YAxis domain={[0, "auto"]} tick={{ fontSize: 9, fill: "#9eaca0" }} width={48} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(71,91,110,0.16)" />
+                  <XAxis type="number" dataKey="ts" domain={["dataMin", "dataMax"]} tickFormatter={formatTime} tick={{ fontSize: 11, fill: "#697789" }} />
+                  <YAxis domain={[0, "auto"]} tick={{ fontSize: 11, fill: "#697789" }} width={48} />
                   <Tooltip contentStyle={tooltipStyle} labelFormatter={(value) => new Date(Number(value)).toLocaleString()} formatter={(value: any) => [`${Number(value).toLocaleString(undefined, { maximumFractionDigits: 3 })} faults/sec`, t("Total page faults")]} />
-                  <Line type="linear" dataKey="pageFaultsSec" stroke="#efb66a" dot={false} isAnimationActive={false} />
+                  <Line type="linear" dataKey="pageFaultsSec" stroke="#dfbf85" dot={false} isAnimationActive={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
         </div>
       )}
-      {chartSamples.length > 0 && <p className="la-bench-chart-note"><Info aria-hidden="true" />{t("Charts show the most recent 300 valid samples, with separate units and no percentage-to-time conversion.")}</p>}
+      {chartSamples.length > 0 && <p className="la-bench-chart-note">{t("Charts show the most recent 300 valid samples, with separate units.")}</p>}
     </GlassCard>
   );
 }
 
 const formatTime = (timestamp: number) => new Date(timestamp).toLocaleTimeString();
-const tooltipStyle = { background: "#14211b", border: "1px solid rgba(165,194,174,0.25)", borderRadius: 7, fontSize: 10, color: "#e8eee0" };
+const tooltipStyle = { background: "#1b222b", border: "1px solid rgba(179,197,214,0.2)", borderRadius: 7, fontSize: 12, color: "#e6edf3" };

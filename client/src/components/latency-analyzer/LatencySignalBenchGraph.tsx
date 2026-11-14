@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
-import { Info, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import type { ResponsivenessModelSample } from "@/lib/responsivenessModel";
 import { useTranslation } from "@/lib/i18n";
 import { buildSignalLanePoints, SIGNAL_LANES, type SignalMetricKey } from "./signal-bench-data";
@@ -15,6 +15,34 @@ function format(value: number): string {
 
 function formatTime(timestamp: number): string {
   return new Date(timestamp).toLocaleTimeString();
+}
+
+/** A static studio backlight, rendered only when the scene itself needs a draw. */
+function createStudioBackdrop(): THREE.CanvasTexture | null {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1024;
+  canvas.height = 640;
+  const context = canvas.getContext("2d");
+  if (!context) return null;
+  context.fillStyle = "#0d121c";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const sunlight = context.createRadialGradient(250, 105, 8, 250, 105, 570);
+  sunlight.addColorStop(0, "rgba(242, 196, 139, 0.27)");
+  sunlight.addColorStop(0.2, "rgba(216, 166, 112, 0.15)");
+  sunlight.addColorStop(0.6, "rgba(171, 135, 110, 0.05)");
+  sunlight.addColorStop(1, "rgba(171, 135, 110, 0)");
+  context.fillStyle = sunlight;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const fill = context.createRadialGradient(900, 380, 0, 900, 380, 560);
+  fill.addColorStop(0, "rgba(101, 157, 210, 0.1)");
+  fill.addColorStop(1, "rgba(101, 157, 210, 0)");
+  context.fillStyle = fill;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
 }
 
 function disposeObjectResources(root: THREE.Object3D, exceptGeometry?: THREE.BufferGeometry) {
@@ -76,16 +104,17 @@ function ThreeSignalDeck({
     renderer.toneMappingExposure = 1.12;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#101816");
+    const studioBackdrop = createStudioBackdrop();
+    scene.background = studioBackdrop ?? new THREE.Color("#0d121c");
     const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 80);
     camera.position.set(7.4, 6.8, 10.8);
     camera.lookAt(0, 0.55, 0);
 
-    scene.add(new THREE.HemisphereLight(0xe2f2ce, 0x17211d, 1.8));
-    const keyLight = new THREE.DirectionalLight(0xf6f4dc, 2.5);
+    scene.add(new THREE.HemisphereLight(0xdce7f5, 0x111720, 1.6));
+    const keyLight = new THREE.DirectionalLight(0xffdfb5, 2.6);
     keyLight.position.set(-4, 8, 5);
     scene.add(keyLight);
-    const rimLight = new THREE.DirectionalLight(0x82c7c0, 1.35);
+    const rimLight = new THREE.DirectionalLight(0x83bdea, 1.65);
     rimLight.position.set(5, 4, -7);
     scene.add(rimLight);
 
@@ -93,7 +122,7 @@ function ThreeSignalDeck({
     scene.add(root);
     const deck = new THREE.Mesh(
       new THREE.BoxGeometry(9.4, 0.22, 6.35),
-      new THREE.MeshStandardMaterial({ color: 0x26382e, metalness: 0.55, roughness: 0.47 }),
+      new THREE.MeshStandardMaterial({ color: 0x273243, metalness: 0.6, roughness: 0.38 }),
     );
     deck.position.y = -0.19;
     root.add(deck);
@@ -104,7 +133,7 @@ function ThreeSignalDeck({
       const floor = new THREE.Mesh(
         new THREE.PlaneGeometry(8.7, 1.65),
         new THREE.MeshStandardMaterial({
-          color: 0x1a2721,
+          color: 0x17222f,
           metalness: 0.34,
           roughness: 0.7,
           side: THREE.DoubleSide,
@@ -122,7 +151,7 @@ function ThreeSignalDeck({
             new THREE.Vector3(x, -0.045, z + 0.78),
           ]),
           new THREE.LineDashedMaterial({
-            color: 0x73877b,
+            color: 0x77899c,
             dashSize: 0.08,
             gapSize: 0.08,
             transparent: true,
@@ -137,7 +166,7 @@ function ThreeSignalDeck({
     for (const x of [-4.55, 4.55]) {
       const rail = new THREE.Mesh(
         new THREE.BoxGeometry(0.055, 0.055, 6.15),
-        new THREE.MeshStandardMaterial({ color: 0x72998e, metalness: 0.78, roughness: 0.3 }),
+        new THREE.MeshStandardMaterial({ color: 0x8da9c0, metalness: 0.78, roughness: 0.3 }),
       );
       rail.position.set(x, -0.04, 0);
       root.add(rail);
@@ -321,6 +350,7 @@ function ThreeSignalDeck({
       dataRoot.clear();
       disposeObjectResources(root);
       pointGeometry.dispose();
+      studioBackdrop?.dispose();
       renderer.dispose();
     };
   }, [canvasRef, onWebglChange]);
@@ -370,10 +400,9 @@ export function LatencySignalBenchGraph({
   if (visibleSamples.length === 0) {
     return (
       <div className="la-bench-empty-graph" role="status">
-        <Info aria-hidden="true" />
         <div>
-          <strong>{t("Waiting for Windows PerfOS samples")}</strong>
-          <p>{t("Start a native Windows capture to populate the counter lanes. No measurements are estimated or substituted.")}</p>
+          <strong>{t("No capture yet")}</strong>
+          <p>{t("Start a Windows capture to see the graph.")}</p>
         </div>
       </div>
     );
@@ -395,7 +424,7 @@ export function LatencySignalBenchGraph({
           aria-label={t("Interactive 3D graph of collected DPC CPU time, interrupt CPU time, and total page faults per second. Drag or use arrow keys to rotate; Home resets the view.")}
         />
         <div className="la-bench-stage-tools">
-          <span>{t("Drag or use arrows to rotate · Home resets")}</span>
+          <span>{t("Drag to rotate · Home to reset")}</span>
           <button type="button" onClick={resetView}><RotateCcw size={12} />{t("Reset view")}</button>
         </div>
         <ThreeSignalDeck
@@ -408,7 +437,7 @@ export function LatencySignalBenchGraph({
       </div>
 
       <aside className="la-bench-point-readout" aria-live="polite">
-        <div className="la-bench-readout-kicker">{t("Selected counter · exact native value")}</div>
+        <div className="la-bench-readout-kicker">{t("Selected sample")}</div>
         {selectedSample && selectedLane ? (
           <>
             <strong style={{ color: selectedLane.color }}>{format(selectedLane.value(selectedSample))}</strong>
@@ -419,7 +448,7 @@ export function LatencySignalBenchGraph({
             </div>
           </>
         ) : (
-          <p className="la-bench-readout-empty">{t("Hover over or select a point to inspect its timestamp and original unit.")}</p>
+          <p className="la-bench-readout-empty">{t("Select a point to inspect its value.")}</p>
         )}
       </aside>
     </div>

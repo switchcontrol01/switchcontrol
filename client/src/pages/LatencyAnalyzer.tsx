@@ -3,7 +3,7 @@
  * model. This page does not infer input-to-display timing or driver attribution.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, AlertTriangle, ChevronDown, ChevronUp, Crown, Info, Layers, Loader2, Music, Play, RotateCcw, Square, Timer } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, Crown, Loader2, Play, RotateCcw, Square, Timer } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -40,9 +40,8 @@ function Controls({ onStart, onStop, onReset }: { onStart: () => void; onStop: (
     <GlassCard className="la-bench-panel la-bench-capture p-5 lg:p-6">
       <div className="flex flex-wrap items-center justify-between gap-5">
         <div>
-          <span className="la-bench-kicker">{t("Capture / Windows PerfOS")}</span>
-          <h2 className="la-bench-card-title"><Activity aria-hidden="true" />{t("Windows counter capture")}</h2>
-          <p className="la-bench-small-copy">{elapsedSec}s {t("elapsed")} · {sampleCount} {t("valid samples")}</p>
+          <span className="la-bench-kicker">{t("Capture controls")}</span>
+          <h2 className="la-bench-card-title">{t("Windows counter capture")}</h2>
           {active && durationSec > 0 && <p className="la-bench-small-copy">{Math.max(0, durationSec - elapsedSec)}s {t("remaining")}</p>}
         </div>
         {!active && !stopping && (
@@ -68,7 +67,7 @@ function DriverInventory({ drivers }: { drivers: DriverRow[] }) {
   if (drivers.length === 0) return null;
   return (
     <GlassCard className="la-bench-panel la-bench-inventory p-5">
-      <h3 className="la-bench-card-title"><Layers aria-hidden="true" />{t("System driver inventory")} <span>({drivers.length})</span></h3>
+      <h3 className="la-bench-card-title">{t("System driver inventory")} <span>({drivers.length})</span></h3>
       <p className="la-bench-small-copy">{t("Inventory only. System-wide counters cannot identify a responsible driver; no per-driver timing or impact rank is collected.")}</p>
       <div className="la-bench-table-wrap">
         <table className="w-full text-[11px]">
@@ -86,7 +85,7 @@ function AudioInventory() {
   const { audioDevices, driversScanned } = useLatencyAnalyzerStore();
   return (
     <GlassCard className="la-bench-panel la-bench-inventory p-5">
-      <h3 className="la-bench-card-title"><Music aria-hidden="true" />{t("Audio device inventory")}</h3>
+      <h3 className="la-bench-card-title">{t("Audio device inventory")}</h3>
       <p className="la-bench-small-copy">{t("Detected devices only. Audio dropouts, buffer underruns, and real-time audio suitability are not measured.")}</p>
       <div className="la-bench-audio-rows">
         {audioDevices.map((device, index) => <div key={`${device.name}-${index}`}><span>{device.name}</span><span>{device.manufacturer} · {device.status || t("Unknown")}</span></div>)}
@@ -251,7 +250,11 @@ export default function LatencyAnalyzer() {
         <header className="la-bench-intro">
           <div className="la-bench-kicker">{t("Diagnostics / Windows performance")}</div>
           <h1><Timer aria-hidden="true" />{t("Latency Analyzer")}</h1>
-          <p>{t("Measured system-wide counters and factual device inventory — not an input-latency test.")}</p>
+          <p>{t("Windows PerfOS · system-wide DPC and interrupt CPU time, plus total page faults/sec.")}</p>
+          <div className="la-bench-measure-boundary">
+            <span>{t("Input delay")}</span>
+            <strong>{t("Not measured")}</strong>
+          </div>
         </header>
         <div className="la-bench-controls-model">
           <div className="la-bench-capture-column">
@@ -261,22 +264,28 @@ export default function LatencyAnalyzer() {
           <ResponsivenessModelSummary model={responsivenessModel} validSampleCount={store.sampleCount} />
         </div>
         <SignalBenchModel samples={store.chartSamples} model={responsivenessModel} />
-        <CoreCounterMetrics />
-        <CounterTimeline />
-        <SystemLoadPanel data={systemLoad} className="la-bench-panel la-bench-system-load" />
-        <div className="la-bench-inventory-grid">
-        <DriverInventory drivers={store.drivers} />
-        {store.sampleCount > 0 && !store.driversScanned && <p className="flex items-center gap-2 px-2 text-[11px] text-[#778292]"><Loader2 className="size-3.5 animate-spin" />{t("Requesting driver and audio inventory…")}</p>}
-        {store.driversScanned && store.drivers.length === 0 && <p className="px-2 text-[11px] text-[#778292]">{t("No driver inventory data is available.")}</p>}
-        <AudioInventory />
-        </div>
-        <div className="la-bench-tools-grid">
-        <CaptureComparison />
-        <CaptureExport />
-        </div>
-        <GlassCard className="la-bench-panel la-bench-limits p-4" variant="secondary" hoverEffect={false}>
-          <div><Info aria-hidden="true" /><p>{t("This capture measures system-wide DPC CPU-time %, interrupt CPU-time %, and total page faults/sec. It does not measure scheduler dispatch delay, per-driver execution time, disk paging delay, audio dropout risk, gaming performance, or input-to-display latency. Valid zero activity remains zero; missing or invalid counters are excluded rather than replaced.")}</p></div>
-        </GlassCard>
+        <details className="la-bench-advanced">
+          <summary>{t("Historical samples and advanced diagnostics")}</summary>
+          <div className="la-bench-advanced-content">
+            <CoreCounterMetrics />
+            <CounterTimeline />
+            <SystemLoadPanel data={systemLoad} className="la-bench-panel la-bench-system-load" />
+            <div className="la-bench-inventory-grid">
+              <DriverInventory drivers={store.drivers} />
+              {store.sampleCount > 0 && !store.driversScanned && <p className="flex items-center gap-2 px-2 text-[14px] text-[#778292]"><Loader2 className="size-4 animate-spin" />{t("Requesting driver and audio inventory…")}</p>}
+              {store.driversScanned && store.drivers.length === 0 && <p className="px-2 text-[14px] text-[#778292]">{t("No driver inventory data is available.")}</p>}
+              <AudioInventory />
+            </div>
+            <div className="la-bench-tools-grid">
+              <CaptureComparison />
+              <CaptureExport />
+            </div>
+          </div>
+        </details>
+        <details className="la-bench-advanced la-bench-limit-details">
+          <summary>{t("Measurement method and limitations")}</summary>
+          <p>{t("This capture measures system-wide DPC CPU-time %, interrupt CPU-time %, and total page faults/sec. It does not measure scheduler dispatch delay, per-driver execution time, disk paging delay, audio dropout risk, gaming performance, or input-to-display latency. Valid zero activity remains zero; missing or invalid counters are excluded rather than replaced.")}</p>
+        </details>
         </div>
     </AppLayout>
   );

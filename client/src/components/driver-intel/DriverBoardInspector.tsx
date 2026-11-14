@@ -1,7 +1,8 @@
-import { useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import {
   Activity, AudioLines, Bluetooth, ChevronRight, CircleHelp, Cpu,
   Eye, Gauge, HardDrive, Monitor, Network, RefreshCw, ShieldCheck, Sparkles, ArrowLeft,
+  type LucideIcon,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { getHealthMeta, type ComponentKind, type DriverComponent, type HealthScore } from "@/lib/driver-intel-data";
@@ -16,6 +17,100 @@ const HOTSPOTS: Partial<Record<ComponentKind, { x: number; y: number; side: stri
 };
 const ORDER: ComponentKind[] = ["cpu", "monitor", "gpu", "ssd", "network", "chipset", "audio", "bluetooth", "motherboard", "bios"];
 const iconFor = (kind: ComponentKind) => ICONS[kind as keyof typeof ICONS] ?? CircleHelp;
+
+function useGlassReflection<T extends HTMLElement = HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const frame = useRef<number | null>(null);
+  const bounds = useRef<DOMRect | null>(null);
+  const point = useRef({ x: 50, y: 50 });
+
+  const stop = () => {
+    const node = ref.current;
+    if (frame.current !== null) cancelAnimationFrame(frame.current);
+    frame.current = null;
+    bounds.current = null;
+    if (node) {
+      node.removeAttribute("data-glint-active");
+      node.style.setProperty("--di-glint-x", "50%");
+      node.style.setProperty("--di-glint-y", "50%");
+    }
+  };
+
+  useEffect(() => () => {
+    if (frame.current !== null) cancelAnimationFrame(frame.current);
+    frame.current = null;
+    bounds.current = null;
+    const node = ref.current;
+    if (node) {
+      node.removeAttribute("data-glint-active");
+      node.style.setProperty("--di-glint-x", "50%");
+      node.style.setProperty("--di-glint-y", "50%");
+    }
+  }, []);
+
+  const onPointerEnter = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType === "touch") return;
+    const node = ref.current;
+    if (!node) return;
+    const page = node.closest(".driver-intel-page");
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      || page?.getAttribute("data-reduced-motion") === "true") return;
+    bounds.current = node.getBoundingClientRect();
+    node.setAttribute("data-glint-active", "true");
+  };
+
+  const onPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
+    const node = ref.current;
+    const rect = bounds.current;
+    if (!node || !rect || event.pointerType === "touch") return;
+    point.current = {
+      x: Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)),
+      y: Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100)),
+    };
+    if (frame.current !== null) return;
+    frame.current = requestAnimationFrame(() => {
+      frame.current = null;
+      const target = ref.current;
+      if (!target) return;
+      target.style.setProperty("--di-glint-x", `${point.current.x}%`);
+      target.style.setProperty("--di-glint-y", `${point.current.y}%`);
+    });
+  };
+
+  return { ref, onPointerEnter, onPointerMove, onPointerLeave: stop };
+}
+
+function ComponentCard({
+  component, Icon, statusLabel, statusColor, selected, onSelect,
+}: {
+  component: DriverComponent;
+  Icon: LucideIcon;
+  statusLabel: string;
+  statusColor: string;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const { t } = useTranslation();
+  const reflection = useGlassReflection<HTMLButtonElement>();
+  return (
+    <button
+      ref={reflection.ref}
+      onPointerEnter={reflection.onPointerEnter}
+      onPointerMove={reflection.onPointerMove}
+      onPointerLeave={reflection.onPointerLeave}
+      className={`di-component di-glass-reflect ${selected ? "is-selected" : ""}`}
+      onClick={onSelect}
+      aria-pressed={selected}
+      data-testid={`component-card-${component.kind}`}
+    >
+      <span className="di-glass-sheen" aria-hidden="true" />
+      <Icon size={21} />
+      <span><b>{t(component.title)}</b><small>{component.device}</small></span>
+      <em style={{ color: statusColor }}>{t(statusLabel)}</em>
+      <ChevronRight size={16} />
+    </button>
+  );
+}
 
 export interface DriverBoardInspectorProps {
   components: DriverComponent[];
@@ -38,6 +133,9 @@ export function DriverBoardInspector({
 }: DriverBoardInspectorProps) {
   const { t } = useTranslation();
   const [selectedKind, setSelectedKind] = useState<ComponentKind>("gpu");
+  const metricsReflection = useGlassReflection<HTMLDivElement>();
+  const boardReflection = useGlassReflection<HTMLDivElement>();
+  const inspectorReflection = useGlassReflection<HTMLAsideElement>();
   const ordered = [...components].sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind));
   const selected = ordered.find(c => c.kind === selectedKind) ?? ordered[0];
   const SelectedIcon = selected ? iconFor(selected.kind) : Cpu;
@@ -63,7 +161,8 @@ export function DriverBoardInspector({
 
       <section className="di-intro">
         <div><h2>{t("Know what’s")}<br /><em>{t("under the hood.")}</em></h2><p>{t("Probe a component to see its driver evidence, verification state, and a clear next step.")}</p></div>
-        <div className="di-metrics">
+          <div className="di-metrics di-glass-reflect" ref={metricsReflection.ref} onPointerEnter={metricsReflection.onPointerEnter} onPointerMove={metricsReflection.onPointerMove} onPointerLeave={metricsReflection.onPointerLeave}>
+            <span className="di-glass-sheen" aria-hidden="true" />
           <div className="di-ring" role="img" aria-label={value === null ? t("Run a scan to see your score") : `${t("Health Score")}: ${value}/100`}>
             <svg viewBox="0 0 92 92" aria-hidden="true"><circle className="di-ring-track" cx="46" cy="46" r="38" /><circle className="di-ring-value" cx="46" cy="46" r="38" style={{ strokeDashoffset: 239 - 239 * (value ?? 0) / 100 }} /></svg>
             <div><strong data-testid="driver-health-score">{value ?? "—"}</strong><small>{t("HEALTH")}</small></div>
@@ -75,7 +174,8 @@ export function DriverBoardInspector({
 
       {error && <div className="di-notice di-error" role="alert">{error} <button onClick={onScan} disabled={scanning}>{t("Retry")}</button></div>}
       <section className="di-workbench" aria-label={t("Motherboard component inspector")} aria-busy={scanning}>
-        <div className={`di-board-stage ${scanning ? "is-scanning" : ""}`}>
+        <div className={`di-board-stage di-glass-reflect ${scanning ? "is-scanning" : ""}`} ref={boardReflection.ref} onPointerEnter={boardReflection.onPointerEnter} onPointerMove={boardReflection.onPointerMove} onPointerLeave={boardReflection.onPointerLeave}>
+          <span className="di-glass-sheen" aria-hidden="true" />
           <div className="di-stage-head"><div><span className="di-label">{t("COMPONENT INSPECTOR")}</span><h3>X870E AORUS PRO ICE</h3></div><span className="di-manufacturer"><i /> GIGABYTE</span></div>
           <div className="di-board-viewport">
             <div className="di-board-art">
@@ -94,8 +194,10 @@ export function DriverBoardInspector({
           {scanning && <div className="di-progress" role="status"><span data-testid="text-scan-step">{stepLabel}</span><progress max={100} value={progress} aria-label={stepLabel} /></div>}
         </div>
 
-        <aside className="di-inspector" aria-live="polite">
+        <aside className="di-inspector di-glass-reflect" aria-live="polite" ref={inspectorReflection.ref} onPointerEnter={inspectorReflection.onPointerEnter} onPointerMove={inspectorReflection.onPointerMove} onPointerLeave={inspectorReflection.onPointerLeave}>
+          <span className="di-glass-sheen" aria-hidden="true" />
           <div className="di-inspector-top"><span className="di-label">{t("SELECTED COMPONENT")}</span><span>{selected ? String(ordered.indexOf(selected) + 1).padStart(2, "0") : "—"} / {String(ordered.length).padStart(2, "0")}</span></div>
+          <div key={selected?.kind ?? "empty"} className="di-selection-content">
           {selected && meta ? <>
             <div className="di-inspector-heading"><span className="di-detail-icon" style={{ color: meta.color }}><SelectedIcon size={23} /></span><div><h3>{t(selected.title)}</h3><p>{selected.device}</p></div></div>
             <div className="di-status"><i style={{ background: meta.color }} /><strong style={{ color: meta.color }}>{t(meta.label)}</strong><span>{selected.health === "working" ? t("Windows device evidence") : selected.current ? t("Installed evidence available") : t("Version evidence unavailable")}</span></div>
@@ -105,6 +207,7 @@ export function DriverBoardInspector({
             <button className="di-button di-detail-button" onClick={() => onDetails(selected)} data-testid="button-driver-details">{t("Details & official sources")}<ChevronRight size={15} /></button>
             <button className="di-next" onClick={() => setSelectedKind(ordered[(ordered.indexOf(selected) + 1) % ordered.length].kind)} data-testid="button-driver-next">{t("Inspect next component")}<ChevronRight size={16} /></button>
           </> : <div className="di-empty" role="status"><Cpu size={30} /><h3>{t(scanning ? "Detecting your components…" : "Your hardware, explained.")}</h3><p>{t(scanning ? "Results will appear as the scan completes." : "Run a scan to inspect your system and its driver evidence.")}</p>{!scanning && <button className="di-button" onClick={onScan}>{t("Scan system")}</button>}</div>}
+          </div>
         </aside>
       </section>
 
@@ -113,7 +216,7 @@ export function DriverBoardInspector({
         <div className="di-component-grid">{ordered.map(component => {
           const status = getHealthMeta(component.health);
           const Icon = iconFor(component.kind);
-          return <button key={component.kind} className={`di-component ${selected?.kind === component.kind ? "is-selected" : ""}`} onClick={() => setSelectedKind(component.kind)} aria-pressed={selected?.kind === component.kind} data-testid={`component-card-${component.kind}`}><Icon size={21} /><span><b>{t(component.title)}</b><small>{component.device}</small></span><em style={{ color: status.color }}>{t(status.label)}</em><ChevronRight size={16} /></button>;
+          return <ComponentCard key={component.kind} component={component} Icon={Icon} status={status} selected={selected?.kind === component.kind} onSelect={() => setSelectedKind(component.kind)} />;
         })}</div>
       </section>
     </>

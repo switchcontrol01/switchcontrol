@@ -65,8 +65,15 @@ driver/firmware versions against a server-maintained cloud DB.
 
 ## Performance
 - Scan is LAZY — only on page mount / explicit Rescan; never at app startup.
-- Animate heavily DURING the scan, then settle to a calm static page. **Why:** the
-  app's value prop is not competing with the user's game for GPU/CPU.
+- The user wants frosted liquid-glass panels and fluid premium micro-interactions
+  across Driver Intelligence. Use transitions tied to entry, scan, selection, and
+  pointer interaction; the page should settle when idle, with no perpetual render loop.
+  **Why:** the user said the page felt static but the app must not compete with games
+  for GPU/CPU when it is not in use.
+- Respect reduced-motion preferences, and use the central `html.app-light-mode` CSS
+  class to remove decorative blur and animation; do not add per-component Light Mode
+  branches or timers.
+  **Why:** application mode is deliberately centralized in one store.
 
 ## Requested visual direction
 Replace the flat hub-and-spokes map with a realistic, high-detail X870E AORUS PRO ICE

@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { Activity, Info, ShieldCheck } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { MIN_RESPONSIVENESS_MODEL_SAMPLES } from "@/lib/latency-analyzer-config";
 import type { ResponsivenessModelResult, ResponsivenessModelSample } from "@/lib/responsivenessModel";
@@ -37,11 +36,10 @@ export function ResponsivenessModelSummary({
     <GlassCard className="la-bench-panel la-bench-model-summary" hoverEffect={false}>
       <div className="la-bench-panel-heading">
         <div>
-          <span className="la-bench-kicker">{t("Derived from native capture")}</span>
+          <span className="la-bench-kicker">{t("Calculated from captured counters")}</span>
           <h2>{t("System responsiveness model")}</h2>
-          <p>{t("DPC CPU time plus interrupt CPU time. This is not input-to-display latency.")}</p>
+          <p>{t("Summary of measured DPC and interrupt CPU-time shares.")}</p>
         </div>
-        <Activity aria-hidden="true" className="la-bench-heading-icon" />
       </div>
       {model ? (
         <>
@@ -68,10 +66,6 @@ export function ResponsivenessModelSummary({
           </p>
         </div>
       )}
-      <div className="la-bench-model-footnote">
-        <Info aria-hidden="true" />
-        <span>{t("Only measured counter samples contribute to these values. Missing readings are not filled in.")}</span>
-      </div>
     </GlassCard>
   );
 }
@@ -92,9 +86,9 @@ export function SignalBenchModel({
     <GlassCard className="la-bench-panel la-bench-signal-deck" hoverEffect={false}>
       <div className="la-bench-deck-heading">
         <div>
-          <span className="la-bench-kicker">{t("Raised instrument deck · three independent lanes")}</span>
-          <h2>{t("Time-aligned counter surfaces")}</h2>
-          <p>{t("The 3D height is normalized separately for each signal. Original values and units remain separate.")}</p>
+          <span className="la-bench-kicker">{t("Three captured signals")}</span>
+          <h2>{t("Counter history")}</h2>
+          <p>{t("Each lane keeps its own scale and original unit.")}</p>
         </div>
         <span className="la-bench-sample-count">{visibleSamples.length} {t("recent samples")}</span>
       </div>
@@ -146,21 +140,15 @@ export function SignalBenchModel({
         </div>
       </details>
 
-      <div className="la-bench-model-method">
-        <div>
-          <span className="la-bench-kicker">{t("How the model is formed")}</span>
-          <p>{t("Service share is calculated from the collected DPC and interrupt CPU-time percentages. The summary appears after the required valid sample count.")}</p>
-        </div>
-        <div>
-          <span className="la-bench-kicker"><ShieldCheck aria-hidden="true" /> {t("What this does not say")}</span>
-          <p>{t("These are system-wide responsiveness signals. They do not measure input-to-display delay, per-driver execution time, disk paging delay, or audio-dropout risk.")}</p>
-        </div>
+      <details className="la-bench-method-details">
+        <summary>{t("How to read this view")}</summary>
+        <p>{t("The 3D height is normalized separately for each signal; it is not a shared value scale. The model summarizes collected DPC and interrupt CPU-time shares after the required valid sample count. Missing readings are excluded and valid zero activity remains zero. These system-wide counters do not identify per-driver execution time.")}</p>
         {model && (
           <div className="la-bench-method-count">
             {t("Model built from")} {model.sampleCount} {t("valid samples")}.
           </div>
         )}
-      </div>
+      </details>
     </GlassCard>
   );
 }
