@@ -22,6 +22,46 @@ export interface SignalLanePoint {
   normalizedY: number;
 }
 
+export interface ScreenPoint {
+  x: number;
+  y: number;
+}
+
+/**
+ * Returns the closest projected point inside a CSS-pixel hit radius.
+ * The projector can skip points clipped out of the camera view.
+ */
+export function findNearestProjectedPointIndex(
+  count: number,
+  cursorX: number,
+  cursorY: number,
+  hitRadius: number,
+  projectPoint: (index: number, result: ScreenPoint) => boolean,
+): number {
+  if (count <= 0 || hitRadius < 0) return -1;
+
+  const result = { x: 0, y: 0 };
+  const radiusSquared = hitRadius * hitRadius;
+  let closestIndex = -1;
+  let closestDistanceSquared = radiusSquared;
+
+  for (let index = 0; index < count; index += 1) {
+    if (!projectPoint(index, result)) continue;
+    const dx = result.x - cursorX;
+    const dy = result.y - cursorY;
+    const distanceSquared = dx * dx + dy * dy;
+    if (
+      distanceSquared <= radiusSquared &&
+      (closestIndex === -1 || distanceSquared < closestDistanceSquared)
+    ) {
+      closestIndex = index;
+      closestDistanceSquared = distanceSquared;
+    }
+  }
+
+  return closestIndex;
+}
+
 /**
  * Converts measured values to a 3D display height independently per lane.
  * Raw values and timestamps are carried through unchanged for inspection.

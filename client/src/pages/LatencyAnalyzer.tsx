@@ -248,7 +248,6 @@ export default function LatencyAnalyzer() {
     <AppLayout noPageAnimation immersiveContent>
         <div className="la-signal-bench">
         <header className="la-bench-intro">
-          <div className="la-bench-kicker">{t("Diagnostics / Windows performance")}</div>
           <h1><Timer aria-hidden="true" />{t("Latency Analyzer")}</h1>
           <p>{t("Windows PerfOS · system-wide DPC and interrupt CPU time, plus total page faults/sec.")}</p>
           <div className="la-bench-measure-boundary">

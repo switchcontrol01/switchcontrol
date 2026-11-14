@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { calculateResponsivenessModel } from "../../lib/responsivenessModel";
-import { buildSignalLanePoints } from "./signal-bench-data";
+import { buildSignalLanePoints, findNearestProjectedPointIndex } from "./signal-bench-data";
 
 const capturedSamples = [
   { ts: 1_000, elapsed: 0, dpcPct: 2, intrPct: 5, pageFaultsSec: 0 },
@@ -28,6 +28,30 @@ test("keeps measured values and timestamps while normalizing each lane separatel
 
 test("returns no plotted point for an empty native capture", () => {
   assert.deepEqual(buildSignalLanePoints([], "dpc"), []);
+});
+
+test("finds the nearest graph point within an expanded 20px hover radius", () => {
+  const points = [{ x: 50, y: 50 }, { x: 75, y: 50 }, { x: 100, y: 50 }];
+  const nearest = findNearestProjectedPointIndex(points.length, 61, 50, 20, (index, result) => {
+    result.x = points[index].x;
+    result.y = points[index].y;
+    return true;
+  });
+  assert.equal(nearest, 0);
+
+  const edge = findNearestProjectedPointIndex(1, 95, 50, 20, (_index, result) => {
+    result.x = 75;
+    result.y = 50;
+    return true;
+  });
+  assert.equal(edge, 0, "The edge of the 20px radius is included");
+
+  const outside = findNearestProjectedPointIndex(points.length, 121, 50, 20, (index, result) => {
+    result.x = points[index].x;
+    result.y = points[index].y;
+    return true;
+  });
+  assert.equal(outside, -1, "Points beyond the hover radius are not selected");
 });
 
 test("fractional native percentages produce distinct heights without fabricated motion", () => {

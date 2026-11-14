@@ -15,3 +15,17 @@ type = "unspecified"
 title = "SwitchControl 1.2.7 storage telemetry fix"
 description = "Rebuilt Windows package with disk-counter validation and PowerShell fallback for Storage Activity, plus the previous startup and route-loading fixes. Extract and launch SwitchControl.exe."
 logical_id = "9765ac00-d404-4fc7-bc1e-8c01ca6c297b"
+
+[[outputs]]
+id = "BLPAVyg_WJPKZn0x8lPY9"
+uri = "file://generated-artifacts/driver-fluid-glass/sweep-entry.png"
+type = "image"
+title = "Mid-sweep motherboard preview"
+description = "Frozen midpoint of the 1.5-second sweep, captured with the real Driver Intelligence component and motherboard artwork. Test fixture uses sample evidence, not a live Windows scan."
+logical_id = "f203018d-3406-48d5-8a4e-de7c9cca1f0b"
+content_hash = "sha256:83a0334eed21e10cf2e4b0aa76dfcfe5a5d24e4dae0b603d3a1e8248b209ddef"
+size = 1021855
+mtime_ms = 1794633581844
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:20da9dc7-9988-4432-83bd-5765a46af4bd/f203018d-3406-48d5-8a4e-de7c9cca1f0b/5146f846-adc5-4169-89a4-df3b5966e84a"
+storage_version_token = "1794633777141243"
+content_type = "image/png"

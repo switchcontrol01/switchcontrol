@@ -133,6 +133,8 @@ export function DriverBoardInspector({
 }: DriverBoardInspectorProps) {
   const { t } = useTranslation();
   const [selectedKind, setSelectedKind] = useState<ComponentKind>("gpu");
+  const [boardImageReady, setBoardImageReady] = useState(false);
+  const [boardSweepId, setBoardSweepId] = useState(1);
   const metricsReflection = useGlassReflection<HTMLDivElement>();
   const boardReflection = useGlassReflection<HTMLDivElement>();
   const inspectorReflection = useGlassReflection<HTMLAsideElement>();
@@ -144,6 +146,11 @@ export function DriverBoardInspector({
   const actionable = components.filter(c => c.health === "outdated" || c.health === "critical").length;
   const value = ready && score ? Math.max(0, Math.min(100, score.overall)) : null;
   const headline = value === null ? t("Awaiting scan") : value >= 85 ? t("Good foundation") : value >= 65 ? t("Review your results") : t("Needs attention");
+  const boardImageSrc = `${import.meta.env.BASE_URL}images/driver-intel/aorus-ice-holographic-render.png`;
+  const startScan = () => {
+    setBoardSweepId((id) => id + 1);
+    onScan();
+  };
 
   return (
     <>
@@ -154,7 +161,7 @@ export function DriverBoardInspector({
         </div>
         <div className="di-top-actions">
           <span className="di-scan-state" aria-live="polite"><i className={scanning ? "is-scanning" : ""} />{scanning ? t("Scanning…") : scannedLabel}</span>
-          <button className="di-button" onClick={onScan} disabled={scanning} data-testid="button-rescan"><RefreshCw size={15} className={scanning ? "di-spin" : ""} />{t(scanning ? "Scanning…" : ready ? "Rescan" : "Scan system")}</button>
+          <button className="di-button" onClick={startScan} disabled={scanning} data-testid="button-rescan"><RefreshCw size={15} className={scanning ? "di-spin" : ""} />{t(scanning ? "Scanning…" : ready ? "Rescan" : "Scan system")}</button>
           <button className="di-back" onClick={onBack} data-testid="button-back-dashboard" aria-label={t("Back to Dashboard")} title={t("Back to Dashboard")}><ArrowLeft size={19} /></button>
         </div>
       </header>
@@ -172,14 +179,24 @@ export function DriverBoardInspector({
         </div>
       </section>
 
-      {error && <div className="di-notice di-error" role="alert">{error} <button onClick={onScan} disabled={scanning}>{t("Retry")}</button></div>}
+      {error && <div className="di-notice di-error" role="alert">{error} <button onClick={startScan} disabled={scanning}>{t("Retry")}</button></div>}
       <section className="di-workbench" aria-label={t("Motherboard component inspector")} aria-busy={scanning}>
-        <div className={`di-board-stage di-glass-reflect ${scanning ? "is-scanning" : ""}`} ref={boardReflection.ref} onPointerEnter={boardReflection.onPointerEnter} onPointerMove={boardReflection.onPointerMove} onPointerLeave={boardReflection.onPointerLeave}>
+        <div className="di-board-stage di-glass-reflect" ref={boardReflection.ref} onPointerEnter={boardReflection.onPointerEnter} onPointerMove={boardReflection.onPointerMove} onPointerLeave={boardReflection.onPointerLeave}>
           <span className="di-glass-sheen" aria-hidden="true" />
           <div className="di-stage-head"><div><span className="di-label">{t("COMPONENT INSPECTOR")}</span><h3>X870E AORUS PRO ICE</h3></div><span className="di-manufacturer"><i /> GIGABYTE</span></div>
           <div className="di-board-viewport">
             <div className="di-board-art">
-              <img src={`${import.meta.env.BASE_URL}images/driver-intel/aorus-ice-holographic-render.png`} alt={t("X870E AORUS PRO ICE motherboard, white and silver.")} fetchPriority="high" decoding="async" draggable={false} />
+              <img src={boardImageSrc} alt={t("X870E AORUS PRO ICE motherboard, white and silver.")} fetchPriority="high" decoding="async" draggable={false} onLoad={() => setBoardImageReady(true)} />
+              {boardImageReady && (
+                <span
+                  key={boardSweepId}
+                  className="di-board-sun-sweep"
+                  data-testid="motherboard-light-sweep"
+                  data-sweep-id={boardSweepId}
+                  style={{ "--di-board-mask": `url("${boardImageSrc}")` } as CSSProperties}
+                  aria-hidden="true"
+                />
+              )}
               {ordered.map(component => {
                 const point = HOTSPOTS[component.kind];
                 if (!point) return null;
@@ -188,7 +205,6 @@ export function DriverBoardInspector({
                   <span className="di-node"><i /></span><span className="di-callout-line" aria-hidden="true" /><span className="di-callout-label"><b>{t(component.title)}</b><small>{t(status.label)}</small></span>
                 </button>;
               })}
-              {scanning && <div className="di-sweep" aria-hidden="true" />}
             </div>
           </div>
           {scanning && <div className="di-progress" role="status"><span data-testid="text-scan-step">{stepLabel}</span><progress max={100} value={progress} aria-label={stepLabel} /></div>}
@@ -206,7 +222,7 @@ export function DriverBoardInspector({
             <div className="di-safety"><Eye size={16} /><span>{t("SwitchControl identifies official sources. It never installs a driver silently.")}</span></div>
             <button className="di-button di-detail-button" onClick={() => onDetails(selected)} data-testid="button-driver-details">{t("Details & official sources")}<ChevronRight size={15} /></button>
             <button className="di-next" onClick={() => setSelectedKind(ordered[(ordered.indexOf(selected) + 1) % ordered.length].kind)} data-testid="button-driver-next">{t("Inspect next component")}<ChevronRight size={16} /></button>
-          </> : <div className="di-empty" role="status"><Cpu size={30} /><h3>{t(scanning ? "Detecting your components…" : "Your hardware, explained.")}</h3><p>{t(scanning ? "Results will appear as the scan completes." : "Run a scan to inspect your system and its driver evidence.")}</p>{!scanning && <button className="di-button" onClick={onScan}>{t("Scan system")}</button>}</div>}
+          </> : <div className="di-empty" role="status"><Cpu size={30} /><h3>{t(scanning ? "Detecting your components…" : "Your hardware, explained.")}</h3><p>{t(scanning ? "Results will appear as the scan completes." : "Run a scan to inspect your system and its driver evidence.")}</p>{!scanning && <button className="di-button" onClick={startScan}>{t("Scan system")}</button>}</div>}
           </div>
         </aside>
       </section>

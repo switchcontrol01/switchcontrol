@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { RotateCcw } from "lucide-react";
 import type { ResponsivenessModelSample } from "@/lib/responsivenessModel";
 import { useTranslation } from "@/lib/i18n";
-import { buildSignalLanePoints, SIGNAL_LANES, type SignalMetricKey } from "./signal-bench-data";
+import { buildSignalLanePoints, findNearestProjectedPointIndex, SIGNAL_LANES, type SignalMetricKey } from "./signal-bench-data";
 
 type MetricKey = SignalMetricKey;
 export type SignalSelection = { sampleIndex: number; metric: MetricKey; sampleTs: number } | null;
@@ -260,24 +260,49 @@ function ThreeSignalDeck({
     observer.observe(canvas);
     resize();
 
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
     let pointerDown: { x: number; y: number } | null = null;
     let dragged = false;
+    const projectedPoint = new THREE.Vector3();
+    const hitRadius = 20;
 
     const intersect = (event: PointerEvent) => {
       const bounds = canvas.getBoundingClientRect();
-      pointer.set(
-        ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
-        -((event.clientY - bounds.top) / bounds.height) * 2 + 1,
+      const sampleCount = samplesRef.current.length;
+      if (!bounds.width || !bounds.height || !sampleCount) return null;
+
+      root.updateWorldMatrix(true, false);
+      camera.updateWorldMatrix(true, false);
+      const pointCount = pointLanes.reduce((total, lane) => total + lane.mesh.count, 0);
+      const closestIndex = findNearestProjectedPointIndex(
+        pointCount,
+        event.clientX - bounds.left,
+        event.clientY - bounds.top,
+        hitRadius,
+        (index, screenPoint) => {
+          const laneIndex = Math.floor(index / sampleCount);
+          const sampleIndex = index % sampleCount;
+          const lane = pointLanes[laneIndex];
+          const position = lane?.mesh.userData.positions[sampleIndex] as [number, number, number] | undefined;
+          if (!position) return false;
+
+          projectedPoint
+            .set(position[0], position[1], position[2])
+            .applyMatrix4(root.matrixWorld)
+            .project(camera);
+          if (projectedPoint.z < -1 || projectedPoint.z > 1) return false;
+
+          screenPoint.x = ((projectedPoint.x + 1) * bounds.width) / 2;
+          screenPoint.y = ((1 - projectedPoint.y) * bounds.height) / 2;
+          return Number.isFinite(screenPoint.x) && Number.isFinite(screenPoint.y);
+        },
       );
-      raycaster.setFromCamera(pointer, camera);
-      const hit = raycaster.intersectObjects(pointLanes.map((lane) => lane.mesh), false)[0];
-      const lane = hit?.object as THREE.InstancedMesh | undefined;
-      if (!hit || !lane || hit.instanceId == null) return null;
-      const sample = samplesRef.current[hit.instanceId];
+
+      if (closestIndex < 0) return null;
+      const lane = pointLanes[Math.floor(closestIndex / sampleCount)];
+      const sampleIndex = closestIndex % sampleCount;
+      const sample = samplesRef.current[sampleIndex];
       if (!sample) return null;
-      return { sampleIndex: hit.instanceId, metric: lane.userData.metric as MetricKey, sampleTs: sample.ts };
+      return { sampleIndex, metric: lane.key, sampleTs: sample.ts };
     };
 
     const updatePointerSelection = (event: PointerEvent) => {

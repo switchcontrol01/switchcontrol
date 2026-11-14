@@ -70,6 +70,11 @@ driver/firmware versions against a server-maintained cloud DB.
   pointer interaction; the page should settle when idle, with no perpetual render loop.
   **Why:** the user said the page felt static but the app must not compete with games
   for GPU/CPU when it is not in use.
+- The board gets one 1.5-second sun streak from top left to bottom right on page entry
+  and once per explicit rescan, clipped to the actual motherboard PNG.
+  **Why:** the user requested a clean sunlight sweep, not a permanent scan animation.
+  **How to apply:** never replay it for hotspot or card selection; keep the source
+  image and its alpha shape aligned.
 - Respect reduced-motion preferences, and use the central `html.app-light-mode` CSS
   class to remove decorative blur and animation; do not add per-component Light Mode
   branches or timers.
