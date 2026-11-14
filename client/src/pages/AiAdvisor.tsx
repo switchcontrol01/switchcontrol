@@ -20,6 +20,8 @@ import { useAiChatStore } from "@/lib/ai-chat-store";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { getUserFriendlyError } from "@/lib/api";
 import { cloudApiPost } from "@/lib/cloud-api";
+import { getAiUnavailable } from "@/lib/ai-availability";
+import { useAiAvailability } from "@/hooks/useAiAvailability";
 import { useAuth } from "@/hooks/use-auth";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useLiveTelemetryValues } from "@/hooks/useLiveTelemetry";
@@ -927,6 +929,7 @@ function SuggestedPrompts({ onSelect, disabled }: { onSelect: (p: string) => voi
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function AiAdvisor() {
+  const aiUnavailable = useAiAvailability();
   const { t } = useTranslation();
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
@@ -1719,6 +1722,8 @@ export default function AiAdvisor() {
     const messageContent = trimmed || (imgData ? "Please analyze this image." : "");
     if (!isPremium) { openUpgradeModal('AI Advisor'); return; }
     if (!messageContent || loading || isStreaming) return;
+    // One persistent notice, not a new error bubble or request on every click.
+    if (getAiUnavailable()) return;
 
     if (!isOnline) {
       setMessages(prev => [...prev, {
@@ -1777,9 +1782,10 @@ export default function AiAdvisor() {
 
     const chatHistory = messagesRef.current
       .filter(m => m.id !== "welcome" && m.role !== "system" && !m.isThinking)
+      .slice(-7)
       .map(m => ({
         role: m.role,
-        content: m.structured ? structuredToText(m.structured) : m.content,
+        content: (m.structured ? structuredToText(m.structured) : m.content).slice(0, 2000),
         ...(m.structured ? { structured: m.structured } : {}),
       }));
     chatHistory.push({ role: "user", content: messageContent });
@@ -2155,6 +2161,13 @@ export default function AiAdvisor() {
         return;
       }
 
+      if (getAiUnavailable()) {
+        setMessages(prev => prev.filter(m => m.id !== assistantId));
+        setLoading(false);
+        setIsStreaming(false);
+        inputRef.current?.focus();
+        return;
+      }
       const displayMsg = getUserFriendlyError(err);
       setMessages(prev => prev
         .filter(m => m.id !== assistantId)
@@ -2506,6 +2519,11 @@ export default function AiAdvisor() {
             }}
           >
 
+            {aiUnavailable && (
+              <div role="status" data-testid="ai-unavailable-notice" className="mb-3 rounded-xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+                {aiUnavailable.message}
+              </div>
+            )}
             {/* Messages */}
             <div
               ref={scrollContainerRef}
@@ -2627,7 +2645,7 @@ export default function AiAdvisor() {
               <Button
                 type="submit"
                 size="sm"
-                disabled={(!input.trim() && !attachedImage) || isBusy || !isOnline}
+                disabled={(!input.trim() && !attachedImage) || isBusy || !isOnline || !!aiUnavailable}
                 className="h-8 w-8 p-0 rounded-xl bg-primary/20 hover:bg-primary/30 text-primary border-0 disabled:opacity-30"
                 data-testid="button-send-message"
                 title={!isOnline ? t("Offline, cannot send") : undefined}

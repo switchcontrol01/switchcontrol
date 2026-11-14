@@ -1,6 +1,7 @@
 import express, { Router, Request, Response, RequestHandler } from "express";
 import { z } from "zod";
 import OpenAI from "openai";
+import { createAiClient, sendAiFailure } from "../lib/aiService";
 import { requireJwt } from "../middleware/requireCloudAuth";
 import { securityLimiter } from "../middleware/rateLimiter";
 import { generateRecommendations } from "../security/recommendations";
@@ -27,10 +28,8 @@ securityRouter.use(securityLimiter);
 // Helper: get OpenAI client
 // ---------------------------------------------------------------------------
 
-function getOpenAI(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw Object.assign(new Error("AI service unavailable"), { _cloudConfigError: true });
-  return new OpenAI({ apiKey });
+function getOpenAI(user?: string): OpenAI {
+  return createAiClient("security.image", user);
 }
 
 // ---------------------------------------------------------------------------
@@ -195,10 +194,9 @@ securityRouter.post("/image-analysis", requireJwt, requirePremium, async (req: R
 
   let openai: OpenAI;
   try {
-    openai = getOpenAI();
-  } catch {
-    console.error(`[Security:image] OPENAI_API_KEY missing`);
-    return res.status(503).json({ error: "AI service is temporarily unavailable." });
+    openai = getOpenAI(cloudUser?.id);
+  } catch (error) {
+    return sendAiFailure(res, error);
   }
 
   const systemPrompt = `You are SwitchControl System Integrity Analyzer — an expert in Windows security posture, gaming performance optimization, and system configuration. You analyze screenshots to identify security issues, performance problems, and actionable improvements.
@@ -279,17 +277,7 @@ RULES:
     console.log(`[Security:image] OK | user=${cloudUser?.id} | findings=${result.findings.length}`);
     return res.json(result);
   } catch (error: any) {
-    const status = error?.status;
-    // A 401 from OpenAI means the API key is invalid — that's a server
-    // misconfiguration, not a transient failure. Log it as critical so it
-    // surfaces immediately in monitoring.
-    if (status === 401) {
-      console.error(`[Security:image] CRITICAL — OpenAI API key rejected (401) | user=${cloudUser?.id}`);
-      return res.status(503).json({ error: "AI service is temporarily unavailable." });
-    }
-    console.error(`[Security:image] ERROR | user=${cloudUser?.id} | status=${status} | ${error?.message}`);
-    if (status === 429) return res.status(429).json({ error: "Rate limit reached. Please wait a moment." });
-    return res.status(500).json({ error: "Failed to analyze image. Please try again." });
+    return sendAiFailure(res, error);
   }
 });
 

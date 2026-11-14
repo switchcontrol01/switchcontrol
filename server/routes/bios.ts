@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import OpenAI from "openai";
+import { createAiClient, sendAiFailure } from "../lib/aiService";
 import crypto from "crypto";
 
 const biosRouter = Router();
@@ -35,12 +36,8 @@ const inFlightScans = new Map<string, Promise<any>>();
 // Helper: get OpenAI client (OPENAI_API_KEY lives on cloud server only)
 // ---------------------------------------------------------------------------
 
-function getOpenAI(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw Object.assign(new Error("AI service unavailable"), { _cloudConfigError: true });
-  }
-  return new OpenAI({ apiKey });
+function getOpenAI(feature: string, user?: string): OpenAI {
+  return createAiClient(feature, user);
 }
 
 // ---------------------------------------------------------------------------
@@ -136,10 +133,9 @@ biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
 
   let openai: OpenAI;
   try {
-    openai = getOpenAI();
-  } catch {
-    console.error(`[BIOS:photo-scan:${requestId}] OPENAI_API_KEY missing on cloud server`);
-    return res.status(503).json({ error: "AI service is temporarily unavailable." });
+    openai = getOpenAI("bios.photo", cloudUser?.id);
+  } catch (error) {
+    return sendAiFailure(res, error);
   }
 
   const scanPromise = (async () => {
@@ -263,10 +259,7 @@ biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
       return res.json({ detections, settingsFound: detections.length, analysisTimeMs: duration, imagesProcessed: images.length });
 
     } catch (err: any) {
-      const status = err?.status;
-      console.error(`[BIOS:photo-scan:${requestId}] ERROR | user=${cloudUser?.id} | status=${status} | ${err?.message || "unknown"}`);
-      if (status === 429) return res.status(429).json({ error: "Rate limit reached. Please wait a moment." });
-      return res.status(500).json({ error: "Photo analysis failed. Please try again." });
+      return sendAiFailure(res, err);
     }
   })();
 
@@ -397,10 +390,9 @@ biosRouter.post("/explain", async (req: Request, res: Response) => {
 
   let openai: OpenAI;
   try {
-    openai = getOpenAI();
-  } catch {
-    console.error(`[BIOS:explain:${requestId}] OPENAI_API_KEY missing on cloud server`);
-    return res.status(503).json({ error: "AI service is temporarily unavailable." });
+    openai = getOpenAI("bios.explain", cloudUser?.id);
+  } catch (error) {
+    return sendAiFailure(res, error);
   }
 
   try {
@@ -488,10 +480,7 @@ ${detections.map(d => `- ${d.settingId}: ${d.detectedValue || "unknown"} (${d.st
     });
 
   } catch (err: any) {
-    const status = err?.status;
-    console.error(`[BIOS:explain:${requestId}] ERROR | user=${cloudUser?.id} | status=${status} | ${err?.message || "unknown"}`);
-    if (status === 429) return res.status(429).json({ error: "Rate limit reached. Please wait a moment." });
-    return res.status(500).json({ error: "Firmware explanation failed. Please try again." });
+    return sendAiFailure(res, err);
   }
 });
 

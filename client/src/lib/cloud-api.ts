@@ -1,6 +1,8 @@
 import { useAuthStore, safeGetJwt } from "./auth-store";
 import { ApiError } from "./api";
 import { getCloudUserFacingError } from "./network-errors";
+import { isBillableAiPath, shouldRetryCloudPost } from "@shared/aiRequestPolicy";
+import { getAiUnavailable, rememberAiUnavailable } from "./ai-availability";
 
 const isElectron =
   typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
@@ -127,6 +129,14 @@ export async function cloudApiPost<T = any>(
   body?: unknown,
   options?: CloudRequestOptions
 ): Promise<T> {
+  const unavailable = isBillableAiPath(path) ? getAiUnavailable() : null;
+  if (unavailable) {
+    const error = new ApiError(503, unavailable.message);
+    error.code = unavailable.code;
+    error.retryable = false;
+    error.retryAfterSeconds = Math.max(1, Math.ceil((unavailable.until - Date.now()) / 1000));
+    throw error;
+  }
   if (typeof navigator !== "undefined" && !navigator.onLine) {
     console.warn(`[CloudAPI] Blocked (offline) | POST ${path}`);
     throw new ApiError(0, "You are offline. Please check your connection.");
@@ -150,7 +160,7 @@ export async function cloudApiPost<T = any>(
       const normalized = getCloudUserFacingError(err);
       console.error(`[CloudAPI] ${normalized.kind} | POST ${path}`, err);
 
-      if (attemptNum === 1 && normalized.retryable) {
+      if (shouldRetryCloudPost(path, attemptNum, 0, normalized.retryable)) {
         console.warn(`[CloudAPI] Network error on attempt 1, retrying in ${RETRY_DELAY_MS}ms...`);
         await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
         return attempt(2);
@@ -161,10 +171,12 @@ export async function cloudApiPost<T = any>(
 
     if (!res.ok) {
       let rawMsg = `Request failed (${res.status})`;
+      let failure: { code?: string; retryable?: boolean; retryAfterSeconds?: number } = {};
       try {
         const data = await res.json();
         if (data.error) rawMsg = data.error;
         else if (data.message) rawMsg = data.message;
+        if (isBillableAiPath(path) && typeof data.code === "string" && /^AI_/.test(data.code)) failure = data;
       } catch {}
 
       // JWT refresh-before-fail: if the cloud says 401, try silently reissuing
@@ -188,13 +200,20 @@ export async function cloudApiPost<T = any>(
       const normalized = getCloudUserFacingError(new Error(rawMsg), res.status);
       console.error(`[CloudAPI] HTTP ${res.status} | POST ${path} | ${normalized.userMessage}`);
 
-      if (attemptNum === 1 && res.status >= 500) {
+      if (failure.retryable !== false && shouldRetryCloudPost(path, attemptNum, res.status, true)) {
         console.warn(`[CloudAPI] Server error (${res.status}) on attempt 1, retrying in ${RETRY_DELAY_MS}ms...`);
         await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
         return attempt(2);
       }
 
-      throw new ApiError(res.status, normalized.userMessage);
+      const error = new ApiError(res.status, failure.code ? rawMsg : normalized.userMessage);
+      if (failure.code) {
+        error.code = failure.code;
+        error.retryable = failure.retryable;
+        error.retryAfterSeconds = failure.retryAfterSeconds;
+        rememberAiUnavailable(error.code, error.message, error.retryAfterSeconds);
+      }
+      throw error;
     }
 
     console.log(`[CloudAPI] OK | POST ${path} | status=${res.status}`);

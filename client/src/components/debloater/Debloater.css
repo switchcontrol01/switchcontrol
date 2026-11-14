@@ -312,12 +312,17 @@
   box-shadow: var(--scd-shadow-1);
 }
 .debloater-installed > div:first-child h3 { color: #29383b !important; }
-.debloater-installed > div:nth-child(2) > div {
+.debloater-page .debloater-installed-stat,
+.debloater-page .debloater-installed-no-results {
+  color: #263438 !important;
   border-color: rgba(61,80,78,.18) !important;
   background: radial-gradient(ellipse at 8% 0%, rgba(117,168,162,.18), transparent 60%),
-    linear-gradient(145deg, #fbf9f0, #e9e9df) !important;
+    linear-gradient(145deg, #fbf9f0, #e9e9df) #f3f2e9 !important;
   box-shadow: var(--scd-shadow-1);
 }
+.debloater-installed-stat .text-blue-400 { color: #315b75 !important; }
+.debloater-installed-stat .text-amber-400 { color: #795113 !important; }
+.debloater-installed-no-results .text-primary { color: #286c70 !important; }
 .debloater-installed input, .debloater-installed select { color: #334247 !important; }
 .debloater-installed [data-testid="input-search-apps"],
 .debloater-installed-sort,
@@ -390,11 +395,13 @@
 .debloater-dialog-root, .debloater-progress-root, .debloater-scan-root {
   color: #2d3a3c !important; background: rgba(18,27,29,.66) !important;
 }
-.debloater-confirm-card, .debloater-progress-card, .debloater-scan-card {
+.debloater-dialog-root .debloater-confirm-card,
+.debloater-progress-root .debloater-progress-card,
+.debloater-scan-root .debloater-scan-card {
   color: #2b383b !important; border: 1px solid rgba(63,83,82,.25) !important; border-radius: 20px !important;
   background: radial-gradient(ellipse at 11% 0%, rgba(104,161,162,.2), transparent 49%),
     radial-gradient(ellipse at 95% 100%, rgba(211,195,161,.2), transparent 42%),
-    linear-gradient(145deg, #fbf9f1, #e9e8de) !important;
+    linear-gradient(145deg, #fbf9f1, #e9e8de) #f3f2e9 !important;
   box-shadow: var(--scd-shadow-3) !important;
 }
 .debloater-confirm-card h3, .debloater-progress-card h3,
@@ -424,6 +431,61 @@
 }
 .debloater-progress-card .text-cyan-400, .debloater-progress-card .text-cyan-500 { color: #286c70 !important; }
 .debloater-progress-card .text-blue-400 { color: #315b75 !important; }
+
+/* Shared dark-app controls must carry a paired light foreground and surface.
+   Exact utility tokens cover outline/secondary/ghost controls as well as the
+   explicit hooks; scope includes body-portaled dialogs, never other pages. */
+:is(.debloater-page, .debloater-dialog-root, .debloater-progress-root, .debloater-scan-root)
+  :is(.debloater-control-secondary, button[class~="bg-[#21262D]"], button[class~="hover:bg-[#21262D]"], button[class~="hover:bg-[#2A313A]"]) {
+  color: #334247 !important;
+  background: #f3f2e9 !important;
+  border-color: #a4b6b1 !important;
+}
+:is(.debloater-page, .debloater-dialog-root, .debloater-progress-root, .debloater-scan-root)
+  :is(.debloater-control-secondary, button[class~="bg-[#21262D]"], button[class~="hover:bg-[#21262D]"], button[class~="hover:bg-[#2A313A]"]):hover:not(:disabled) {
+  color: #203d40 !important;
+  background: #dce8e0 !important;
+  border-color: #6c928c !important;
+}
+:is(.debloater-page, .debloater-dialog-root, .debloater-progress-root, .debloater-scan-root)
+  .debloater-uninstall-trigger:hover:not(:disabled) {
+  color: #87332f !important;
+  background: #f3e1db !important;
+  border-color: #c18c82 !important;
+}
+:is(.debloater-page, .debloater-dialog-root, .debloater-progress-root, .debloater-scan-root)
+  :is(.debloater-control-primary, .debloater-control-destructive, button[class~="bg-[#EF4444]"]) {
+  color: #fffdf4 !important;
+  background: #286c70 !important;
+  border-color: #286c70 !important;
+}
+:is(.debloater-page, .debloater-dialog-root, .debloater-progress-root, .debloater-scan-root)
+  :is(.debloater-control-primary):hover:not(:disabled) {
+  color: #fffdf4 !important;
+  background: #20585c !important;
+}
+:is(.debloater-page, .debloater-dialog-root, .debloater-progress-root, .debloater-scan-root)
+  :is(.debloater-control-destructive, button[class~="bg-[#EF4444]"]) {
+  background: #963d36 !important;
+  border-color: #963d36 !important;
+}
+:is(.debloater-page, .debloater-dialog-root, .debloater-progress-root, .debloater-scan-root)
+  :is(.debloater-control-destructive, button[class~="bg-[#EF4444]"]):hover:not(:disabled) {
+  color: #fffdf4 !important;
+  background: #7d302c !important;
+}
+:is(.debloater-page, .debloater-dialog-root, .debloater-progress-root, .debloater-scan-root)
+  button:disabled {
+  color: #526166 !important;
+  background: #e1e5de !important;
+  border-color: #a4b6b1 !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+  cursor: not-allowed;
+}
+.debloater-installed-row [class~="bg-[#21262D]"] {
+  background-color: #e1e5de !important;
+}
 
 /* Keyboard focus against the pale surface. */
 .debloater-page button:focus-visible, .debloater-dialog-root button:focus-visible,

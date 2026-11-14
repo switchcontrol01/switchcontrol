@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import OpenAI from "openai";
+import { createAiClient, sendAiFailure, boundedOutputTokens, compactChatHistory, compactAdvisorContext, AiServiceError, classifyAiFailure } from "../lib/aiService";
 import { stripRetiredAdvisorLinks, supportedAdvisorContext } from "../../shared/advisorNavigation";
 import crypto from "crypto";
 import { buildAdvisorServerContext } from "./advisorContext";
@@ -1293,12 +1294,8 @@ function enforceApplyContract(
 // Helper: get OpenAI client (OPENAI_API_KEY lives on cloud server only)
 // ---------------------------------------------------------------------------
 
-function getOpenAI(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw Object.assign(new Error("AI service unavailable"), { _cloudConfigError: true });
-  }
-  return new OpenAI({ apiKey });
+function getOpenAI(feature: string, user?: string): OpenAI {
+  return createAiClient(feature, user);
 }
 
 // ---------------------------------------------------------------------------
@@ -1325,6 +1322,10 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
   if (messages.length > 50) {
     return res.status(400).json({ error: "Conversation too long. Please start a new chat." });
   }
+  if (messages.some(m => !m || !["user", "assistant"].includes(m.role) ||
+      (typeof m.content !== "string" && !m.structured))) {
+    return res.status(400).json({ error: "Invalid conversation messages." });
+  }
 
   // Validate optional image payload — must be non-empty base64 string
   const hasImage = typeof imageData === "string" && imageData.length > 10;
@@ -1342,10 +1343,9 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
 
   let openai: OpenAI;
   try {
-    openai = getOpenAI();
-  } catch {
-    console.error(`[AI:chat] OPENAI_API_KEY missing on cloud server`);
-    return res.status(503).json({ error: "AI service is temporarily unavailable." });
+    openai = getOpenAI("advisor.chat", cloudUser?.id);
+  } catch (error) {
+    return sendAiFailure(res, error);
   }
 
   try {
@@ -1359,7 +1359,7 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
       console.warn(`[AI:chat:serverCtx] failed to build server context — using client context only: ${e.message}`);
     }
 
-    const contextInfo = buildChatContext(context, serverCtx);
+    const contextInfo = buildChatContext(compactAdvisorContext(context), serverCtx);
 
     // Log what tweak state the AI is receiving
     const enabledTweakIds = (context?.enabledTweaks ?? []).map((t: any) => t?.id).filter(Boolean);
@@ -1445,7 +1445,7 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
     // For image requests, always use a vision-capable model
     const visionModel = hasImage ? "gpt-4o-mini" : model;
 
-    const sliced = messages.slice(-20);
+    const sliced = compactChatHistory(messages);
 
     // Build OpenAI messages — serialize any structured assistant messages back to text for context
     type OaiMsg =
@@ -1466,10 +1466,10 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
         if (!isUser && m.structured) {
           const validatedStructured = validateChatResponse(m.structured);
           textContent = validatedStructured
-            ? structuredToHistoryText(validatedStructured).slice(0, 2000)
-            : String(m.content || "").slice(0, 2000);
+            ? structuredToHistoryText(validatedStructured).slice(0, 1200)
+            : String(m.content || "").slice(0, 1200);
         } else {
-          textContent = String(m.content || "").slice(0, 2000);
+          textContent = String(m.content || "").slice(0, isLast ? 2000 : 1200);
         }
 
         if (isLast && isUser && hasImage) {
@@ -1507,23 +1507,14 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
     try {
       const enforced = enforceApplyContract(rawContent, context, String(lastUserMsg), cloudUser?.id, resolvedTweakIds);
       finalContent = enforced.content;
-      const previewOutput = finalContent.slice(0, 150).replace(/\n/g, " ");
-      console.log(`[AI:chat] OK | user=${cloudUser?.id} | chars=${finalContent.length} | injected=${enforced.injected.length} rewritten=${enforced.rewritten} | preview="${previewOutput}${finalContent.length > 150 ? "…" : ""}"`);
+      console.log(`[AI:chat] OK | user=${cloudUser?.id} | chars=${finalContent.length} | injected=${enforced.injected.length} rewritten=${enforced.rewritten}`);
     } catch (contractErr: any) {
       console.error(`[AI:chat] enforceApplyContract threw — returning raw content | user=${cloudUser?.id} | ${contractErr?.message}`);
     }
     return res.json({ role: "assistant", content: stripRetiredAdvisorLinks(finalContent) });
 
   } catch (error: any) {
-    const status = error?.status;
-    const code = error?.code;
-    const errMsg = error?.message || "unknown";
-    console.error(`[AI:chat] ERROR | user=${cloudUser?.id} | status=${status} | code=${code} | msg="${errMsg}"`);
-    if (status === 429) return res.status(429).json({ error: "Rate limit reached. Please wait a moment." });
-    if (status === 400 && errMsg.includes("context_length")) {
-      return res.status(400).json({ error: "Conversation is too long. Please start a new chat." });
-    }
-    return res.status(500).json({ error: "Failed to get AI response. Please try again." });
+    return sendAiFailure(res, error);
   }
 });
 
@@ -1587,17 +1578,18 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
       return res.json(result);
     } catch (joinErr: any) {
       if (!res.writableEnded) {
-        return res.status(503).json({ error: "AI service error. Please try again." });
+        return sendAiFailure(res, joinErr);
       }
+      return;
     }
   }
 
   let openai: OpenAI;
   try {
-    openai = getOpenAI();
-  } catch {
+    openai = getOpenAI("advisor.advice", cloudUser?.id);
+  } catch (error) {
     console.error(`[AI:advice] OPENAI_API_KEY missing on cloud server`);
-    return res.status(503).json({ error: "AI service is temporarily unavailable." });
+    return sendAiFailure(res, error);
   }
 
   // Register the in-flight promise so parallel requests join instead of duplicate
@@ -1607,12 +1599,14 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
     resolveInflight = res;
     rejectInflight = rej;
   });
+  // The original requester may have no joiners; rejection must still be handled.
+  void inflightPromise.catch(() => {});
   inFlightRequests.set(dedupKey, inflightPromise);
   // Auto-clean after 60s max (prevents memory leak if something throws early)
   const inflight_cleanup = setTimeout(() => inFlightRequests.delete(dedupKey), 60_000);
 
   try {
-    const maxTokens = parseInt(process.env.AI_MAX_TOKENS || "1100", 10);
+    const maxTokens = boundedOutputTokens(process.env.AI_MAX_TOKENS, 1100);
 
     console.log(`[AI:advice] Calling OpenAI | user=${cloudUser?.id} | goal=${parsed.data.goal} | game=${parsed.data.game}`);
 
@@ -1628,17 +1622,17 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
     });
 
     const raw = completion.choices[0]?.message?.content;
-    if (!raw) return res.status(502).json({ error: "AI returned an empty response. Please try again." });
+    if (!raw) throw new AiServiceError(classifyAiFailure({ status: 502 }));
 
     let rawAdvice: any;
     try {
       rawAdvice = JSON.parse(raw);
     } catch {
-      return res.status(502).json({ error: "AI returned invalid format. Please try again." });
+      throw new AiServiceError(classifyAiFailure({ status: 502 }));
     }
 
     if (!rawAdvice.summary || !Array.isArray(rawAdvice.topFindings) || !Array.isArray(rawAdvice.actions)) {
-      return res.status(502).json({ error: "AI response missing required fields. Please try again." });
+      throw new AiServiceError(classifyAiFailure({ status: 502 }));
     }
 
     const severityValues = ["low", "med", "high"] as const;
@@ -1699,10 +1693,7 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
     inFlightRequests.delete(dedupKey);
     rejectInflight(error);
     const duration = Date.now() - requestStart;
-    const status = error?.status;
-    console.error(`[AI:advice] ERROR | user=${cloudUser?.id} | status=${status} | ${error?.message || "unknown"} | ${duration}ms`);
-    if (status === 429) return res.status(429).json({ error: "Rate limit reached. Please wait a moment." });
-    return res.status(500).json({ error: "Failed to get AI advice. Please try again." });
+    return sendAiFailure(res, error);
   }
 });
 

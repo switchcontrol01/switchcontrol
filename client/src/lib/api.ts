@@ -522,6 +522,9 @@ async function getDeviceId(): Promise<string | null> {
 export class ApiError extends Error {
   status: number;
   serverMessage: string;
+  code?: string;
+  retryable?: boolean;
+  retryAfterSeconds?: number;
   constructor(status: number, message: string) {
     super(message);
     this.name = 'ApiError';

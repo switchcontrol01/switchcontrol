@@ -424,13 +424,13 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
                   <Button
                     ref={closeBtnRef}
                     variant="outline"
-                    className="flex-1 h-9 text-sm"
+                    className="debloater-control-secondary flex-1 h-9 text-sm"
                     onClick={onClose}
                   >
                      {t("Close")}
                   </Button>
                   <Button
-                    className="flex-1 h-9 text-sm gap-2 bg-primary hover:bg-primary/90"
+                    className="debloater-control-primary flex-1 h-9 text-sm gap-2 bg-primary hover:bg-primary/90"
                     onClick={onViewResults}
                   >
                      {t("View Results")}

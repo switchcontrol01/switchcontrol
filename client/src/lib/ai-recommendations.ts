@@ -12,6 +12,7 @@
  */
 
 import { cloudApiPost } from "./cloud-api";
+import { ApiError } from "./api";
 import { REGISTRY } from "./tweak-registry";
 import { NETWORK_TWEAKS } from "./network-tweaks-data";
 import type { SystemIntelligenceProfile } from "@/stores/systemIntelligenceStore";
@@ -141,6 +142,7 @@ export function aiSystemSignature(sys: AiSystemPayload): string {
 // ── localStorage cache ────────────────────────────────────────────────────────
 
 const LS_KEY = "xlabs.aiTweakRecs.v1";
+const LS_FAILURE_KEY = "xlabs.aiTweakRecs.failure.v1";
 const LS_TTL_MS = 24 * 60 * 60 * 1000; // 24h — matches the server cache
 
 interface StoredAiRecs {
@@ -192,14 +194,33 @@ export async function fetchAiRecommendations(system: AiSystemPayload): Promise<A
     return cached;
   }
 
-  const data = await cloudApiPost<AiRecommendationsResult>(
-    "/tweak-intelligence/ai-recommendations",
-    { system, catalog: buildAiCatalog() },
-  );
-
-  if (!data || data.source !== "ai" || typeof data.overrides !== "object") {
-    throw new Error("Malformed AI recommendations response");
+  let failure: { sig: string; until: number; code?: string } | null = null;
+  try { failure = JSON.parse(localStorage.getItem(LS_FAILURE_KEY) || "null"); } catch {}
+  if (failure?.sig === sig && failure.until > Date.now()) {
+    const error = new ApiError(503, "AI recommendations are cooling down after a failure. Rules-based recommendations remain available.");
+    error.code = failure.code;
+    error.retryable = false;
+    error.retryAfterSeconds = Math.ceil((failure.until - Date.now()) / 1000);
+    throw error;
   }
-  writeAiRecsToStorage(sig, data);
-  return data;
+  try {
+    const data = await cloudApiPost<AiRecommendationsResult>(
+      "/tweak-intelligence/ai-recommendations",
+      { system, catalog: buildAiCatalog() },
+    );
+    if (!data || data.source !== "ai" || typeof data.overrides !== "object") {
+      throw new Error("Malformed AI recommendations response");
+    }
+    writeAiRecsToStorage(sig, data);
+    return data;
+  } catch (error) {
+    const seconds = Math.min(300, Math.max(60, error instanceof ApiError ? error.retryAfterSeconds ?? 60 : 60));
+    try {
+      localStorage.setItem(LS_FAILURE_KEY, JSON.stringify({
+        sig, until: Date.now() + seconds * 1000,
+        code: error instanceof ApiError ? error.code : undefined,
+      }));
+    } catch {}
+    throw error;
+  }
 }

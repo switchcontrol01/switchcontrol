@@ -563,7 +563,7 @@ function ConfirmDialog({
           <div className="flex gap-2">
             <Button
               variant="outline"
-              className="flex-1 h-9 text-sm"
+              className="debloater-control-secondary flex-1 h-9 text-sm"
               onClick={onCancel}
               data-testid="button-cancel-uninstall"
             >
@@ -572,7 +572,7 @@ function ConfirmDialog({
             <Button
               ref={confirmBtnRef}
               variant="destructive"
-              className="flex-1 h-9 text-sm gap-2"
+              className="debloater-control-destructive flex-1 h-9 text-sm gap-2"
               onClick={handleConfirm}
               data-testid="button-confirm-uninstall"
             >
@@ -699,7 +699,7 @@ function AppRow({
               disabled={app.isProtected || app.isSelf || !app.canUninstall}
               onClick={() => onUninstall(app)}
               className={cn(
-                "h-7 text-xs gap-1.5",
+                "debloater-control-secondary debloater-uninstall-trigger h-7 text-xs gap-1.5",
                 app.isProtected || app.isSelf
                   ? "opacity-40 cursor-not-allowed"
                   : !app.canUninstall
@@ -1078,7 +1078,7 @@ export function InstalledAppsPanel() {
           size="sm"
           onClick={runScan}
           disabled={scanning}
-          className="gap-2 h-8 text-xs"
+          className="debloater-control-secondary gap-2 h-8 text-xs"
           data-testid="button-rescan-apps"
         >
           <RefreshCw className={cn("size-3.5", scanning && "animate-spin")} />
@@ -1095,7 +1095,7 @@ export function InstalledAppsPanel() {
             { label: "Microsoft",     value: stats.microsoft,     color: "text-blue-400" },
             { label: "Third-party",   value: stats.thirdParty,    color: "text-amber-400" },
           ].map(s => (
-            <GlassCard key={s.label} className="p-3">
+            <GlassCard key={s.label} className="debloater-installed-stat p-3">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50">{t(s.label)}</p>
               <p className={cn("text-xl font-bold tabular-nums mt-0.5", s.color)}>{s.value}</p>
             </GlassCard>
@@ -1183,7 +1183,7 @@ export function InstalledAppsPanel() {
       {!scanning && (
         <>
           {filtered.length === 0 ? (
-            <GlassCard className="p-8 text-center space-y-2">
+            <GlassCard className="debloater-installed-no-results p-8 text-center space-y-2">
               <Search className="size-7 text-muted-foreground/30 mx-auto" />
                <p className="text-sm text-muted-foreground">{t("No apps match the current filters")}</p>
               <button onClick={() => { setSearch(""); setFilter("all"); }}

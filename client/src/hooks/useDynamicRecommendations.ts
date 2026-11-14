@@ -92,7 +92,7 @@ async function _fetchOverrides(): Promise<FetchedData> {
 let _aiData: AiRecommendationsResult | null = null;
 let _aiSig: string | null = null;
 let _aiPromise: Promise<AiRecommendationsResult | null> | null = null;
-const _aiFailedSigs = new Set<string>(); // don't hammer the LLM after a failure
+const _aiFailedSigs = new Map<string, number>(); // cooldown, not a permanent session lockout
 
 async function _fetchAi(payload: AiSystemPayload, sig: string): Promise<AiRecommendationsResult | null> {
   if (_aiData && _aiSig === sig) return _aiData;
@@ -109,7 +109,8 @@ async function _fetchAi(payload: AiSystemPayload, sig: string): Promise<AiRecomm
       // Expected for: 403 (not premium — race with entitlement refresh),
       // 503 (no OpenAI key on this host), offline. Rules remain active.
       console.warn("[AiRecs] Falling back to rule-based:", err?.message ?? err);
-      _aiFailedSigs.add(sig);
+      _aiFailedSigs.set(sig, Date.now() + Math.min(300, Math.max(60, err?.retryAfterSeconds ?? 60)) * 1000);
+      while (_aiFailedSigs.size > 100) _aiFailedSigs.delete(_aiFailedSigs.keys().next().value!);
       _aiPromise = null;
       return null;
     });
@@ -218,7 +219,7 @@ export function useDynamicRecommendations(): {
       setAi(_aiData);
       return;
     }
-    if (_aiFailedSigs.has(sysSig)) return;
+    if ((_aiFailedSigs.get(sysSig) ?? 0) > Date.now()) return;
 
     let cancelled = false;
     setAiLoading(true);

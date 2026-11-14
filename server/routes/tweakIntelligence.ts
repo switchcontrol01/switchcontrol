@@ -1,6 +1,6 @@
 import { Router, type Request, type Response, type RequestHandler } from "express";
 import { z } from "zod";
-import OpenAI from "openai";
+import { createAiClient, sendAiFailure, AiServiceError, AiFailureCooldown, boundedOutputTokens } from "../lib/aiService";
 import crypto from "crypto";
 import { getCachedSnapshot } from "../lib/telemetry";
 import { getCachedSystemIntelligence, getSystemIntelligence } from "../lib/systemIntelligence";
@@ -679,9 +679,11 @@ interface AiRecsResponse {
 const AI_RECS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
 const aiRecsCache = new Map<string, { data: AiRecsResponse; expiresAt: number }>();
 const aiRecsInFlight = new Map<string, Promise<AiRecsResponse>>();
+const aiRecsFailures = new AiFailureCooldown();
 
 function aiRecsCacheKey(system: AiSystem, catalog: AiCatalog): string {
   const normalized = JSON.stringify({
+    model: process.env.AI_MODEL || "gpt-4o-mini",
     // Round RAM to the nearest GB so minor reporting jitter doesn't bust the cache.
     s: { ...system, ramGb: Math.round(system.ramGb) },
     c: {
@@ -812,20 +814,14 @@ async function runAiRecommendations(
   catalog: AiCatalog,
   userId: string,
 ): Promise<AiRecsResponse> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    const err: any = new Error("AI recommendations unavailable on this server.");
-    err.statusCode = 503;
-    throw err;
-  }
   const model = process.env.AI_MODEL || "gpt-4o-mini";
-  const openai = new OpenAI({ apiKey });
+  const openai = createAiClient("tweaks.recommendations", userId);
 
   const t0 = Date.now();
   const completion = await openai.chat.completions.create({
     model,
     temperature: 0.2,
-    max_tokens: parseInt(process.env.AI_RECS_MAX_TOKENS || "1600", 10),
+    max_tokens: boundedOutputTokens(process.env.AI_RECS_MAX_TOKENS, 1600),
     response_format: { type: "json_object" },
     messages: [{ role: "user", content: buildAiRecsPrompt(system, catalog) }],
   });
@@ -876,10 +872,15 @@ router.post(
       console.log(`[TweakIntel:ai] cache hit | user=${cloudUser.id}`);
       return res.json(cached.data);
     }
+    const failed = aiRecsFailures.get(key);
+    if (failed) return sendAiFailure(res, new AiServiceError(failed));
 
     let promise = aiRecsInFlight.get(key);
     if (!promise) {
-      promise = runAiRecommendations(system, catalog, cloudUser.id).finally(() => {
+      promise = runAiRecommendations(system, catalog, cloudUser.id).catch(error => {
+        aiRecsFailures.set(key, error);
+        throw error;
+      }).finally(() => {
         aiRecsInFlight.delete(key);
       });
       aiRecsInFlight.set(key, promise);
@@ -901,9 +902,7 @@ router.post(
       }
       return res.json(data);
     } catch (e: any) {
-      const status = e?.statusCode === 503 ? 503 : 502;
-      console.error(`[TweakIntel:ai] ERROR | user=${cloudUser.id} | ${e?.message}`);
-      return res.status(status).json({ error: e?.statusCode === 503 ? e.message : "AI recommendations failed." });
+      return sendAiFailure(res, e);
     }
   },
 );
