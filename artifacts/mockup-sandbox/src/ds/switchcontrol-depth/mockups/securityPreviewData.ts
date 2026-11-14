@@ -95,13 +95,7 @@ export const auditPreviewItems = [
   { category: "Persistence", label: "Scheduled task review", state: "unknown", value: "Unknown", note: "Requires the Windows desktop audit" },
 ] satisfies ReadonlyArray<{ category: string; label: string; state: SecurityEvidenceState; value: string; note: string }>;
 
-export const securityHistoryPreview = [
-  { label: "Earlier", score: 92, coverage: 100 },
-  { label: "Earlier", score: 90, coverage: 100 },
-  { label: "Earlier", score: 89, coverage: 100 },
-  { label: "Earlier", score: 88, coverage: 100 },
-  { label: "Current sample", score: 87, coverage: 100 },
-] as const;
+export const securityHistoryPreview = [] as const;
 
 export const securityPreviewDisclosure =
   "Illustrative preview data only. No Windows scan or security action was run from this design.";

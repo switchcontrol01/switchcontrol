@@ -1872,6 +1872,17 @@ export function isFullSystemIntelligenceAvailable(): boolean {
 }
 
 /**
+ * Reports whether an automatic deep-profile poll should keep waiting.
+ * A deep collection is only started by the launch gate or an explicit refresh;
+ * polling must not create another expensive WMI collection on its own.
+ */
+export function getSystemIntelligenceDeepCollectionStatus(): "ready" | "collecting" | "deferred" {
+  if (_fullProfileAvailable) return "ready";
+  if (_collectingPromise) return "collecting";
+  return "deferred";
+}
+
+/**
  * Returns cached profile synchronously (may be null if not yet collected).
  */
 export function getCachedSystemIntelligence(): SystemIntelligenceProfile | null {

@@ -135,7 +135,6 @@ export function Current() {
   const [scanStatus, setScanStatus] = useState<ScanStatus>("idle");
   const [scanKind, setScanKind] = useState<ScanKind | null>(null);
   const [scanStage, setScanStage] = useState(0);
-  const [history, setHistory] = useState<number[]>([]);
   const timer = useRef<number[]>([]);
   const canceled = useRef(false);
   const beginScan = (kind: ScanKind) => {
@@ -150,7 +149,6 @@ export function Current() {
       setScanStage(i);
       if (i === count) {
         setScanStatus("complete");
-        setHistory(prev => [...prev, kind === "quick" ? 68 : 76]);
       }
     }, i * 850));
   };
@@ -161,7 +159,7 @@ export function Current() {
     <aside className="fixed inset-y-0 left-0 z-10 hidden w-64 flex-col border-r border-white/[0.035] bg-[#14181D] px-4 py-6 md:flex">
       <div className="mb-8 flex items-center gap-2 px-2"><span className="flex size-8 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-300"><Zap className="size-4" /></span><span className="text-lg font-semibold tracking-tight">SwitchControl</span></div>
       <nav className="flex-1 space-y-1">{sidebarLinks.map(({ label, Icon }) => <div key={label} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${label === "Security" ? "bg-cyan-400/10 text-[#E6EAF0]" : "text-muted-foreground"}`}><Icon className={`size-4 ${label === "Security" ? "text-[#33E0FF]" : ""}`} />{label}</div>)}</nav>
-      <div className="border-t border-white/5 px-2 pt-4"><div className="flex items-center gap-3"><div className="flex size-9 items-center justify-center rounded-full bg-[#2A313A] text-xs text-[#A0A8B3]">US</div><div><p className="text-sm font-medium">User</p><p className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Free</p></div></div><p className="mt-3 text-[10px] text-muted-foreground/40">SwitchControl</p></div>
+       <div className="border-t border-white/5 px-2 pt-4"><div className="flex items-center gap-3"><div className="flex size-9 items-center justify-center rounded-full bg-[#2A313A] text-xs text-[#A0A8B3]">ST</div><div><p className="text-sm font-medium">SwitchTech</p><p className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Premium</p></div></div><p className="mt-3 text-[10px] text-muted-foreground/40">SwitchControl</p></div>
     </aside>
     <main className="min-h-screen px-5 py-7 md:ml-64 md:px-8">
       <div className="mx-auto max-w-7xl">
@@ -180,7 +178,7 @@ export function Current() {
         <div className="flex gap-0 overflow-x-auto border-b border-[#2A313A]">
           {tabs.map(({ id, label, Icon }) => <button key={id} onClick={() => setActiveTab(id)} data-testid={`tab-${id}`} className={`-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${activeTab === id ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground/80"}`}><Icon className="size-3.5" />{label}</button>)}
         </div>
-        <div className="pt-5">{activeTab === "overview" && <Overview scanned={scanStatus === "complete"} kind={scanKind} history={history} />}{activeTab === "protection" && <Protection preview={scanStatus === "complete"} />}{activeTab === "startup" && <Startup />}{activeTab === "processes" && <Processes />}{activeTab === "audit" && <Audit />}</div>
+         <div className="pt-5">{activeTab === "overview" && <Overview scanned={scanStatus === "complete"} kind={scanKind} history={[]} />}{activeTab === "protection" && <Protection preview={scanStatus === "complete"} />}{activeTab === "startup" && <Startup />}{activeTab === "processes" && <Processes />}{activeTab === "audit" && <Audit />}</div>
       </div>
     </main>
   </div>;

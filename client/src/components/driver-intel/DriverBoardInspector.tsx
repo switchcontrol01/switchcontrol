@@ -134,7 +134,7 @@ export function DriverBoardInspector({
   const { t } = useTranslation();
   const [selectedKind, setSelectedKind] = useState<ComponentKind>("gpu");
   const [boardImageReady, setBoardImageReady] = useState(false);
-  const [boardSweepId, setBoardSweepId] = useState(1);
+  const [boardSweepId, setBoardSweepId] = useState(0);
   const metricsReflection = useGlassReflection<HTMLDivElement>();
   const boardReflection = useGlassReflection<HTMLDivElement>();
   const inspectorReflection = useGlassReflection<HTMLAsideElement>();
@@ -147,6 +147,12 @@ export function DriverBoardInspector({
   const value = ready && score ? Math.max(0, Math.min(100, score.overall)) : null;
   const headline = value === null ? t("Awaiting scan") : value >= 85 ? t("Good foundation") : value >= 65 ? t("Review your results") : t("Needs attention");
   const boardImageSrc = `${import.meta.env.BASE_URL}images/driver-intel/aorus-ice-holographic-render.png`;
+  useEffect(() => {
+    // Let the 580ms page entrance finish before the one-shot board highlight.
+    // Rescan remains an immediate, separate trigger in startScan().
+    const timer = window.setTimeout(() => setBoardSweepId(1), 650);
+    return () => window.clearTimeout(timer);
+  }, []);
   const startScan = () => {
     setBoardSweepId((id) => id + 1);
     onScan();
@@ -187,7 +193,7 @@ export function DriverBoardInspector({
           <div className="di-board-viewport">
             <div className="di-board-art">
               <img src={boardImageSrc} alt={t("X870E AORUS PRO ICE motherboard, white and silver.")} fetchPriority="high" decoding="async" draggable={false} onLoad={() => setBoardImageReady(true)} />
-              {boardImageReady && (
+              {boardImageReady && boardSweepId > 0 && (
                 <span
                   key={boardSweepId}
                   className="di-board-sun-sweep"

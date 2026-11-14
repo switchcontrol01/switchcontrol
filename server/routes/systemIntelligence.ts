@@ -12,7 +12,7 @@ import {
   getSystemIntelligence,
   getFastSystemIntelligence,
   getAdvancedIdentity,
-  isFullSystemIntelligenceAvailable,
+  getSystemIntelligenceDeepCollectionStatus,
   triggerBackgroundCollection,
   invalidateSystemIntelligence,
 } from "../lib/systemIntelligence";
@@ -81,11 +81,17 @@ router.post("/trigger-background", requireJwt, backgroundTriggerRateLimit, (_req
 
 router.get("/profile", requireJwt, async (_req, res) => {
   try {
-    // The browser's post-identity polling explicitly asks for the complete
-    // inventory. Normal callers retain the launch-gated cached behavior.
-    const profile = await getSystemIntelligence(
-      _req.query.deep === "1" && !isFullSystemIntelligenceAvailable(),
-    );
+    // Automatic deep-profile polling only observes work started by the launch
+    // gate. It must not force a WMI scan on every app launch; the Refresh
+    // endpoint below remains the explicit way to request a full collection.
+    const deepPoll = _req.query.deep === "1";
+    const profile = await getSystemIntelligence(false);
+    if (deepPoll) {
+      res.setHeader(
+        "X-System-Intelligence-Deep-Status",
+        getSystemIntelligenceDeepCollectionStatus(),
+      );
+    }
     res.json(profile);
   } catch (err: any) {
     console.error("[SysIntelligence] /profile error:", err?.message);

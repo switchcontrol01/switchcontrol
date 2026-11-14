@@ -228,9 +228,9 @@ export const useSystemIntelligenceStore = create<SystemIntelligenceState>((set, 
       set({ profile: data, activeHardwareProfile: data, initSpecsFetched: true, loading: false, fetchedAt: Date.now() });
       console.log(`[SysIntelligence] Fast profile loaded | MB=${data.baseboard.model} | CPU=${data.cpu.brand}`);
 
-      // Start checking for the deep profile shortly after the fast profile.
-      // The server deduplicates the expensive collection, while the short
-      // client timeout prevents one slow WMI request from holding the UI open.
+      // Observe a deep profile shortly after the fast profile, but never start
+      // an expensive collection from this polling loop. The server's launch
+      // gate or an explicit Refresh is responsible for starting deep work.
       if (!forceRefresh && !_fullCollectScheduled) {
         _fullCollectScheduled = true;
         const pollFullProfile = async (attempt: number) => {
@@ -244,6 +244,15 @@ export const useSystemIntelligenceStore = create<SystemIntelligenceState>((set, 
             if (!fullRes.ok) return;
             const fullData = await fullRes.json() as SystemIntelligenceProfile;
             if (generation !== _fetchGeneration) return;
+            const deepStatus = fullRes.headers.get("X-System-Intelligence-Deep-Status");
+            if (deepStatus === "deferred") {
+              console.info("[SysIntelligence] Deep profile deferred by launch cadence");
+              return;
+            }
+            if (deepStatus === "collecting") {
+              window.setTimeout(() => { void pollFullProfile(attempt + 1); }, 3_000);
+              return;
+            }
             set({ profile: fullData, activeHardwareProfile: fullData, fetchedAt: Date.now() });
             console.log(`[SysIntelligence] Full profile upgrade | MB=${fullData.baseboard.model} | platform.secureBoot=${fullData.platform.secureBootEnabled}`);
             return;
