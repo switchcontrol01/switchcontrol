@@ -761,10 +761,7 @@ function ElectronAppContent() {
         }
 
         const sliderResult = result?.sliders ?? result;
-        const restored = [
-          ...(Array.isArray(sliderResult?.reapplied) ? sliderResult.reapplied : []),
-          ...(Array.isArray(sliderResult?.unchanged) ? sliderResult.unchanged : []),
-        ];
+        const restored = Array.isArray(sliderResult?.reapplied) ? sliderResult.reapplied : [];
         for (const item of restored) {
           if (typeof item?.tweakId !== "string" || typeof item?.value !== "number") continue;
           setSliderValue(item.tweakId, item.value);
@@ -781,39 +778,20 @@ function ElectronAppContent() {
               detail: { enabled },
             }));
           }
-          if (item.tweakId === "win32-priority-sep") {
-            setTweak("tune-priority", item.value === 38);
-          }
         }
 
-        const restoredToggleIds = [
-          ...(result?.toggles?.reapplied ?? []),
-          ...(result?.toggles?.unchanged ?? []),
-        ]
+        const restoredToggleIds = (result?.toggles?.reapplied ?? [])
           .map((item: any) => item?.tweakId)
           .filter((id: unknown): id is string => typeof id === "string");
-        const restoredNetworkIds = [
-          ...(result?.network?.reapplied ?? []),
-          ...(result?.network?.unchanged ?? []),
-        ]
+        const restoredNetworkIds = (result?.network?.reapplied ?? [])
           .map((item: any) => item?.tweakId)
           .filter((id: unknown): id is string => typeof id === "string");
         for (const id of restoredToggleIds) {
           setTweak(id, true);
           if (id === "tcp-no-delay") setTweak("tcp-nagle", true);
           if (id === "timer-res") {
-            setSliderValue("timer-resolution-slider", 5);
-            window.dispatchEvent(new CustomEvent("sc:slider-state-changed", {
-              detail: { sliderId: "timer-resolution-slider", value: 5 },
-            }));
             window.dispatchEvent(new CustomEvent("sc:timer-toggle-state-changed", {
               detail: { enabled: true },
-            }));
-          }
-          if (id === "tune-priority") {
-            setSliderValue("win32-priority-sep", 38);
-            window.dispatchEvent(new CustomEvent("sc:slider-state-changed", {
-              detail: { sliderId: "win32-priority-sep", value: 38 },
             }));
           }
         }
@@ -850,9 +828,9 @@ function ElectronAppContent() {
         console.info(`[OwnedTweakRecovery] Startup check complete restored=${restoredCount} skipped=${skipped.length} failed=${failures}.`);
         if (restoredCount > 0 || adminSkipped > 0 || failures > 0) {
           const details = [
-            restored.length > 0 ? `Confirmed ${restored.length} saved slider value${restored.length === 1 ? "" : "s"}.` : "",
-            restoredToggleIds.length > 0 ? `Confirmed ${restoredToggleIds.length} saved tweak toggle${restoredToggleIds.length === 1 ? "" : "s"}.` : "",
-            restoredNetworkIds.length > 0 ? `Confirmed ${restoredNetworkIds.length} saved network setting${restoredNetworkIds.length === 1 ? "" : "s"}.` : "",
+            restored.length > 0 ? `Restored ${restored.length} saved slider value${restored.length === 1 ? "" : "s"}.` : "",
+            restoredToggleIds.length > 0 ? `Restored ${restoredToggleIds.length} saved tweak toggle${restoredToggleIds.length === 1 ? "" : "s"}.` : "",
+            restoredNetworkIds.length > 0 ? `Restored ${restoredNetworkIds.length} saved network setting${restoredNetworkIds.length === 1 ? "" : "s"}.` : "",
             adminSkipped > 0 ? `${adminSkipped} system-wide value${adminSkipped === 1 ? "" : "s"} need SwitchControl to run as administrator.` : "",
             failures > 0 ? `${failures} saved setting${failures === 1 ? "" : "s"} could not be verified; check SwitchControl's logs and Windows permissions.` : "",
           ].filter(Boolean).join(" ");
@@ -966,18 +944,8 @@ function ElectronAppContent() {
           setTweak(id, true);
           if (id === "tcp-no-delay") setTweak("tcp-nagle", true);
           if (id === "timer-res") {
-            setSliderValue("timer-resolution-slider", 5);
-            window.dispatchEvent(new CustomEvent("sc:slider-state-changed", {
-              detail: { sliderId: "timer-resolution-slider", value: 5 },
-            }));
             window.dispatchEvent(new CustomEvent("sc:timer-toggle-state-changed", {
               detail: { enabled: true },
-            }));
-          }
-          if (id === "tune-priority") {
-            setSliderValue("win32-priority-sep", 38);
-            window.dispatchEvent(new CustomEvent("sc:slider-state-changed", {
-              detail: { sliderId: "win32-priority-sep", value: 38 },
             }));
           }
         }
@@ -1000,13 +968,10 @@ function ElectronAppContent() {
         if (failures.length > 0) {
           console.warn(`[OwnedTweakRecovery] ${failures.length} saved targets remain unrecovered.`);
         }
-        const reappliedCount = (result.sliders?.reapplied?.length ?? 0) +
-          (result.toggles?.reapplied?.length ?? 0) +
-          (result.network?.reapplied?.length ?? 0);
-        if (reappliedCount > 0) {
+        if (restoredSliders.length + restoredToggleIds.length + restoredNetworkIds.length > 0) {
           console.info(
-            `[OwnedTweakRecovery] repaired sliders=${result.sliders?.reapplied?.length ?? 0} ` +
-            `toggles=${result.toggles?.reapplied?.length ?? 0} network=${result.network?.reapplied?.length ?? 0}`,
+            `[OwnedTweakRecovery] restored sliders=${restoredSliders.length} ` +
+            `toggles=${restoredToggleIds.length} network=${restoredNetworkIds.length}`,
           );
         }
       } catch (error) {

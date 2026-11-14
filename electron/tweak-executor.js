@@ -6,7 +6,10 @@ const psLimiter = require('./powershell-limiter');
 const { _withPsSemaphore, runElevated } = require('./ps-shared');
 const { TWEAK_STATE_FILE, TWEAK_LOG_FILE, WINDOWED_GAMES_BACKUP_FILE, VENDOR_UPDATERS_BACKUP_FILE, TEAMS_STARTUP_BACKUP_FILE, TIMER_RESOLUTION_STATE_FILE } = require('./user-data-paths');
 const { reconcileOwnedTargets } = require('./owned-tweak-recovery');
-const { recordOwnershipAfterAction } = require('./ownership-actions');
+const {
+  recordOwnershipAfterAction,
+  clearOwnedTweakTarget: clearOwnedTargetRecord,
+} = require('./ownership-actions');
 
 // Backup-path constants used inside PowerShell double-quoted strings.
 // PowerShell does NOT treat backslash as an escape character in double-quoted
@@ -960,7 +963,7 @@ const ADMIN_TWEAKS = {
     requiresReboot: true,
     apply:  `New-Item -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -Force -EA SilentlyContinue | Out-Null; Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -EA SilentlyContinue | ForEach-Object { Set-ItemProperty -Path $_.PSPath -Name "TcpNoDelay" -Value 1 -Type DWord -Force -EA SilentlyContinue; Set-ItemProperty -Path $_.PSPath -Name "TcpAckFrequency" -Value 1 -Type DWord -Force -EA SilentlyContinue }`,
     revert: `Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -EA SilentlyContinue | ForEach-Object { Remove-ItemProperty -Path $_.PSPath -Name "TcpNoDelay" -EA SilentlyContinue; Remove-ItemProperty -Path $_.PSPath -Name "TcpAckFrequency" -EA SilentlyContinue }`,
-    check:  `$items = @(Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -EA SilentlyContinue); if ($items.Count -eq 0) { $false; exit }; $all = $true; foreach ($i in $items) { $p = Get-ItemProperty -Path $i.PSPath -Name "TcpNoDelay","TcpAckFrequency" -EA SilentlyContinue; if ($null -eq $p -or $p.TcpNoDelay -ne 1 -or $p.TcpAckFrequency -ne 1) { $all = $false } }; $all`,
+    check:  `$script:found = $false; Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -EA SilentlyContinue | ForEach-Object { $d = Get-ItemProperty -Path $_.PSPath -Name "TcpNoDelay" -EA SilentlyContinue; if ($d -and $d.TcpNoDelay -eq 1) { $script:found = $true } }; $script:found`,
   },
   'optimize-windowed-games': {
     name: 'Optimizations for Windowed Games',
@@ -3140,6 +3143,14 @@ function getTweakInfo() {
 
 const ownershipStore = require('./ownership-store');
 
+function clearOwnedTweakTarget(tweakId) {
+  if (typeof tweakId !== 'string' || !isKnownTweak(tweakId)) {
+    return { ok: false, error: 'Unknown tweak target.' };
+  }
+  const scopeKey = ownershipStore.buildScopeKey('tweak', tweakId);
+  return clearOwnedTargetRecord(ownershipStore, scopeKey);
+}
+
 /**
  * Execute a tweak AND maintain the ownership / baseline record.
  *
@@ -3194,14 +3205,6 @@ const PERSISTENT_REAPPLY_TWEAK_IDS = [
   'timer-res',
   'tune-priority',
 ];
-
-function clearOwnedTweakTarget(tweakId) {
-  if (typeof tweakId !== 'string' || !ALL_TWEAKS[tweakId]) return false;
-  const scopeKey = ownershipStore.buildScopeKey('tweak', tweakId);
-  if (!ownershipStore.getOwnershipRecord(scopeKey)) return true;
-  ownershipStore.recordRevert(scopeKey);
-  return true;
-}
 
 /**
  * Reapply the named persistent toggle settings only for explicit app-owned
@@ -3305,8 +3308,8 @@ function saveVerifiedState(stateMap) {
 module.exports = {
   executeTweak,
   executeTweakWithOwnership,
-  reapplyOwnedPersistentTweaks,
   clearOwnedTweakTarget,
+  reapplyOwnedPersistentTweaks,
   PERSISTENT_REAPPLY_TWEAK_IDS,
   checkTweakStatus,
   batchCheckAllTweaks,

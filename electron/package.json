@@ -48,6 +48,8 @@
       "power-plan-manager.js",
       "premium-revert-pipeline.js",
       "ownership-store.js",
+      "owned-tweak-recovery.js",
+      "ownership-actions.js",
       "backend-launcher.js",
       "config-store.js",
       "critical-logger.js",

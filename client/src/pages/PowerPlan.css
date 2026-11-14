@@ -4,6 +4,31 @@
  * ink navy #101728, cyan #16bfd2, and four restrained mineral profile colors.
  * All rules are deliberately scoped to this page.
  */
+@keyframes power-plan-entry-fade-blur {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.power-plan-entry-motion {
+  animation: power-plan-entry-fade-blur 500ms cubic-bezier(.22, 1, .36, 1) both;
+}
+
+html.sc-reduced-motion .power-plan-entry-motion {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .power-plan-entry-motion {
+    animation: none !important;
+  }
+}
+
 .power-plan-page {
   --pp-ink: #101728;
   --pp-ink-deep: #0b1220;

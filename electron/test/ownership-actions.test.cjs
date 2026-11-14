@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { recordOwnershipAfterAction } = require("../ownership-actions");
+const { recordOwnershipAfterAction, clearOwnedTweakTarget } = require("../ownership-actions");
 
 function fakeStore() {
   const calls = [];
@@ -40,4 +40,32 @@ test("failed and unverified reverts retain ownership", () => {
     assert.equal(recordOwnershipAfterAction(store, "tweak:test", "revert", result), false);
     assert.deepEqual(store.calls, []);
   }
+});
+
+test("slider takeover releases only an active legacy-toggle claim", () => {
+  const calls = [];
+  const record = { appliedByApp: true, baselineCaptured: true, previousValue: false };
+  const store = {
+    getOwnershipRecord: key => {
+      calls.push(["read", key]);
+      return record;
+    },
+    recordRevert: key => calls.push(["revert", key]),
+  };
+
+  assert.deepEqual(clearOwnedTweakTarget(store, "tweak:tune-priority"), { ok: true, cleared: true });
+  assert.deepEqual(calls, [
+    ["read", "tweak:tune-priority"],
+    ["revert", "tweak:tune-priority"],
+  ]);
+  assert.equal(record.baselineCaptured, true);
+  assert.equal(record.previousValue, false);
+
+  calls.length = 0;
+  store.getOwnershipRecord = key => {
+    calls.push(["read", key]);
+    return { appliedByApp: false };
+  };
+  assert.deepEqual(clearOwnedTweakTarget(store, "tweak:tune-priority"), { ok: true, cleared: false });
+  assert.deepEqual(calls, [["read", "tweak:tune-priority"]]);
 });

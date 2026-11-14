@@ -1,4 +1,4 @@
-  import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, type AnimationEvent } from "react";
   import { logHistory } from "@/lib/logHistory";
   import { AppLayout } from "@/components/layout/AppLayout";
   import { useLiveTelemetryValues } from "@/hooks/useLiveTelemetry";
@@ -28,7 +28,7 @@ import { DebloaterIntensityCards, DebloaterOverviewStats } from "@/components/de
   import "@/components/debloater/Debloater.css";
 import { DebloaterNotebookFrame } from "@/components/debloater/DebloaterNotebookFrame";
   
-  const DEBLOATER_ENTRY_FADE_SEEN_KEY = "switchcontrol-debloater-entry-fade-seen-v1";
+  const DEBLOATER_ENTRY_FADE_SEEN_KEY = "switchcontrol-debloater-entry-fade-seen-v2";
 
   function hasSeenDebloaterEntryFade() {
     if (typeof window === "undefined") return true;
@@ -796,14 +796,25 @@ import { DebloaterNotebookFrame } from "@/components/debloater/DebloaterNotebook
     const { telemetry: liveTel } = useLiveTelemetryValues();
     const [firstVisitFade] = useState(() => !hasSeenDebloaterEntryFade());
 
-    useEffect(() => {
-      if (!firstVisitFade) return;
+    const handleEntryFadeEnd = useCallback((event: AnimationEvent<HTMLElement>) => {
+      if (event.animationName !== "debloater-first-visit-fade-in") return;
       try {
         window.localStorage.setItem(DEBLOATER_ENTRY_FADE_SEEN_KEY, "true");
       } catch {
         // Storage can be unavailable in restricted browser contexts.
       }
-    }, [firstVisitFade]);
+    }, []);
+
+    useEffect(() => {
+      // Reduced-motion users skip the animation, so record the visit without
+      // leaving a stale first-visit flag behind.
+      if (!firstVisitFade || !prefersReducedMotion) return;
+      try {
+        window.localStorage.setItem(DEBLOATER_ENTRY_FADE_SEEN_KEY, "true");
+      } catch {
+        // Storage can be unavailable in restricted browser contexts.
+      }
+    }, [firstVisitFade, prefersReducedMotion]);
   
     const [mainTab, setMainTab] = useState<"curated" | "installed">("curated");
   
@@ -1590,6 +1601,7 @@ import { DebloaterNotebookFrame } from "@/components/debloater/DebloaterNotebook
       <AppLayout>
         <DebloaterNotebookFrame
           className={firstVisitFade && !prefersReducedMotion ? "debloater-first-visit-fade" : undefined}
+          onAnimationEnd={handleEntryFadeEnd}
         >
         <Reveal className="debloater-page sc-page-blur-in space-y-5">
   

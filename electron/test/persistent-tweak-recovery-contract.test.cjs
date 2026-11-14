@@ -16,6 +16,7 @@ test("the named persistent Windows toggles are connected to owned-target recover
     "tune-priority",
   ]);
   assert.equal(typeof tweakExecutor.reapplyOwnedPersistentTweaks, "function");
+  assert.equal(typeof tweakExecutor.clearOwnedTweakTarget, "function");
   assert.equal(typeof networkExecutor.reapplyOwnedNetworkTweaks, "function");
 });
 
@@ -52,6 +53,8 @@ test("owned target recovery is periodic and refreshes network UI state", () => {
   assert.match(app, /setTweak\("tune-priority", item\.value === 38\)/);
   assert.match(app, /sc:net-reconciled/);
   assert.match(main, /ipcMain\.handle\('tweak:reconcileOwnedTargets'/);
+  assert.match(main, /reapplyOwnedPersistentTweaks\(premiumActive, \{\s*skipIds: skipToggleIds/);
+  assert.match(read("electron/tweak-executor.js"), /skipIds\.has\(id\)/);
 });
 
 test("Nagle uses one canonical owner for both network and Tweaks surfaces", () => {
@@ -60,7 +63,8 @@ test("Nagle uses one canonical owner for both network and Tweaks surfaces", () =
   assert.match(main, /tweakExecutor\.executeTweakWithOwnership\('tcp-no-delay', ipcAction/);
   assert.match(executor, /record\.itemId === 'tcp-nagle'/);
   assert.match(executor, /recordRevert\(legacyNagle\.scopeKey\)/);
-  assert.match(executor, /TcpNoDelay","TcpAckFrequency/);
+  assert.match(executor, /Name "TcpNoDelay"/);
+  assert.match(executor, /Name "TcpAckFrequency"/);
 });
 
 test("priority and timer controls use one persisted target across toggle and slider surfaces", () => {

@@ -1256,13 +1256,14 @@ export default function PowerPlan() {
 
   return (
     <AppLayout>
-      <motion.div
-        className={cn("power-plan-page space-y-6 relative", !isPremium && "opacity-60 blur-[2px]")}
-        variants={pageTransition}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-      >
+      <div className={!prefersReducedMotion ? "power-plan-entry-motion" : undefined}>
+        <motion.div
+          className={cn("power-plan-page space-y-6 relative", !isPremium && "opacity-60 blur-[2px]")}
+          variants={pageTransition}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+        >
 
         {/* ── Non-Electron banner ──────────────────────────────────────────── */}
         {!isElectron && (
@@ -1906,7 +1907,8 @@ export default function PowerPlan() {
             </Collapsible>
           </TabsContent>
         </Tabs>
-      </motion.div>
+        </motion.div>
+      </div>
 
       {/* Info modal */}
       <AnimatePresence>

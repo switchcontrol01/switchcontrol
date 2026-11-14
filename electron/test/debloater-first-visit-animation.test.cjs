@@ -13,12 +13,22 @@ const styles = fs.readFileSync(
 );
 
 test("Debloater entry fade is persisted after the first visit", () => {
-  assert.match(page, /DEBLOATER_ENTRY_FADE_SEEN_KEY = "switchcontrol-debloater-entry-fade-seen-v1"/);
+  assert.match(page, /DEBLOATER_ENTRY_FADE_SEEN_KEY = "switchcontrol-debloater-entry-fade-seen-v2"/);
   assert.match(page, /const \[firstVisitFade\] = useState\(\(\) => !hasSeenDebloaterEntryFade\(\)\)/);
-  assert.match(page, /localStorage\.setItem\(DEBLOATER_ENTRY_FADE_SEEN_KEY, "true"\)/);
+  const handlerStart = page.indexOf("const handleEntryFadeEnd");
+  const handlerEnd = page.indexOf("}, []);", handlerStart);
+  assert.ok(handlerStart >= 0 && handlerEnd > handlerStart, "fade completion handler should exist");
+  const handler = page.slice(handlerStart, handlerEnd);
+  assert.match(handler, /event\.animationName !== "debloater-first-visit-fade-in"/);
+  assert.match(handler, /localStorage\.setItem\(DEBLOATER_ENTRY_FADE_SEEN_KEY, "true"\)/);
+  assert.match(page, /onAnimationEnd=\{handleEntryFadeEnd\}/);
+  assert.doesNotMatch(
+    page,
+    /useEffect\(\(\) => \{\s*if \(!firstVisitFade\) return;\s*window\.localStorage\.setItem/,
+  );
   assert.match(
     page,
-    /<DebloaterNotebookFrame\s+className=\{firstVisitFade && !prefersReducedMotion \? "debloater-first-visit-fade" : undefined\}/,
+    /<DebloaterNotebookFrame\s+className=\{firstVisitFade && !prefersReducedMotion \? "debloater-first-visit-fade" : undefined\}\s+onAnimationEnd=\{handleEntryFadeEnd\}/,
   );
 });
 

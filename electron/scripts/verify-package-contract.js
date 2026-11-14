@@ -64,6 +64,11 @@ if (!electronBuild) {
   if (!Array.isArray(electronBuild.files) || !electronBuild.files.includes('startup-entry.js')) {
     failures.push('Electron build must include startup-entry.js in its packaged files');
   }
+  for (const requiredFile of ['owned-tweak-recovery.js', 'ownership-actions.js']) {
+    if (!Array.isArray(electronBuild.files) || !electronBuild.files.includes(requiredFile)) {
+      failures.push(`Electron build must include ${requiredFile}; tweak-executor.js requires it at runtime`);
+    }
+  }
   if (electronBuild.files?.includes('process-control.js')) {
     failures.push('Retired process-control.js must not be packaged');
   }

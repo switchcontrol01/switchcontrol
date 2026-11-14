@@ -5,12 +5,18 @@ import type { ReactNode } from "react";
 export function DebloaterNotebookFrame({
   children,
   className,
+  onAnimationEnd,
 }: {
   children: ReactNode;
   className?: string;
+  onAnimationEnd?: React.AnimationEventHandler<HTMLElement>;
 }) {
   return (
-    <section className={["debloater-paper-mat", className].filter(Boolean).join(" ")} data-testid="debloater-paper-mat">
+    <section
+      className={["debloater-paper-mat", className].filter(Boolean).join(" ")}
+      data-testid="debloater-paper-mat"
+      onAnimationEnd={onAnimationEnd}
+    >
       {children}
     </section>
   );
