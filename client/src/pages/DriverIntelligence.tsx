@@ -2,7 +2,7 @@
  * Driver Intelligence production controller. The board inspector is presentation
  * only; this page retains native evidence, scan caching, access rules and actions.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "wouter";
 import { Newspaper, ShieldCheck, Sparkles } from "lucide-react";
@@ -69,6 +69,7 @@ export default function DriverIntelligence() {
   const [historyRefresh, setHistoryRefresh] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
   const [isExiting, setIsExiting] = useState(false);
+  const pendingNavigation = useRef<string | null>(null);
 
   useEffect(() => { if (!locked) void scan(); }, [locked, scan]);
   useEffect(() => () => {
@@ -116,6 +117,21 @@ export default function DriverIntelligence() {
   const displayScore = useMemo(() => dataReady ? computeHealthScore(displayComponents) : score, [dataReady, displayComponents, score]);
   const selectedComponent = displayComponents.find(c => c.kind === selected) ?? null;
   const staleDays = dbAgeDays(dbUpdatedAt);
+  const navigateAfterExit = useCallback((destination: string) => {
+    if (pendingNavigation.current) return;
+    if (prefersReducedMotion) {
+      navigate(destination);
+      return;
+    }
+    pendingNavigation.current = destination;
+    setIsExiting(true);
+  }, [navigate, prefersReducedMotion]);
+  const handleExitComplete = useCallback(() => {
+    const destination = pendingNavigation.current;
+    if (!destination) return;
+    pendingNavigation.current = null;
+    navigate(destination);
+  }, [navigate]);
 
   const recordUpdate = useCallback(async (component: DriverComponent) => {
     if (readOnly || !component.latest) return;
@@ -141,9 +157,9 @@ export default function DriverIntelligence() {
       const detail = context.map(c => `- ${c.title} (${c.device}): installed ${c.current ?? "unknown"}, latest known ${c.latest ?? "unknown"}. ${c.rationale}`).join("\n");
       sessionStorage.setItem("ai-advisor-prefill", `My Driver Intelligence results:\n${detail || "No verified update recommendation is available."}\nWhat should I prioritise and how do I proceed safely?`);
     } catch { /* Advisor navigation remains available without storage. */ }
-    navigate("/ai-advisor");
-  }, [displayComponents, navigate]);
-  const handleBack = useCallback(() => navigate("/dashboard"), [navigate]);
+    navigateAfterExit("/ai-advisor");
+  }, [displayComponents, navigateAfterExit]);
+  const handleBack = useCallback(() => navigateAfterExit("/dashboard"), [navigateAfterExit]);
 
   if (locked) return (
     <AppLayout noPageAnimation>
@@ -170,17 +186,22 @@ export default function DriverIntelligence() {
         inert={isExiting}
         initial={prefersReducedMotion ? false : "initial"}
         animate={isExiting ? "exit" : "enter"}
+        onAnimationComplete={definition => {
+          if (definition === "exit") handleExitComplete();
+        }}
         variants={{
-          initial: { y: 14, scale: 0.992 },
+          initial: { y: 14, scale: 0.992, opacity: 0 },
           enter: {
             y: 0,
             scale: 1,
-            transition: { duration: prefersReducedMotion ? 0 : 0.58, ease: [0.22, 1, 0.36, 1] },
+            opacity: 1,
+            transition: { duration: prefersReducedMotion ? 0 : 0.72, ease: [0.22, 1, 0.36, 1] },
           },
           exit: {
-            y: -8,
-            scale: 0.994,
-            transition: { duration: prefersReducedMotion ? 0 : 0.34, ease: [0.4, 0, 1, 1] },
+            y: -12,
+            scale: 0.986,
+            opacity: 0,
+            transition: { duration: prefersReducedMotion ? 0 : 0.62, ease: [0.4, 0, 1, 1] },
           },
         }}
       >

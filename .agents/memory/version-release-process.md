@@ -5,17 +5,16 @@ description: Where every version string and patch-notes copy lives, and how the 
 
 When asked to bump the app version and "update patch notes everywhere", update all of these (root `package.json` is the canonical source):
 
-- `package.json` and `electron/package.json` — must match exactly; validated by `electron/scripts/sync-version.js`.
+- `package.json`, `electron/package.json`, and the mirrored `package.json.electron` — must match; validate root/Electron parity with `electron/scripts/sync-version.js`.
+- Root `package-lock.json` and `electron/package-lock.json` root package entries must match the package versions.
 - `shared/downloadConfig.ts` — `INSTALLER_CONFIG.version`, `fileName`, `publicPath` (R2 URL embeds the version in the filename), `releasedAt`.
 - `client/public/patch-notes.json` AND `public/patch-notes.json` — two source copies, keep identical. `npm run build` copies the `public/` one into `dist/patch-notes.json`; rebuild after editing so dev/prod serve the new copy.
 - Hardcoded version display strings: `client/src/components/website/ReleaseStory.tsx` ("Version X.X.X" badge), `client/src/components/LicenseManagementModal.tsx` (`useState` fallback), `client/src/advisor/collectors/appCollector.ts` (multiple static fallback values for Electron-unavailable case).
 
 **Why:** there's no single source-of-truth constant for the version across web/electron display surfaces — it's duplicated as literal strings in several UI files, easy to miss one.
 
-**How to apply:** grep the repo for the old version string (excluding `node_modules`, `.cache`, `attached_assets`, `package-lock.json`) after editing to confirm no stragglers remain, then run `npm run build` and restart the workflow.
+**How to apply:** grep the repo for the old version string (excluding dependencies, generated output, and historical notes) after editing, validate version parity and both patch-note copies, then run `npm run build` and restart the workflow.
 
-**Actual installer build/upload is NOT done in the Replit sandbox.** `.github/workflows/release.yml` builds the Windows NSIS installer via `electron-builder` on `windows-latest` and uploads to Cloudflare R2, triggered by pushing a git tag matching `v[0-9]+.[0-9]+.[0-9]+` to GitHub. That workflow re-syncs the version from the tag itself. This Replit environment has no GitHub remote configured (only Replit's own gitsafe-backup/subrepl remotes) — pushing the release tag must happen from the user's own GitHub-connected clone/CI, not from here.
+**Cloudflare release boundary:** The user uploads the installer and updater files to Cloudflare themselves. For routine version bumps, update and verify the app and website release files only; do not request Cloudflare credentials, connect Cloudflare, or upload artifacts unless the user explicitly changes this instruction.
 
-**⚠️ After every `npm --prefix electron run release` build: manually re-upload the new installer to Cloudflare R2.** Each build produces a new `.exe` and `latest.yml` that replace the previous files. The R2 bucket is the live CDN the auto-updater reads from — if the old file stays there, users get served the stale build. This is a mandatory manual step every single release, no exceptions.
-
-**Why:** electron-builder outputs to `electron/dist/` locally but does not push to R2 automatically outside the GitHub Actions workflow. Running the release command locally regenerates the artifacts but leaves R2 stale until manually synced.
+**Why:** the user explicitly said they handle Cloudflare uploads and asked that routine release work here stop at updating the application and website code.

@@ -1,14 +1,14 @@
 {
-  "version": "1.3.4",
-  "title": "Driver Intelligence & Sign-in Update",
-  "headline": "More accurate driver checks, more reliable desktop sign-in, and safer system controls.",
-  "date": "2026-11-11",
+  "version": "1.3.5",
+  "title": "Hardware Intelligence & Latency Update",
+  "headline": "Clearer driver evidence, more useful timing analysis, and lighter system diagnostics.",
+  "date": "2026-11-14",
   "type": "patch",
   "changes": [
-    "Driver Intelligence now separates comparable driver versions from Windows device health, so working devices are not incorrectly shown as unknown.",
-    "Desktop sign-in now uses dedicated request limits and cancellable polling with backoff.",
-    "Removed the retired Process Manager and CPU C-States control while preserving existing Windows settings and recovery history.",
-    "Simplified slider cards by removing the desktop-only “Real” badge.",
-    "Fixed website sign-out to send the required security token and show an error if sign-out fails."
+    "Driver Intelligence fills the app content area with a smoother page handoff and a one-time motherboard light sweep on entry or rescan.",
+    "Latency Analyzer adds a software timing probe, more consistent counter samples, and clearer graphs; it does not claim to measure mouse-to-display latency.",
+    "System Intelligence no longer starts an expensive deep hardware scan just to check whether a profile is ready, reducing redundant startup work.",
+    "Removed predictive warning banners from Home and simplified diagnostic messaging around measured system state.",
+    "Cleaner results now better reflect verified cleanup actions and preserve safe cache-maintenance behavior."
   ]
 }
