@@ -296,38 +296,10 @@ function getTimeOfDay(): DashboardTimeOfDay {
 
 function useLiveStatus(): string {
   const { t } = useTranslation();
-  const [status, setStatus] = useState(() => t("System active"));
-  const { telemetry, status: telStatus } = useLiveTelemetryValues();
-
-  useEffect(() => {
-    if (!telemetry) {
-      setStatus(telStatus === "unavailable" ? t("Telemetry unavailable") : t("System active"));
-      return;
-    }
-    const cpu = telemetry.cpu?.usagePct ?? null;
-    const ramUsed = telemetry.ram?.usedGb ?? null;
-    const ramTotal = telemetry.ram?.totalGb ?? null;
-    // usagePct is the canonical field; load is a legacy alias some backends emit
-    const gpu = telemetry.gpu?.usagePct ?? telemetry.gpu?.load ?? null;
-    const temp = telemetry.temps?.cpu ?? null;
-
-    // Build honest status from whatever real data we have
-    const parts: string[] = [];
-    if (cpu !== null) parts.push(`CPU ${cpu.toFixed(0)}%`);
-    if (temp !== null) parts.push(`${temp.toFixed(0)}°C`);
-    if (ramUsed !== null && ramTotal !== null) {
-      parts.push(`RAM ${ramUsed.toFixed(1)}/${ramTotal.toFixed(1)}GB`);
-    } else if (ramUsed !== null) {
-      parts.push(`RAM ${ramUsed.toFixed(1)}GB`);
-    }
-    if (gpu !== null) parts.push(`GPU ${gpu.toFixed(0)}%`);
-
-    // Deduplicate: avoid a re-render when the string is identical to last frame
-    const next = parts.length > 0 ? parts.join(" · ") : t("System active");
-    setStatus(prev => (prev === next ? prev : next));
-  }, [telemetry, telStatus, t]);
-
-  return status;
+  const { status: telemetryStatus } = useLiveTelemetryValues();
+  return telemetryStatus === "unavailable"
+    ? t("Telemetry unavailable")
+    : t("System active");
 }
 
 // ── DashboardStartupGlow ──────────────────────────────────────────────────────
@@ -810,7 +782,7 @@ export default function Home() {
                 </span>
               </motion.div>
 
-              {/* Rotating live-status subtitle with crossfade */}
+              {/* Live system-status subtitle with crossfade */}
               <div className="relative h-5 mt-1.5 overflow-hidden">
                 <AnimatePresence mode="wait">
                   <motion.p
