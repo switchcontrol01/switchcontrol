@@ -1,55 +1,66 @@
+/*
+ * Power Plan reference recreation
+ * Palette and geometry sampled from the supplied SwitchControl screen:
+ * ink navy #101728, cyan #16bfd2, and four restrained mineral profile colors.
+ * All rules are deliberately scoped to this page.
+ */
 .power-plan-page {
-  --scd-ink: #101816;
-  --scd-ink-raised: #17211e;
-  --scd-surface: #1c2824;
-  --scd-surface-raised: #24312c;
-  --scd-surface-top: #2d3934;
-  --scd-line: rgba(222, 232, 220, .12);
-  --scd-line-strong: rgba(222, 232, 220, .22);
-  --scd-text: #e7ecdf;
-  --scd-text-soft: #b4c0b5;
-  --scd-text-dim: #91a096;
-  --scd-acid: #d2f36b;
-  --scd-acid-ink: #1c2810;
-  --scd-amber: #efb66a;
-  --scd-coral: #df8571;
-  --scd-blue: #82c7c0;
-  --scd-shadow-1: 0 1px 0 rgba(255,255,255,.06) inset, 0 12px 28px rgba(0,0,0,.16);
-  --scd-shadow-2: 0 1px 0 rgba(255,255,255,.075) inset, 0 24px 60px rgba(0,0,0,.30);
-  --scd-shadow-3: 0 1px 0 rgba(255,255,255,.09) inset, 0 38px 90px rgba(0,0,0,.42);
-  --scd-font-display: "Outfit", "Trebuchet MS", sans-serif;
-  --scd-font-body: "DM Sans", "Segoe UI", sans-serif;
-  --scd-font-mono: "IBM Plex Mono", "Consolas", monospace;
-  color: var(--scd-text);
-  font-family: var(--scd-font-body);
+  --pp-ink: #101728;
+  --pp-ink-deep: #0b1220;
+  --pp-surface: #111a2a;
+  --pp-line: rgba(143, 191, 204, .2);
+  --pp-text: #e5edf5;
+  --pp-muted: #a7b5c3;
+  --pp-dim: #788a9a;
+  --pp-cyan: #18bfd2;
+  --pp-red: #ed555e;
+  --pp-green: #42c896;
+  --pp-lavender: #b294d2;
+  position: relative;
+  isolation: isolate;
+  color: var(--pp-text);
+  font-family: "Segoe UI", "DM Sans", sans-serif;
+}
+
+.power-plan-page::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  inset: -14px;
+  border-radius: 12px;
+  background:
+    url("./power-plan-reference/ink-field.svg") center top / 100% 100% no-repeat,
+    radial-gradient(ellipse at 50% 14%, #17263a 0, #101728 54%, #0c1422 100%);
+  opacity: .96;
 }
 
 .power-plan-page h1,
 .power-plan-page h2,
 .power-plan-page h3 {
-  font-family: var(--scd-font-display);
+  font-family: "Segoe UI", "DM Sans", sans-serif;
 }
 
 .power-plan-page [class*="font-mono"] {
-  font-family: var(--scd-font-mono);
+  font-family: "Cascadia Code", "IBM Plex Mono", monospace;
 }
 
-.power-plan-page [class*="text-primary"] {
-  color: var(--scd-acid) !important;
-}
+.power-plan-page [class*="text-primary"] { color: var(--pp-cyan) !important; }
+.power-plan-page [class*="border-primary"] { border-color: rgba(24,191,210,.42) !important; }
 
-.power-plan-page [class*="border-primary"] {
-  border-color: rgba(210,243,107,.42) !important;
-}
-
+/* The hero is intentionally low and panoramic, with real ink artwork rather
+   than a full-screen screenshot or a smooth gradient imitation. */
 .power-plan-page .power-plan-hero {
   isolation: isolate;
-  border-color: var(--scd-line-strong);
+  min-height: 136px;
+  padding: 15px 14px 0 !important;
+  border-radius: 11px !important;
+  border-color: rgba(97, 152, 177, .3) !important;
   background:
-    radial-gradient(ellipse at 82% 6%, rgba(156, 181, 148, .18), transparent 30%),
-    radial-gradient(ellipse at 10% 110%, rgba(73, 114, 93, .22), transparent 38%),
-    linear-gradient(120deg, rgba(25, 39, 34, .98), rgba(19, 29, 27, .94) 54%, rgba(21, 31, 29, .98)) !important;
-  box-shadow: var(--scd-shadow-2), inset 0 1px 0 rgba(255,255,255,.09), inset 0 -1px 0 rgba(0,0,0,.35) !important;
+    linear-gradient(90deg, rgba(10,17,31,.48), rgba(10,17,31,.14) 54%, rgba(10,17,31,.4)),
+    url("./power-plan-reference/hero-ink.svg") center / cover no-repeat,
+    #111b2c !important;
+  box-shadow: 0 12px 30px rgba(2,8,17,.32), inset 0 1px 0 rgba(218,240,255,.08) !important;
 }
 
 .power-plan-page .power-plan-hero::before {
@@ -57,71 +68,134 @@
   position: absolute;
   z-index: -1;
   inset: 0;
+  border-radius: inherit;
   pointer-events: none;
-  opacity: .44;
   background:
-    linear-gradient(158deg, transparent 0 24%, rgba(211, 225, 201, .055) 24.2%, transparent 25.8% 47%, rgba(0, 0, 0, .12) 47.2%, transparent 51%),
-    repeating-linear-gradient(174deg, transparent 0 13px, rgba(218, 230, 213, .018) 14px, transparent 16px),
-    radial-gradient(ellipse at 62% 50%, rgba(132, 159, 128, .10), transparent 52%);
-  mix-blend-mode: screen;
+    linear-gradient(106deg, rgba(20,192,213,.08), transparent 34% 68%, rgba(57,104,156,.08)),
+    url("./power-plan-reference/paper-grain.svg") center / 280px 280px repeat;
+  opacity: .5;
 }
 
 .power-plan-page .power-plan-hero::after {
   content: "";
   position: absolute;
-  pointer-events: none;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.025), inset 0 18px 34px rgba(255,255,255,.018);
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(204,231,241,.035);
 }
 
 .power-plan-page .power-plan-hero h2 {
+  font-size: clamp(17px, 2vw, 21px) !important;
   letter-spacing: -.035em;
+}
+.power-plan-page .power-plan-hero h1 {
+  font-size: 17px !important;
+  line-height: 1.15 !important;
+}
+.power-plan-page .power-plan-hero h1 > span:first-child svg {
+  width: 16px;
+  height: 16px;
+}
+.power-plan-page .power-plan-hero h1 + p {
+  margin-top: 1px !important;
+  font-size: 9px !important;
+}
+.power-plan-page .power-plan-hero .relative.z-10 > div:first-child {
+  margin-bottom: 8px !important;
+}
+.power-plan-page .power-plan-hero .relative.z-10 > div:nth-child(2) {
+  min-height: 0 !important;
+  margin-bottom: 8px !important;
 }
 
 .power-plan-page .power-plan-hero [data-testid="button-refresh-power-state"] {
-  background: rgba(11, 19, 17, .48);
-  border-color: var(--scd-line-strong);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+  background: rgba(11,19,32,.66);
+  border-color: rgba(125,173,195,.28);
 }
-
 .power-plan-page .power-plan-hero [data-testid="button-refresh-power-state"]:hover {
-  background: rgba(210, 243, 107, .09);
-  border-color: rgba(210,243,107,.38);
+  background: rgba(24,191,210,.14);
+  border-color: rgba(24,191,210,.52);
 }
 
 .power-plan-page [role="tablist"] {
   width: fit-content;
   max-width: 100%;
-  padding: 4px;
-  border-radius: 11px;
-  background: rgba(15, 23, 20, .78) !important;
-  border-color: var(--scd-line) !important;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,.35);
-}
-
-.power-plan-page [role="tab"] {
+  height: 22px !important;
+  min-height: 22px !important;
+  padding: 3px;
+  gap: 2px;
   border-radius: 8px;
-  color: var(--scd-text-soft);
-  font-family: var(--scd-font-display);
+  background: rgba(12,19,31,.84) !important;
+  border-color: rgba(110,154,176,.22) !important;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.34);
+}
+.power-plan-page [role="tab"] {
+  height: 16px !important;
+  min-height: 16px !important;
+  padding: 3px 9px;
+  border-radius: 6px;
+  color: #a9b8c7;
+  font-family: "Segoe UI", "DM Sans", sans-serif;
+  font-size: 10px;
+}
+.power-plan-page [role="tab"] svg {
+  width: 11px;
+  height: 11px;
+}
+.power-plan-page [role="tabpanel"] {
+  margin-block-start: 8px !important;
+}
+.power-plan-page [role="tablist"] {
+  margin-block-end: 0 !important;
+}
+.power-plan-page [data-orientation="horizontal"].space-y-6 > :not(:first-child) {
+  margin-block-start: 8px !important;
+}
+.power-plan-page [data-orientation="horizontal"].space-y-6 > :not(:last-child) {
+  margin-block-end: 0 !important;
+}
+.power-plan-page.space-y-6 > :not(:first-child) {
+  margin-block-start: 9px !important;
+}
+.power-plan-page.space-y-6 > :not(:last-child) {
+  margin-block-end: 0 !important;
+}
+.power-plan-page [role="tab"][data-state="active"] {
+  color: #35d4e3 !important;
+  background: rgba(24,191,210,.13) !important;
+  box-shadow: inset 0 0 0 1px rgba(24,191,210,.2);
 }
 
-.power-plan-page [role="tab"][data-state="active"] {
-  color: var(--scd-acid) !important;
-  background: rgba(210, 243, 107, .11) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+.power-plan-page [data-testid="power-profile-grid"] {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px !important;
 }
 
 .power-plan-page [data-testid^="card-profile-"] {
+  container-type: inline-size;
+  position: relative;
   isolation: isolate;
+  min-width: 0;
   min-height: 100%;
-  border-radius: 15px !important;
-  background:
-    linear-gradient(155deg, rgba(42, 57, 50, .88), rgba(25, 37, 32, .97) 54%, rgba(20, 30, 27, .98)) !important;
-  box-shadow: var(--scd-shadow-1), inset 0 -1px 0 rgba(0,0,0,.28);
-  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+  overflow: hidden;
+  border-radius: 10px !important;
+  border-width: 1px !important;
+  background-color: #111a29 !important;
+  box-shadow: 0 6px 18px rgba(1,7,16,.25), inset 0 1px 0 rgba(224,241,248,.11);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
-
+.power-plan-page [data-testid^="card-profile-"]::before {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  pointer-events: none;
+  background-position: center;
+  background-size: cover;
+  opacity: .8;
+}
 .power-plan-page [data-testid^="card-profile-"]::after {
   content: "";
   position: absolute;
@@ -129,160 +203,191 @@
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(135deg, rgba(255,255,255,.05), transparent 28%),
-    radial-gradient(ellipse at 100% 0%, var(--profile-wash, rgba(210,243,107,.07)), transparent 48%);
+    linear-gradient(180deg, rgba(7,13,24,.24), rgba(8,14,24,.55)),
+    url("./power-plan-reference/paper-grain.svg") center / 220px 220px repeat;
+  opacity: .88;
 }
-
-.power-plan-page [data-testid="card-profile-performance"] { --profile-wash: rgba(223,133,113,.15); }
-.power-plan-page [data-testid="card-profile-balanced"] { --profile-wash: rgba(130,199,192,.14); }
-.power-plan-page [data-testid="card-profile-efficiency"] { --profile-wash: rgba(139,184,133,.14); }
-.power-plan-page [data-testid="card-profile-custom"] { --profile-wash: rgba(164,155,198,.15); }
-
+.power-plan-page [data-testid="card-profile-performance"] {
+  border-color: rgba(238,82,87,.53) !important;
+  background: linear-gradient(145deg,rgba(94,31,39,.78),rgba(28,25,37,.96) 72%) !important;
+}
+.power-plan-page [data-testid="card-profile-performance"]::before {
+  background-image: url("./power-plan-reference/profile-red.svg");
+}
+.power-plan-page [data-testid="card-profile-balanced"] {
+  border-color: rgba(23,190,215,.53) !important;
+  background: linear-gradient(145deg,rgba(16,77,98,.76),rgba(17,31,48,.97) 72%) !important;
+}
+.power-plan-page [data-testid="card-profile-balanced"]::before {
+  background-image: url("./power-plan-reference/profile-cyan.svg");
+}
+.power-plan-page [data-testid="card-profile-efficiency"] {
+  border-color: rgba(46,193,138,.51) !important;
+  background: linear-gradient(145deg,rgba(15,79,61,.78),rgba(15,34,38,.97) 72%) !important;
+}
+.power-plan-page [data-testid="card-profile-efficiency"]::before {
+  background-image: url("./power-plan-reference/profile-green.svg");
+}
+.power-plan-page [data-testid="card-profile-custom"] {
+  border-color: rgba(170,139,204,.56) !important;
+  background: linear-gradient(145deg,rgba(68,53,86,.78),rgba(28,29,46,.97) 72%) !important;
+}
+.power-plan-page [data-testid="card-profile-custom"]::before {
+  background-image: url("./power-plan-reference/profile-lavender.svg");
+}
 .power-plan-page [data-testid^="card-profile-"]:hover {
-  border-color: rgba(222,232,220,.25) !important;
-  box-shadow: var(--scd-shadow-2), inset 0 1px 0 rgba(255,255,255,.09);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(1,7,16,.36), inset 0 1px 0 rgba(224,241,248,.13);
 }
-
 .power-plan-page [data-testid^="card-profile-"] > div:first-child {
-  opacity: .72;
+  opacity: .85;
 }
-
 .power-plan-page [data-testid^="card-profile-"] h3 {
-  font-size: 1.04rem;
+  font-size: clamp(9px, 6.6cqi, 16px) !important;
+  line-height: 1.25;
   letter-spacing: -.02em;
 }
-
 .power-plan-page [data-testid^="card-profile-"] p {
-  color: var(--scd-text-soft);
+  color: #c0cbd5;
+  font-size: clamp(7.5px, 5.7cqi, 12px);
+  line-height: 1.3;
 }
-
+.power-plan-page [data-testid^="card-profile-"] .p-5 {
+  padding: clamp(8px, 6cqi, 14px) !important;
+}
+.power-plan-page [data-testid^="card-profile-"] .mb-4 { margin-bottom: 5px !important; }
+.power-plan-page [data-testid^="card-profile-"] .mb-1\.5 { margin-bottom: 3px !important; }
+.power-plan-page [data-testid^="card-profile-"] .gap-1 { gap: 3px; }
+.power-plan-page [data-testid^="card-profile-"] .text-\[10px\] { font-size: clamp(6.5px, 4.8cqi, 10px); }
+.power-plan-page [data-testid^="card-profile-"] .size-5 { width: 13px; height: 13px; }
+.power-plan-page [data-testid^="card-profile-"] .text-\[10px\].rounded-full { padding: 2px 4px; gap: 3px; }
+.power-plan-page [data-testid^="card-profile-"] .size-12 {
+  width: 29px;
+  height: 29px;
+  border-radius: 9px;
+}
+.power-plan-page [data-testid^="card-profile-"] .size-6 {
+  width: 16px;
+  height: 16px;
+}
 .power-plan-page [data-testid^="card-profile-"] .rounded-full.bg-\[\#21262D\] {
-  background: rgba(11,19,17,.43) !important;
-  border-color: rgba(222,232,220,.13) !important;
-  color: #c3cec3 !important;
+  padding: 2px 5px;
+  background: rgba(7,14,25,.49) !important;
+  border-color: rgba(204,226,238,.16) !important;
+  color: #d5e0e8 !important;
+  font-size: clamp(6.5px, 4.8cqi, 10px);
+  line-height: 1.3;
 }
-
 .power-plan-page [data-testid^="card-profile-"] .h-1.rounded-full,
 .power-plan-page [data-testid^="card-profile-"] .h-1\.5.rounded-full {
-  background: rgba(9,16,14,.72) !important;
+  background: rgba(5,12,23,.7) !important;
   box-shadow: inset 0 1px 2px rgba(0,0,0,.55);
 }
-
+.power-plan-page [data-testid^="card-profile-"] [class*="uppercase"] {
+  font-size: 8px !important;
+  letter-spacing: .12em;
+}
 .power-plan-page [data-testid^="button-settings-"] {
-  color: #d5ded4 !important;
-  border-color: var(--scd-line-strong) !important;
-  background: linear-gradient(140deg, rgba(255,255,255,.055), rgba(11,19,17,.44)) !important;
+  min-height: 27px;
+  height: 27px;
+  margin-bottom: 7px;
+  padding: 3px 5px;
+  color: #e1e9ef !important;
+  border-color: rgba(196,218,229,.23) !important;
+  background: rgba(9,16,28,.57) !important;
+  font-size: clamp(6px, 4.3cqi, 10px);
 }
-
-.power-plan-page [data-testid^="button-settings-"]:hover {
-  background: rgba(255,255,255,.08) !important;
+.power-plan-page [data-testid^="button-activate-"] {
+  min-height: 29px;
+  height: 29px;
+  border-radius: 6px;
+  font-size: 10px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
 }
-
-.power-plan-page [data-testid^="button-activate-"]:not(:has(.lucide-check)) {
-  color: var(--scd-acid-ink) !important;
-  border-color: rgba(210,243,107,.52) !important;
-  background: linear-gradient(180deg, #d9f77b, #c5e85d) !important;
-  box-shadow: 0 8px 18px rgba(10,16,8,.24), inset 0 1px 0 rgba(255,255,255,.42);
-  font-family: var(--scd-font-display);
-  font-weight: 700;
+.power-plan-page [data-testid="button-activate-performance"]:not(:has(.lucide-check)) {
+  background: linear-gradient(135deg,rgba(232,73,83,.72),rgba(167,45,57,.48)) !important;
+  border-color: rgba(240,100,107,.55) !important;
 }
-
-.power-plan-page [data-testid^="button-activate-"]:not(:has(.lucide-check)):hover {
-  filter: brightness(1.06);
+.power-plan-page [data-testid="button-activate-balanced"]:not(:has(.lucide-check)) {
+  background: linear-gradient(135deg,rgba(20,174,202,.7),rgba(18,102,145,.5)) !important;
+  border-color: rgba(47,194,220,.52) !important;
 }
-
-.power-plan-page [data-testid^="button-activate-"]:has(.lucide-check) {
-  border-color: rgba(130,199,192,.35) !important;
-  background: rgba(130,199,192,.11) !important;
-  color: var(--scd-blue) !important;
+.power-plan-page [data-testid="button-activate-efficiency"]:not(:has(.lucide-check)) {
+  background: linear-gradient(135deg,rgba(37,173,123,.7),rgba(20,115,88,.5)) !important;
+  border-color: rgba(64,205,151,.5) !important;
+}
+.power-plan-page [data-testid="button-activate-custom"]:not(:has(.lucide-check)) {
+  background: linear-gradient(135deg,rgba(158,121,192,.74),rgba(93,79,132,.54)) !important;
+  border-color: rgba(190,160,220,.56) !important;
 }
 
 .power-plan-page [data-testid="panel-profile-breakdown"],
 .power-plan-page [data-testid^="panel-impact-comparison"] {
-  border-color: var(--scd-line) !important;
-  background: linear-gradient(145deg, rgba(34,48,42,.94), rgba(23,34,30,.98)) !important;
-  box-shadow: var(--scd-shadow-1);
+  border-color: var(--pp-line) !important;
+  background: linear-gradient(145deg,rgba(22,35,52,.96),rgba(14,23,37,.98)) !important;
+  box-shadow: 0 7px 22px rgba(2,8,16,.24), inset 0 1px 0 rgba(225,242,248,.05);
 }
-
 .power-plan-page .power-plan-panel {
-  border-color: var(--scd-line) !important;
-  background:
-    linear-gradient(148deg, rgba(39,54,47,.94), rgba(25,37,32,.98) 58%, rgba(21,32,28,.99)) !important;
-  box-shadow: var(--scd-shadow-1), inset 0 -1px 0 rgba(0,0,0,.28);
+  border-color: var(--pp-line) !important;
+  background: linear-gradient(145deg,rgba(22,35,52,.94),rgba(14,23,37,.98)) !important;
+  box-shadow: 0 6px 18px rgba(2,8,16,.2), inset 0 1px 0 rgba(225,242,248,.05);
 }
-
 .power-plan-page .power-plan-panel:hover {
-  border-color: var(--scd-line-strong) !important;
-  box-shadow: var(--scd-shadow-2), inset 0 1px 0 rgba(255,255,255,.08);
+  border-color: rgba(145,192,210,.34) !important;
 }
-
 .power-plan-page [data-testid="panel-profile-breakdown"] [class*="bg-[#21262D]"] {
-  background-color: rgba(14,23,19,.58) !important;
+  background-color: rgba(8,16,29,.62) !important;
 }
-
 .power-plan-page [data-testid="panel-profile-breakdown"] [class*="border-[#2A313A]"] {
-  border-color: var(--scd-line) !important;
+  border-color: var(--pp-line) !important;
 }
-
-.power-plan-status-badge[data-match="exact_match"] {
-  color: #82c7c0 !important;
-  border-color: rgba(130,199,192,.34) !important;
-  background: rgba(130,199,192,.10) !important;
+.power-plan-page .power-plan-status-badge[data-match="exact_match"] {
+  color: #55dfcb !important;
+  border-color: rgba(62,210,191,.35) !important;
+  background: rgba(38,171,159,.12) !important;
 }
-
-.power-plan-status-badge[data-match="unknown"] {
-  color: #efb66a !important;
-  border-color: rgba(239,182,106,.34) !important;
-  background: rgba(239,182,106,.10) !important;
+.power-plan-page .power-plan-status-badge[data-match="unknown"] {
+  color: #f0bf79 !important;
+  border-color: rgba(239,190,115,.34) !important;
+  background: rgba(196,133,57,.12) !important;
 }
-
 .power-plan-page [data-testid="button-apply-custom"] {
-  background: linear-gradient(180deg, #d9f77b, #c5e85d) !important;
-  color: var(--scd-acid-ink) !important;
-  border: 1px solid rgba(210,243,107,.6);
-  box-shadow: 0 9px 22px rgba(9,16,8,.25), inset 0 1px 0 rgba(255,255,255,.4);
-  font-family: var(--scd-font-display);
+  background: linear-gradient(135deg,#23bdd0,#168da9) !important;
+  color: #071b25 !important;
+  border: 1px solid rgba(93,222,231,.55);
+  box-shadow: 0 6px 16px rgba(1,10,19,.25), inset 0 1px 0 rgba(255,255,255,.3);
 }
-
 .power-plan-page input[type="text"] {
-  color: var(--scd-text);
-  background: rgba(12,20,17,.74) !important;
-  border-color: var(--scd-line-strong) !important;
+  color: var(--pp-text);
+  background: rgba(8,15,27,.76) !important;
+  border-color: rgba(130,176,197,.28) !important;
 }
-
 .power-plan-page input[type="text"]:focus {
-  border-color: rgba(210,243,107,.52) !important;
-  --tw-ring-color: rgba(210,243,107,.22) !important;
+  border-color: rgba(24,191,210,.58) !important;
+  --tw-ring-color: rgba(24,191,210,.24) !important;
 }
-
 .power-plan-page button:focus-visible,
 .power-plan-page [role="tab"]:focus-visible,
 .power-plan-page input:focus-visible {
-  outline: 2px solid rgba(210,243,107,.75);
+  outline: 2px solid rgba(70,211,224,.82);
   outline-offset: 2px;
 }
-
 .power-plan-page [data-testid="panel-profile-breakdown"] [class*="text-[#6B7380]"],
 .power-plan-page [data-testid^="card-profile-"] [class*="text-[#6B7380]"] {
-  color: var(--scd-text-dim) !important;
-}
-
-.power-plan-page [data-testid="panel-profile-breakdown"] .text-emerald-400,
-.power-plan-page [data-testid="panel-profile-breakdown"] .text-emerald-300 {
-  color: var(--scd-blue) !important;
+  color: var(--pp-dim) !important;
 }
 
 @media (max-width: 767px) {
-  .power-plan-page {
-    gap: 1.15rem;
+  .power-plan-page [data-testid="power-profile-grid"] {
+    grid-template-columns: minmax(0,1fr);
+    gap: 12px !important;
   }
   .power-plan-page .power-plan-hero {
-    padding: 1.15rem;
-    border-radius: 16px;
+    min-height: auto;
+    padding: 14px !important;
+    border-radius: 10px !important;
   }
-  .power-plan-page [role="tablist"] {
-    width: 100%;
-  }
+  .power-plan-page [role="tablist"] { width: 100%; }
   .power-plan-page [role="tab"] {
     flex: 1;
     justify-content: center;

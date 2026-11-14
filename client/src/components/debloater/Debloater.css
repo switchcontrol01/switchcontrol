@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Roboto+Condensed:wght@400;500;600;700&display=swap");
+
 /* Debloater field notes: parchment watercolor surfaces; Depth typography, spacing, elevation and motion roles. */
 .debloater-page,
 .debloater-dialog-root,
@@ -93,6 +95,8 @@
     linear-gradient(145deg, #fbf9f1, #e9e8dc) !important;
   box-shadow: var(--scd-shadow-1); transition: transform var(--scd-motion-fast) var(--scd-ease-standard);
 }
+.debloater-stat-grid,
+.debloater-level-grid { display: grid; gap: 12px; }
 .debloater-stat-grid [data-testid^="stat-"]:hover { transform: translateY(-2px); }
 .debloater-stat-grid [data-testid^="stat-"] p:first-child { color: #5b6969 !important; }
 .debloater-stat-grid [data-testid^="stat-"] p:nth-child(2) {
@@ -508,7 +512,261 @@ html.sc-reduced-motion .debloater-scan-root * {
   scroll-behavior: auto !important; transition-duration: .001ms !important;
 }
 
+/* Original reference recreation: an ink-blue watercolor mat holding a torn
+   two-leaf field notebook. The working leaf stays real DOM; the facing leaf
+   is purely decorative and never contains baked-in interface text. */
+.debloater-paper-mat {
+  --paper: #f5f0df;
+  --paper-ink: #172d3a;
+  --paper-teal: #176d70;
+  --paper-red: #a31f42;
+  position: relative;
+  isolation: isolate;
+  padding: 20px 0 22px;
+  overflow: hidden;
+  border: 1px solid rgba(155, 181, 196, .34);
+  border-radius: 3px;
+  background:
+    linear-gradient(rgba(8, 20, 44, .12), rgba(8, 20, 44, .12)),
+    url("/images/debloater-reference/watercolor-mat.webp") center / cover,
+    #102341;
+  box-shadow: 0 18px 48px rgba(7, 15, 30, .34), inset 0 0 0 1px rgba(218, 230, 233, .14);
+}
+.debloater-page .debloater-stat-grid > [data-testid^="stat-"]::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 34%;
+  pointer-events: none;
+  background: url("/images/debloater-reference/teal-wash.webp") center 60% / 180% auto;
+  opacity: .2;
+  mix-blend-mode: multiply;
+  mask-image: linear-gradient(transparent, #000);
+}
+.debloater-page .debloater-stat-grid > [data-testid="stat-proc"]::after { filter: hue-rotate(95deg); }
+.debloater-page .debloater-stat-grid > [data-testid="stat-disk"]::after { filter: hue-rotate(135deg); }
+.debloater-paper-mat::before,
+.debloater-paper-mat::after {
+  position: absolute;
+  z-index: -1;
+  content: "";
+  top: 13px;
+  bottom: 15px;
+  pointer-events: none;
+}
+.debloater-paper-mat::before {
+  left: 2.6%;
+  width: 65.8%;
+  background:
+    radial-gradient(ellipse at 92% 5%, rgba(21, 111, 111, .16), transparent 22%),
+    repeating-linear-gradient(0deg, rgba(77, 66, 47, .025) 0 1px, transparent 1px 4px),
+    linear-gradient(110deg, #fbf7e9, #f3efdf 68%, #eae4d4);
+  clip-path: polygon(0 0, 98.8% 0, 99.1% 3%, 98.5% 6%, 99.2% 10%, 98.7% 14%, 99.25% 18%, 98.65% 22%, 99.2% 27%, 98.7% 32%, 99.15% 37%, 98.6% 42%, 99.3% 47%, 98.65% 52%, 99.25% 57%, 98.6% 62%, 99.2% 67%, 98.65% 72%, 99.2% 77%, 98.6% 82%, 99.25% 87%, 98.55% 92%, 99.1% 96%, 98.5% 100%, 0 100%);
+  filter: drop-shadow(4px 4px 7px rgba(5, 15, 31, .34));
+}
+.debloater-paper-mat::after {
+  right: 2.6%;
+  width: 31%;
+  background:
+    radial-gradient(ellipse at 92% 1%, rgba(76, 167, 162, .56), transparent 13%),
+    radial-gradient(ellipse at 97% 10%, rgba(73, 153, 157, .24), transparent 24%),
+    radial-gradient(ellipse at 3% 100%, rgba(48, 138, 142, .32), transparent 25%),
+    repeating-linear-gradient(0deg, rgba(77, 66, 47, .025) 0 1px, transparent 1px 4px),
+    linear-gradient(105deg, #fbf7e9, #f5f0df);
+  clip-path: polygon(0 0, 97.8% 0, 98.7% 5%, 98.1% 11%, 99% 17%, 98.1% 23%, 98.8% 30%, 97.9% 36%, 98.7% 43%, 98% 50%, 98.9% 57%, 98% 64%, 98.8% 71%, 97.9% 78%, 98.7% 85%, 98% 92%, 98.8% 97%, 97.8% 100%, 0 100%);
+  box-shadow: inset 10px 0 18px rgba(27, 46, 55, .11);
+}
+.debloater-page {
+  width: 65.8%;
+  margin: 0 0 0 2.6%;
+  padding: clamp(17px, 2.1vw, 27px);
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  color: var(--paper-ink) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-family: "Roboto Condensed", "Trebuchet MS", sans-serif;
+}
+.debloater-page::before {
+  z-index: 0;
+  inset: 0 0 auto;
+  height: 184px;
+  opacity: 1;
+  filter: none;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(244, 242, 223, .03), rgba(244, 242, 223, 0)),
+    url("/images/debloater-reference/teal-wash.webp") right top / 100% 100% no-repeat,
+    radial-gradient(ellipse at 78% 0%, rgba(20, 93, 101, .76), transparent 58%),
+    radial-gradient(ellipse at 58% 4%, rgba(30, 99, 106, .37), transparent 48%);
+}
+.debloater-page > * {
+  position: relative;
+  z-index: 1;
+}
+.debloater-page h1, .debloater-page h2, .debloater-page h3 {
+  color: #183344 !important;
+  font-family: "Patrick Hand", "Trebuchet MS", sans-serif;
+  letter-spacing: -.015em;
+}
+.debloater-page h1 { font-size: clamp(1.5rem, 2vw, 1.85rem) !important; }
+.debloater-page [class~="text-muted-foreground"],
+.debloater-page [class*="text-muted-foreground/"] { color: #4f6268 !important; }
+.debloater-notebook-head {
+  position: relative;
+  margin: -7px -9px 12px;
+  padding: 1px 9px 10px;
+}
+.debloater-notebook-head > div:first-child {
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(250, 247, 232, .72) 0%, rgba(250, 247, 232, .42) 43%, transparent 78%);
+}
+.debloater-notebook-head h1 { color: #142d3b !important; }
+.debloater-notebook-head p { color: #203b47 !important; }
+.debloater-notebook-head .debloater-tabs {
+  margin-top: 5px;
+  background: rgba(235, 240, 226, .62) !important;
+  border-color: rgba(27, 76, 82, .26) !important;
+}
+.debloater-notebook-head .debloater-tabs button {
+  color: #334d53 !important;
+  background: transparent;
+}
+.debloater-notebook-head .debloater-tabs button[class*="bg-primary"] {
+  color: #f8f2df !important;
+  background: #17676c !important;
+  border-color: rgba(22, 88, 92, .4) !important;
+}
+.debloater-telemetry {
+  color: #ecf0e3 !important;
+  background: #172b42 !important;
+  border-color: rgba(31, 65, 82, .6) !important;
+  border-radius: 999px !important;
+  box-shadow: 0 2px 6px rgba(34, 51, 55, .16);
+}
+.debloater-telemetry [class~="text-cyan-400"],
+.debloater-telemetry [class~="text-[#00D4FF]"] { color: #b4e0d9 !important; }
+.debloater-stat-grid [data-testid^="stat-"] {
+  min-height: 65px;
+  padding: 8px 9px !important;
+  border: 1px solid rgba(54, 79, 82, .2) !important;
+  border-radius: 12px !important;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(72, 167, 174, .21), transparent 46%),
+    linear-gradient(145deg, #fffbed, #e8f1e9) !important;
+  box-shadow: 0 2px 7px rgba(54, 63, 56, .1), inset 0 1px rgba(255,255,255,.76) !important;
+}
+.debloater-stat-grid [data-testid^="stat-"] p:first-child { color: #435960 !important; }
+.debloater-stat-grid [data-testid^="stat-"] p:nth-child(2) {
+  color: #142b36 !important;
+  font-family: "Roboto Condensed", sans-serif;
+  font-size: 1.28rem;
+}
+.debloater-stat-grid [data-testid^="stat-"] > div:nth-child(2) > div:last-child {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: #265965;
+  background: rgba(42, 128, 135, .12) !important;
+  box-shadow: none !important;
+}
+.debloater-stat-grid svg { filter: none !important; }
+.debloater-intensity > div:first-child { color: #253a41; }
+.debloater-intensity > div:first-child > span:nth-child(2) {
+  font-family: "Patrick Hand", "Trebuchet MS", sans-serif;
+  font-size: 1.15rem;
+}
+.debloater-level-card {
+  min-height: 108px;
+  padding: 9px !important;
+  border-radius: 13px !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.5), 0 3px 8px rgba(32, 50, 53, .1) !important;
+}
+.debloater-level-card[data-testid="level-safe"] {
+  background:
+    radial-gradient(ellipse at 94% 2%, rgba(66, 182, 191, .44), transparent 56%),
+    linear-gradient(145deg, #e9f5ef, #cce8e8) !important;
+}
+.debloater-level-card[data-testid="level-balanced"] {
+  background:
+    radial-gradient(ellipse at 94% 0%, rgba(62, 130, 199, .43), transparent 58%),
+    linear-gradient(145deg, #e6eff2, #c9d8ea) !important;
+}
+.debloater-level-card[data-testid="level-aggressive"] {
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(43, 75, 126, .52), transparent 61%),
+    linear-gradient(145deg, #dbe1e8, #b9c5d7) !important;
+}
+.debloater-level-card[data-testid="level-extreme"] {
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(206, 70, 106, .53), transparent 58%),
+    linear-gradient(145deg, #f6e6df, #e8b9c4) !important;
+}
+.debloater-level-card[data-selected="true"] {
+  border-color: #a31f42 !important;
+  box-shadow: 0 0 0 2px rgba(163, 31, 66, .16), inset 0 1px rgba(255,255,255,.6),
+    0 5px 14px rgba(99, 38, 48, .18) !important;
+}
+.debloater-level-card[data-selected="true"][data-testid="level-extreme"] {
+  border-color: #a31f42 !important;
+  box-shadow: 0 0 0 2px rgba(163, 31, 66, .18), inset 0 1px rgba(255,255,255,.6),
+    0 5px 14px rgba(99, 38, 48, .2) !important;
+}
+.debloater-level-card h3 { font-family: "Patrick Hand", "Trebuchet MS", sans-serif; font-size: 1.15rem !important; }
+.debloater-level-card .relative > div:first-child {
+  width: 29px !important; height: 29px !important; margin-bottom: 4px !important;
+}
+.debloater-level-card .relative > div:first-child svg { width: 15px !important; height: 15px !important; }
+.debloater-level-card p {
+  min-height: 30px !important; margin-top: 2px !important; color: #314a50 !important;
+  font-size: 10px !important; line-height: 1.2 !important;
+}
+.debloater-level-card .relative > div:nth-last-child(2) { display: none; }
+.debloater-level-card .relative > div:last-child { margin-top: 5px !important; padding-top: 5px !important; }
+.debloater-level-card h3 { font-size: 1rem !important; }
+.debloater-level-card .text-emerald-300, .debloater-level-card .text-cyan-300,
+.debloater-level-card .text-orange-300 { color: #225a64 !important; }
+.debloater-level-card .text-rose-300 { color: #92364e !important; }
+.debloater-level-card [class*="blur-2xl"],
+.debloater-level-card [class*="via-white/8"] { display: none; }
+.debloater-actionbar {
+  margin-top: 2px;
+  padding: 8px 12px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  color: #fff8e9 !important;
+  background:
+    radial-gradient(ellipse at 10% 0%, rgba(247, 138, 141, .54), transparent 55%),
+    linear-gradient(105deg, #8e1837, #b1294c 54%, #8c1938) !important;
+  box-shadow: 0 3px 8px rgba(70, 21, 35, .2), inset 0 1px rgba(255,255,255,.2) !important;
+}
+.debloater-actionbar > div:first-child,
+.debloater-actionbar > div:first-child span { color: #fff5e6 !important; }
+.debloater-page .debloater-actionbar [data-testid="button-apply-debloat"] {
+  color: #fff8eb !important;
+  background: #a51f43 !important;
+  border: 1px solid rgba(255, 237, 218, .45) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.18), 0 2px 5px rgba(51, 13, 30, .23) !important;
+}
+.debloater-page .debloater-actionbar [data-testid="button-apply-debloat"]:disabled {
+  color: #fff1df !important;
+  background: #71434b !important;
+  border-color: rgba(255, 237, 218, .28) !important;
+}
+.debloater-actionbar button:not(:disabled):hover { background-color: #851a38 !important; }
+.debloater-reference-fixture { min-height: 0; }
+.debloater-reference-fixture .debloater-notebook-head { margin-bottom: 10px; }
+
+@media (min-width: 768px) {
+  .debloater-stat-grid,
+  .debloater-level-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+}
 @media (max-width: 767px) {
+  .debloater-paper-mat { min-height: 0; padding: 12px 0; }
+  .debloater-paper-mat::before { left: 2%; width: 96%; }
+  .debloater-paper-mat::after { display: none; }
+  .debloater-page { width: 96%; margin-left: 2%; }
   .debloater-page { padding: 16px !important; border-radius: 16px; }
   .debloater-tabs { display: flex; width: 100%; }
   .debloater-tabs button { flex: 1; justify-content: center; padding-inline: 9px !important; }
@@ -516,6 +774,11 @@ html.sc-reduced-motion .debloater-scan-root * {
   .debloater-actionbar { align-items: stretch; padding: 12px; }
   .debloater-actionbar > div:last-child { justify-content: flex-end; flex-wrap: wrap; }
   .debloater-item-row { flex-wrap: wrap; }
+}
+@media (max-width: 600px) {
+  .debloater-reference-fixture .debloater-stat-grid,
+  .debloater-reference-fixture .debloater-level-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .debloater-reference-fixture .debloater-level-card { min-height: 145px; }
 }
 @media (max-width: 480px) {
   .debloater-page h1 { font-size: 1.75rem !important; }

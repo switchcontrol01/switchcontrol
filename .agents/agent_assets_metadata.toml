@@ -29,3 +29,59 @@ mtime_ms = 1794633581844
 storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:20da9dc7-9988-4432-83bd-5765a46af4bd/f203018d-3406-48d5-8a4e-de7c9cca1f0b/5146f846-adc5-4169-89a4-df3b5966e84a"
 storage_version_token = "1794633777141243"
 content_type = "image/png"
+
+[[outputs]]
+id = "X8CkkyucGvmvPowSeISAv"
+uri = "file://attached_assets/%7B993102E9-6339-44A8-97F9-AC476315DC14%7D_1794638062819.png"
+type = "image"
+title = "Original Power Plan reference"
+description = "Your supplied reference: dark watercolor backdrop and textured red, blue, green and purple profile cards."
+logical_id = "8de7a7d2-8a43-4ec7-8f97-17ed4f519fab"
+content_hash = "sha256:19a355ac8b7b250e18a2a84f2039461441b0c61aa0b89e9eecbdaf2d4f3b4965"
+size = 411186
+mtime_ms = 1794638124823
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:20da9dc7-9988-4432-83bd-5765a46af4bd/8de7a7d2-8a43-4ec7-8f97-17ed4f519fab/063255aa-6c5f-43fa-8c13-76fea0d3bc51"
+storage_version_token = "1794644167549457"
+content_type = "image/png"
+
+[[outputs]]
+id = "nNgA0Tj9K3rBJITfhNPPK"
+uri = "file://attached_assets/%7B7EB39371-63D7-4812-807F-88C080F09DAE%7D_1794638066110.png"
+type = "image"
+title = "Original Debloater reference"
+description = "Your supplied reference: watercolor washes, torn cream paper, editorial typography and illustrated cards."
+logical_id = "2ac7b2fc-63d3-47cc-8292-c6ef6f11bc6e"
+content_hash = "sha256:b9eb5599592ac2aacc11e76d0fad709144f4bc32bc3ff184d2d0b49b6f9d99df"
+size = 800189
+mtime_ms = 1794638128411
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:20da9dc7-9988-4432-83bd-5765a46af4bd/2ac7b2fc-63d3-47cc-8292-c6ef6f11bc6e/3b9f7cde-f198-40fc-a7b1-1ef2f13c4e11"
+storage_version_token = "1794644168138004"
+content_type = "image/png"
+
+[[outputs]]
+id = "gIY305x1hwg5gmM1X6PVt"
+uri = "file://generated-artifacts/power-plan-reference.png"
+type = "image"
+title = "Updated Power Plan — production components"
+description = "Rendered from the same hero and profile-card components used by the app. Isolated fixture state, not a Windows scan. Watercolor details are reconstructed, not pixel-identical."
+logical_id = "7b4af76e-a0c9-4129-bdfd-8050ef78ba6e"
+content_hash = "sha256:a3dcb60cfd2587dd4fecfef76b7527c1e37dfc1c3963f2b529a9cc7da00a77b7"
+size = 347082
+mtime_ms = 1794645979512
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:20da9dc7-9988-4432-83bd-5765a46af4bd/7b4af76e-a0c9-4129-bdfd-8050ef78ba6e/11904fe8-3924-4f10-b6a2-bb21dab8f847"
+storage_version_token = "1794646116566486"
+content_type = "image/png"
+
+[[outputs]]
+id = "EBh7MUehTMLbHWvbtjop4"
+uri = "file://generated-artifacts/debloater-reference-fixture.png"
+type = "image"
+title = "Updated Debloater — production components"
+description = "Rendered from the shared notebook frame, header, statistics and intensity cards used by the app. Values are illustrative test data. Watercolor details are reconstructed."
+logical_id = "9819b6c6-ca58-4f06-88be-00035baf1116"
+content_hash = "sha256:f114ab309584fd316dcde399fd005cd304c353b0edbbb87ea79d97e4bde61ebd"
+size = 712314
+mtime_ms = 1794645828339
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:20da9dc7-9988-4432-83bd-5765a46af4bd/9819b6c6-ca58-4f06-88be-00035baf1116/dba7ece2-983d-4108-94a2-25e70555a4af"
+storage_version_token = "1794646117134463"
+content_type = "image/png"

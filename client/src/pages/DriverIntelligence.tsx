@@ -6,7 +6,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "wouter";
 import { Newspaper, ShieldCheck, Sparkles } from "lucide-react";
-import { motion, useMotion } from "@/lib/motion";
+import { motion } from "@/lib/motion";
+import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/hooks/use-auth";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
@@ -19,6 +20,7 @@ import {
 import { ComponentPanel } from "@/components/driver-intel/ComponentPanel";
 import { HistoryTimeline } from "@/components/driver-intel/HistoryTimeline";
 import { DriverBoardInspector } from "@/components/driver-intel/DriverBoardInspector";
+import { DriverLiquidGlassWaves } from "@/components/driver-intel/DriverLiquidGlassWaves";
 import { useTranslation } from "@/lib/i18n";
 
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
@@ -54,7 +56,9 @@ export default function DriverIntelligence() {
   const [location, navigate] = useLocation();
   const { isPremium } = useAuth();
   const { openUpgradeModal } = useUpgradeModal();
-  const { prefersReducedMotion } = useMotion();
+  // This explicitly requested feature motion follows the app preference, not
+  // Windows Animation Effects (which a performance tweak may have disabled).
+  const prefersReducedMotion = useUserPreferencesStore(state => state.preferences.reducedMotion);
   // Preserve the existing Premium-only boundary, including the trial gate.
   const locked = !isPremium;
   const readOnly = false;
@@ -214,9 +218,9 @@ export default function DriverIntelligence() {
         {dataReady && usedLocalDb && <div className="di-notice" role="status">{t("Using the bundled driver database. Confirm current releases with the official vendor.")}</div>}
         {dataReady && staleDays !== null && !usedLocalDb && <div className="di-notice" data-testid="banner-db-stale">{t("Driver database may be outdated — last updated")} {staleDays} {t("days ago. Always confirm the latest release on the vendor's official page.")}</div>}
         {notice && <div className="di-notice" role="alert">{notice}</div>}
-        {dataReady && news.length > 0 && <section className="di-supplement"><h2><Newspaper size={19} />{t("Driver News")}</h2><div className="di-news-grid">{news.map(item => <article key={item.id} className="di-news" data-testid={`news-${item.id}`}><small>{item.vendor} · {t(item.category)} · {item.date}</small><h3>{t(item.title)}</h3><p>{t(item.summary)}</p></article>)}</div></section>}
+        {dataReady && news.length > 0 && <section className="di-supplement"><h2><Newspaper size={19} />{t("Driver News")}</h2><div className="di-news-grid">{news.map(item => <article key={item.id} className="di-news" data-testid={`news-${item.id}`}><DriverLiquidGlassWaves surface="news" /><small>{item.vendor} · {t(item.category)} · {item.date}</small><h3>{t(item.title)}</h3><p>{t(item.summary)}</p></article>)}</div></section>}
         {dataReady && <>
-          <section className="di-ai"><div><h3><Sparkles className="mr-2 inline size-4" />{t("Not sure what to update first?")}</h3><p>{t("Ask the AI Advisor for a prioritised, plain-language plan for your system.")}</p></div><button className="di-button" onClick={() => handleAskAi()} data-testid="button-ai-plan">{t("Open AI Advisor")}</button></section>
+          <section className="di-ai"><DriverLiquidGlassWaves surface="advisor" /><div><h3><Sparkles className="mr-2 inline size-4" />{t("Not sure what to update first?")}</h3><p>{t("Ask the AI Advisor for a prioritised, plain-language plan for your system.")}</p></div><button className="di-button" onClick={() => handleAskAi()} data-testid="button-ai-plan">{t("Open AI Advisor")}</button></section>
           <HistoryTimeline refreshKey={historyRefresh} readOnly={readOnly} onRestore={handleRestore} />
         </>}
         <small className="di-source">SWITCHCONTROL / {t("DRIVER INTELLIGENCE")}{dbVersion ? ` · DB ${dbVersion}` : ""} · {t("Official sources only. Updates stay in your hands.")}</small>

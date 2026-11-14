@@ -212,12 +212,18 @@ export function AppLayout({
 
       <UpdateModal />
       <Sidebar />
+      {/* Immersive pages paint to the window's top edge. The online chip is
+          empty, but its old padding still reserved a visible 12px strip.
+          Keep connection warnings available as a non-layout overlay. */}
       <motion.div
-        className="pt-2 flex items-start justify-end pr-4 shrink-0"
-        animate={{ paddingLeft: isDriverIntel ? 0 : largeSidebar ? 288 : 256 }}
+        data-testid="layout-network-status"
+        className={immersiveContent
+          ? "absolute bottom-4 right-4 z-30 flex items-start justify-end pointer-events-none"
+          : "pt-2 flex items-start justify-end pr-4 shrink-0"}
+        animate={{ paddingLeft: immersiveContent || isDriverIntel ? 0 : largeSidebar ? 288 : 256 }}
         transition={isDriverIntel ? SIDEBAR_SPRING : { duration: 0 }}
       >
-        <div className="pt-1 shrink-0">
+        <div className={immersiveContent ? "shrink-0 pointer-events-auto" : "pt-1 shrink-0"}>
           <NetworkStatusChip />
         </div>
       </motion.div>

@@ -13,10 +13,11 @@
     RotateCcw, Play, Trash2, History, Clock, X, AlertCircle,
     MemoryStick, HardDrive, Eye, TrendingDown, BarChart3, Layers,
     Minus, Settings2, Package,
-    Shield, Sparkles, Flame, Rocket, ScanLine, Activity, Boxes,
+    ScanLine, Activity, Boxes,
   } from "lucide-react";
   import { InstalledAppsPanel } from "@/components/debloater/InstalledAppsPanel";
   import { ApplyProgressOverlay, ApplyProgressState, ApplyProgressItem } from "@/components/debloater/ApplyProgressOverlay";
+import { DebloaterIntensityCards, DebloaterOverviewStats } from "@/components/debloater/DebloaterOverviewCards";
   import { cn } from "@/lib/utils";
   import { useToast } from "@/hooks/use-toast";
   import { cloudApiPost } from "@/lib/cloud-api";
@@ -25,6 +26,7 @@
   import { PieChart, Pie, Cell } from "recharts";
   import { useTranslation } from "@/lib/i18n";
   import "@/components/debloater/Debloater.css";
+import { DebloaterNotebookFrame } from "@/components/debloater/DebloaterNotebookFrame";
   
   // ── Types ─────────────────────────────────────────────────────────────────────
   
@@ -270,57 +272,6 @@
   
     return <span className={className}>{display.toFixed(decimals)}</span>;
   }
-  
-  // ── Batch / intensity action panels config ────────────────────────────────────
-  
-  const BATCH_PANELS: {
-    id: DebloatLevel;
-    title: string;
-    tagline: string;
-    description: string;
-    gain: string;
-    risk: string;
-    icon: React.ComponentType<{ className?: string }>;
-    impact: number; // 1-4 filled bars
-    accent: string;       // text color
-    glow: string;         // box-shadow rgba
-    ring: string;         // active border
-    gradient: string;     // background gradient (active)
-    iconGlow: string;
-  }[] = [
-    {
-      id: "safe", title: "Safe Debloat", tagline: "Fully reversible",
-      description: "Registry & policy tweaks only. Nothing is uninstalled.",
-      gain: "Light cleanup", risk: "Low risk", icon: Shield, impact: 1,
-      accent: "text-emerald-300", glow: "rgba(16,185,129,0.35)", ring: "border-emerald-400/60",
-      gradient: "linear-gradient(135deg, rgba(16,185,129,0.22) 0%, rgba(16,185,129,0.06) 60%, rgba(13,17,23,0.4) 100%)",
-      iconGlow: "0 0 26px rgba(16,185,129,0.55)",
-    },
-    {
-      id: "balanced", title: "Recommended", tagline: "Best for most",
-      description: "Removes consumer apps and telemetry. Balanced & safe.",
-      gain: "Balanced boost", risk: "Low–med risk", icon: Sparkles, impact: 2,
-      accent: "text-cyan-300", glow: "rgba(0,212,255,0.35)", ring: "border-cyan-400/60",
-      gradient: "linear-gradient(135deg, rgba(0,212,255,0.22) 0%, rgba(0,212,255,0.06) 60%, rgba(13,17,23,0.4) 100%)",
-      iconGlow: "0 0 26px rgba(0,212,255,0.55)",
-    },
-    {
-      id: "aggressive", title: "Aggressive", tagline: "Deep clean",
-      description: "Strips Cortana, Copilot, Widgets and the Xbox overlay.",
-      gain: "Big reduction", risk: "Medium risk", icon: Flame, impact: 3,
-      accent: "text-orange-300", glow: "rgba(249,115,22,0.35)", ring: "border-orange-400/60",
-      gradient: "linear-gradient(135deg, rgba(249,115,22,0.22) 0%, rgba(249,115,22,0.06) 60%, rgba(13,17,23,0.4) 100%)",
-      iconGlow: "0 0 26px rgba(249,115,22,0.55)",
-    },
-    {
-      id: "extreme", title: "Maximum Performance", tagline: "Power users",
-      description: "Service-level changes for the leanest possible system.",
-      gain: "Maximum gains", risk: "High risk", icon: Rocket, impact: 4,
-      accent: "text-rose-300", glow: "rgba(244,63,94,0.35)", ring: "border-rose-400/60",
-      gradient: "linear-gradient(135deg, rgba(244,63,94,0.22) 0%, rgba(244,63,94,0.06) 60%, rgba(13,17,23,0.4) 100%)",
-      iconGlow: "0 0 26px rgba(244,63,94,0.55)",
-    },
-  ];
   
   // ── Subtle confetti burst ─────────────────────────────────────────────────────
   
@@ -1616,9 +1567,11 @@
   
     return (
       <AppLayout>
+        <DebloaterNotebookFrame>
         <Reveal className="debloater-page sc-page-blur-in space-y-5">
   
           {/* Header */}
+          <div className="debloater-notebook-head">
           <PageHeader
             icon={ShieldCheck}
             title={t("Debloater")}
@@ -1650,6 +1603,7 @@
                 </button>
               );
             })}
+          </div>
           </div>
   
           {/* ── Installed Apps tab content ───────────────────────────────────── */}
@@ -1692,75 +1646,24 @@
           )}
   
           {/* ── Overview stat cards ────────────────────────────────────────────── */}
-          <div className="debloater-stat-grid grid grid-cols-2 xl:grid-cols-4 gap-3">
-            {[
-              {
-                key: "apps", label: "Removable items", value: availableItems.length, unit: "", icon: Boxes, color: "#00D4FF",
-                spark: buildMetricSparkline(availableItems.length, Math.max(items.length, 1), availableItems.length * 11 + activeSelectedItems.length * 3 + LEVEL_ORDER.indexOf(level)),
-                decimals: 0,
-              },
-              {
-                key: "ram", label: "RAM recoverable", value: overviewRam, unit: "MB", icon: MemoryStick, color: "#22d3ee",
-                spark: buildMetricSparkline(overviewRam, Math.max(stats.allRam, 1), overviewRam * 0.17 + activeSelectedItems.length * 5 + LEVEL_ORDER.indexOf(level)),
-                decimals: 0,
-              },
-              {
-                key: "proc", label: "Live processes", value: liveTel?.processes.total ?? 0, unit: "", icon: Activity, color: "#a855f7",
-                spark: buildMetricSparkline(liveTel?.processes.total ?? 0, Math.max(liveTel?.processes.total ?? 0, 100), (liveTel?.processes.total ?? 0) * 0.31 + activeSelectedItems.length),
-                decimals: 0,
-              },
-              {
-                key: "disk", label: "Disk recoverable", value: overviewDisk, unit: "MB", icon: HardDrive, color: "#34d399",
-                spark: buildMetricSparkline(overviewDisk, Math.max(stats.allDisk, 1), overviewDisk * 0.11 + activeSelectedItems.length * 7 + LEVEL_ORDER.indexOf(level)),
-                decimals: 0,
-              },
-            ].map((s, i) => {
-              const SIcon = s.icon;
-              return (
-                <motion.div
-                  key={s.key}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.05 * i, ease: [0.22, 1, 0.36, 1] }}
-                  whileHover={prefersReducedMotion ? {} : { y: -3 }}
-                  className="group relative overflow-hidden rounded-2xl border border-[#2A313A] p-4"
-                  style={{ background: "linear-gradient(135deg, rgba(26,31,38,0.9) 0%, rgba(13,17,23,0.85) 100%)" }}
-                  data-testid={`stat-${s.key}`}
-                >
-                  <span
-                    className="pointer-events-none absolute -top-10 -right-10 size-28 rounded-full blur-2xl opacity-0 group-hover:opacity-25 transition-opacity duration-300"
-                    style={{ background: s.color }}
-                  />
-                  <div className="relative flex items-start justify-between">
-                    <div>
-                       <p className="text-[11px] text-muted-foreground mb-1.5">{t(s.label)}</p>
-                      <p className="text-2xl font-bold text-[#E6EAF0] leading-none tabular-nums">
-                        <AnimatedCounter value={s.value} decimals={s.decimals} />
-                        {s.unit && <span className="text-sm font-semibold text-muted-foreground ml-1">{s.unit}</span>}
-                      </p>
-                    </div>
-                    <div
-                      className="size-9 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ background: `${s.color}1a`, boxShadow: `0 0 18px ${s.color}33` }}
-                    >
-                      <SIcon className="size-4.5" style={{ color: s.color }} />
-                    </div>
-                  </div>
-                  {/* mini sparkline */}
-                  <svg viewBox="0 0 70 22" className="mt-3 w-full h-6 overflow-visible" preserveAspectRatio="none">
-                    <motion.path
-                      d={s.spark} fill="none" stroke={s.color} strokeWidth="2"
-                      strokeLinecap="round" strokeLinejoin="round"
-                      initial={{ pathLength: 0, opacity: 0.4 }}
-                      animate={{ pathLength: 1, opacity: 0.85 }}
-                      transition={{ duration: 1.1, delay: 0.2 + 0.05 * i, ease: "easeOut" }}
-                      style={{ filter: `drop-shadow(0 0 4px ${s.color}66)` }}
-                    />
-                  </svg>
-                </motion.div>
-              );
-            })}
-          </div>
+          <DebloaterOverviewStats cards={[
+            {
+              key: "apps", label: "Removable items", value: <AnimatedCounter value={availableItems.length} />, unit: "", icon: Boxes, color: "#00D4FF",
+              spark: buildMetricSparkline(availableItems.length, Math.max(items.length, 1), availableItems.length * 11 + activeSelectedItems.length * 3 + LEVEL_ORDER.indexOf(level)),
+            },
+            {
+              key: "ram", label: "RAM recoverable", value: <AnimatedCounter value={overviewRam} />, unit: "MB", icon: MemoryStick, color: "#22d3ee",
+              spark: buildMetricSparkline(overviewRam, Math.max(stats.allRam, 1), overviewRam * 0.17 + activeSelectedItems.length * 5 + LEVEL_ORDER.indexOf(level)),
+            },
+            {
+              key: "proc", label: "Live processes", value: <AnimatedCounter value={liveTel?.processes.total ?? 0} />, unit: "", icon: Activity, color: "#a855f7",
+              spark: buildMetricSparkline(liveTel?.processes.total ?? 0, Math.max(liveTel?.processes.total ?? 0, 100), (liveTel?.processes.total ?? 0) * 0.31 + activeSelectedItems.length),
+            },
+            {
+              key: "disk", label: "Disk recoverable", value: <AnimatedCounter value={overviewDisk} />, unit: "MB", icon: HardDrive, color: "#34d399",
+              spark: buildMetricSparkline(overviewDisk, Math.max(stats.allDisk, 1), overviewDisk * 0.11 + activeSelectedItems.length * 7 + LEVEL_ORDER.indexOf(level)),
+            },
+          ]} />
   
           {/* ── Batch section, large intensity action panels ──────────────────── */}
           <div className="debloater-intensity space-y-3">
@@ -1770,106 +1673,7 @@
               <span className="text-xs text-muted-foreground">{t("Pick how deep the cleanup goes")}</span>
             </div>
   
-            <div className="debloater-level-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-              {BATCH_PANELS.map((panel, i) => {
-                const PIcon = panel.icon;
-                const active = level === panel.id;
-                return (
-                  <motion.button
-                    key={panel.id}
-                    type="button"
-                    onClick={() => setLevel(panel.id)}
-                    data-testid={`level-${panel.id}`}
-                    initial={{ opacity: 0, y: 18 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.45, delay: 0.05 * i, ease: [0.22, 1, 0.36, 1] }}
-                    whileHover={prefersReducedMotion ? {} : { y: -5, scale: 1.015 }}
-                    whileTap={prefersReducedMotion ? {} : { scale: 0.985 }}
-                    className={cn(
-                      "debloater-level-card group relative overflow-hidden rounded-2xl border p-4 text-left transition-colors duration-300",
-                      active ? panel.ring : "border-[#2A313A] hover:border-white/15"
-                    )}
-                    data-selected={active}
-                    style={{
-                      background: active ? panel.gradient : "linear-gradient(135deg, rgba(26,31,38,0.9) 0%, rgba(13,17,23,0.85) 100%)",
-                      boxShadow: active
-                        ? `0 12px 40px ${panel.glow}, 0 0 0 1px ${panel.glow} inset`
-                        : "0 4px 16px rgba(0,0,0,0.25)",
-                    }}
-                  >
-                    {/* shimmer sweep on hover */}
-                    <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/8 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-  
-                    {/* glow blob */}
-                    <span
-                      className={cn(
-                        "pointer-events-none absolute -top-8 -right-8 size-24 rounded-full blur-2xl transition-opacity duration-300",
-                        active ? "opacity-60" : "opacity-0 group-hover:opacity-30"
-                      )}
-                      style={{ background: panel.glow }}
-                    />
-  
-                    <div className="relative">
-                      <div className="flex items-center justify-between mb-3">
-                        <motion.div
-                          className="size-11 rounded-xl flex items-center justify-center"
-                          style={{
-                            background: active ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)",
-                            boxShadow: active ? panel.iconGlow : "none",
-                          }}
-                          animate={active && !prefersReducedMotion ? { scale: [1, 1.08, 1] } : {}}
-                          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-                        >
-                          <PIcon className={cn("size-5.5 transition-colors", active ? panel.accent : "text-muted-foreground group-hover:text-[#E6EAF0]")} />
-                        </motion.div>
-                        {active && (
-                          <motion.span
-                            initial={{ scale: 0 }} animate={{ scale: 1 }}
-                            className={cn("flex items-center gap-1 text-[10px] font-semibold", panel.accent)}
-                          >
-                             <CheckCircle className="size-3" />{t("Active")}
-                          </motion.span>
-                        )}
-                      </div>
-  
-                      <p className={cn("text-[10px] uppercase tracking-wider font-medium mb-0.5", active ? panel.accent : "text-muted-foreground/70")}>
-                         {t(panel.tagline)}
-                      </p>
-                      <h3 className={cn("text-sm font-bold leading-tight", active ? "text-[#E6EAF0]" : "text-foreground/90")}>
-                         {t(panel.title)}
-                      </h3>
-                      <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed min-h-[44px]">
-                         {t(panel.description)}
-                      </p>
-  
-                      {/* impact bars */}
-                      <div className="flex items-center gap-1 mt-2">
-                        {[0, 1, 2, 3].map(b => (
-                          <span
-                            key={b}
-                            className={cn(
-                              "h-1 flex-1 rounded-full transition-colors",
-                              b < panel.impact
-                                ? (active ? cn(panel.accent, "bg-current") : "bg-foreground/30")
-                                : "bg-[#21262D]"
-                            )}
-                          />
-                        ))}
-                      </div>
-  
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
-                        <span className={cn("flex items-center gap-1 text-[10px] font-medium", active ? panel.accent : "text-muted-foreground")}>
-                           <TrendingDown className="size-3" />{t(panel.gain)}
-                        </span>
-                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                           <AlertTriangle className="size-2.5" />{t(panel.risk)}
-                        </span>
-                      </div>
-                    </div>
-                  </motion.button>
-                );
-              })}
-            </div>
+            <DebloaterIntensityCards level={level} onSelect={setLevel} />
           </div>
   
           {/* Action bar */}
@@ -2493,6 +2297,7 @@
           </>)}
   
         </Reveal>
+        </DebloaterNotebookFrame>
   
         {/* Premium scan overlay */}
         <AnimatePresence>

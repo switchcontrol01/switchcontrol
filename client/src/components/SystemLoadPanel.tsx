@@ -64,10 +64,12 @@ export function SystemLoadPanel({
             Actual CPU, memory, and process readings from this device
           </p>
         </div>
-        <span className={cn("la-bench-system-state flex shrink-0 items-center gap-1.5 text-[10px]", presentation.color)} data-testid="text-system-load-state">
-          <StateIcon className="size-3.5" />
-          {presentation.label}
-        </span>
+        {visibleState !== "paused" && (
+          <span className={cn("la-bench-system-state flex shrink-0 items-center gap-1.5 text-[10px]", presentation.color)} data-testid="text-system-load-state">
+            <StateIcon className="size-3.5" />
+            {presentation.label}
+          </span>
+        )}
       </div>
 
       {hasMeasurements ? (

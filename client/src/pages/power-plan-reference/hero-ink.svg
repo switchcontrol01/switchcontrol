@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <filter id="wash" x="-15%" y="-30%" width="130%" height="160%">
+      <feTurbulence type="fractalNoise" baseFrequency=".012 .028" numOctaves="3" seed="22" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="31" xChannelSelector="R" yChannelSelector="G"/>
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+    <radialGradient id="blue"><stop stop-color="#14495f" stop-opacity=".84"/><stop offset="1" stop-color="#10263b" stop-opacity="0"/></radialGradient>
+    <radialGradient id="cyan"><stop stop-color="#087c89" stop-opacity=".68"/><stop offset="1" stop-color="#0e3448" stop-opacity="0"/></radialGradient>
+    <radialGradient id="wine"><stop stop-color="#54283e" stop-opacity=".58"/><stop offset="1" stop-color="#182137" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1200" height="340" fill="#111a2b"/>
+  <g filter="url(#wash)" opacity=".98">
+    <ellipse cx="235" cy="92" rx="310" ry="122" fill="url(#wine)"/>
+    <ellipse cx="515" cy="185" rx="430" ry="142" fill="url(#blue)"/>
+    <ellipse cx="920" cy="75" rx="310" ry="142" fill="url(#cyan)"/>
+    <ellipse cx="1070" cy="280" rx="280" ry="110" fill="url(#blue)"/>
+    <path d="M-20 172C95 91 126 221 222 129S351 86 435 175s121 57 193-27 137-30 196 22 95 92 163 22 115-71 244-122v193c-116-21-183 77-279 33s-142-59-219-8-135 56-229 0-154-65-220-21S47 254-20 264Z" fill="#0b3949" opacity=".38"/>
+    <path d="M-24 82C92 147 159 17 261 87s134 75 214 4 125-47 212 4 145 59 216 12 167-53 326 9v72c-137-28-196 33-296 5s-129-58-230 5-151 39-226-8-146-41-210 3-145 62-291 16Z" fill="#19334b" opacity=".34"/>
+  </g>
+  <rect width="1200" height="340" fill="#10182a" opacity=".19"/>
+</svg>

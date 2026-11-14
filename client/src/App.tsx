@@ -24,7 +24,9 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { MotionProvider, useMotion } from "@/lib/motion";
+import { MotionProvider } from "@/lib/motion";
+import { DriverIntelRouteTransition } from "@/components/driver-intel/DriverIntelRouteTransition";
+import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 import { PremiumUpgradeAnimation } from "@/components/PremiumUpgradeAnimation";
 import { TrialActivationAnimation } from "@/components/TrialActivationAnimation";
 import { TrialTour } from "@/components/TrialTour";
@@ -266,7 +268,7 @@ const DarkFallback = () => (
 
 function ElectronAppRoutes() {
   const [location, navigate] = useLocation();
-  const { prefersReducedMotion } = useMotion();
+  const appReducedMotion = useUserPreferencesStore((state) => state.preferences.reducedMotion);
   const routePath = location.split("?")[0].replace(/\/+$/, "") || "/";
   const isDriverIntelRoute = routePath === "/driver-intel";
   const realtimeMetricsEnabled = useStore((state) => state.realtimeMetricsEnabled);
@@ -301,31 +303,14 @@ function ElectronAppRoutes() {
   return (
     <AnimatePresence mode="wait" initial={false}>
       {isDriverIntelRoute ? (
-        <motion.div
+        <DriverIntelRouteTransition
           key="driver-intelligence-route"
-          className="w-full min-h-full"
-          initial={prefersReducedMotion ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={
-            prefersReducedMotion
-              ? { opacity: 1, pointerEvents: "none", transition: { duration: 0 } }
-              : {
-                  opacity: 0,
-                  pointerEvents: "none",
-                  transition: { duration: 0.4, ease: [0.4, 0, 1, 1] },
-                }
-          }
-          transition={
-            prefersReducedMotion
-              ? { duration: 0 }
-              : { duration: 0.46, ease: [0.22, 1, 0.36, 1] }
-          }
-          data-driver-intel-route-transition
+          reducedMotion={appReducedMotion}
         >
           <ErrorBoundary route={location}>
             <desktopRoutes.DriverIntelligence />
           </ErrorBoundary>
-        </motion.div>
+        </DriverIntelRouteTransition>
       ) : (
         <div key="application-routes">
           <ErrorBoundary route={location}>

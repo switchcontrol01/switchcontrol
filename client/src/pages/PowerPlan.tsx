@@ -1,11 +1,9 @@
-import "./PowerPlan.css";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { logHistory } from "@/lib/logHistory";
 import { createPortal } from "react-dom";
 import { GlassModalSurface } from "@/components/ui/GlassModalLayout";
 import { useTweakOwnershipStore } from "@/stores/tweakOwnershipStore";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -15,17 +13,21 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion, Reveal, pageTransition } from "@/lib/motion";
 import {
-  Zap, Leaf, Gauge, Cpu, Usb, Moon, Rocket, Monitor, Laptop,
+  Zap, Leaf, Gauge, Cpu, Usb, Moon, Rocket, Laptop,
   ChevronDown, ChevronUp, Info, X, RotateCcw, Check, AlertTriangle,
   Settings2, Loader2, RefreshCw, ShieldAlert,
   ShieldCheck, ShieldX, Activity, Bug, Terminal, Sliders,
-  TrendingDown,
 } from "lucide-react";
 import { IntentModeSelector, IntentModeDescription, type IntentMode } from "@/components/intelligence/IntentModeSelector";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { PremiumHeaderBadge, PremiumPageOverlay } from "@/components/ui/premium-page-overlay";
 import { useTranslation } from "@/lib/i18n";
+import {
+  PowerPlanHeroPresentation,
+  PowerPlanProfileCards,
+  type ProfileCardPresentation,
+} from "./PowerPlanPresentation";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -303,26 +305,6 @@ function VerificationBadge({ match, loading }: { match?: string; loading?: boole
       {s.icon} {s.label}
     </span>
   ), document.body);
-}
-
-function ImpactBar({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-[10px]">
-        <span className="text-[#A0A8B3]">{label}</span>
-        <span className="font-medium" style={{ color }}>{value}%</span>
-      </div>
-      <div className="h-1 rounded-full bg-[#21262D] overflow-hidden">
-        <motion.div
-          className="h-full rounded-full"
-          style={{ backgroundColor: color, width: `${value}%`, transformOrigin: "left" }}
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
-        />
-      </div>
-    </div>
-  );
 }
 
 // ── Impact Comparison Panel (Before / After SVG) ─────────────────────────────
@@ -1244,98 +1226,43 @@ export default function PowerPlan() {
         {/* ══════════════════════════════════════════════════════════════════
             SECTION 1, HERO STATUS PANEL
         ══════════════════════════════════════════════════════════════════ */}
-        <div
-          className="power-plan-hero relative overflow-hidden rounded-2xl border border-[#2A313A] p-6 md:p-8"
-        >
-          <div className="relative z-10">
-            {/* Header row */}
-            <div className="flex items-start justify-between mb-5">
-              <PageHeader
-                icon={Zap}
-                title="Power Plan"
-                badge={<PremiumHeaderBadge isLocked={!isPremium} />}
-                subtitle="Windows power configuration center"
-              />
-              <button
-                onClick={fetchPowerState}
-                disabled={planLoading}
-                className="mt-1 size-8 flex items-center justify-center rounded-full bg-[#21262D] hover:bg-[#2A313A] border border-[#2A313A] transition-colors"
-                title="Refresh power state"
-                data-testid="button-refresh-power-state"
-              >
-                <RefreshCw className={cn("size-3.5 text-[#A0A8B3]", planLoading && "animate-spin")} />
-              </button>
-            </div>
-
-            {/* Active plan name, always occupies space; content fades in once loaded */}
-            <div className="mb-4" style={{ minHeight: "4rem" }}>
-              <AnimatePresence mode="wait" initial={false}>
-                {planLoading ? (
-                  <motion.div
-                    key="plan-skeleton"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="space-y-2 pt-1"
-                  >
-                    <div className="h-8 w-64 rounded-lg bg-[#21262D] animate-pulse" />
-                    <div className="h-4 w-44 rounded bg-[#21262D] animate-pulse" />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="plan-name"
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                     <h2 className="text-2xl md:text-3xl font-bold text-[#E6EAF0] tracking-tight leading-tight">
-                       {backendState?.activeScheme?.name ??
-                         (planError ? "Power Plan Unreadable" : "No active plan reported")}
-                    </h2>
-                    <p className="text-sm text-muted-foreground mt-1">
-                       {backendState
-                         ? "Currently active in Windows Power Options"
-                         : planError
-                           ? "Windows did not provide a trustworthy active-plan result"
-                           : "Waiting for Windows power state…"}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Status pills */}
-            <div className="flex flex-wrap items-center gap-2">
-              <VerificationBadge match={backendState?.profileMatch?.match} loading={planLoading} />
-
+        <PowerPlanHeroPresentation
+          planLoading={planLoading}
+          planName={backendState?.activeScheme?.name ?? (planError ? "Power Plan Unreadable" : "No active plan reported")}
+          planDescription={backendState
+            ? "Currently active in Windows Power Options"
+            : planError
+              ? "Windows did not provide a trustworthy active-plan result"
+              : "Waiting for Windows power state…"}
+          onRefresh={fetchPowerState}
+          translate={translate}
+          badge={<PremiumHeaderBadge isLocked={!isPremium} />}
+          verificationBadge={<VerificationBadge match={backendState?.profileMatch?.match} loading={planLoading} />}
+          statusBadges={
+            <>
               {backendState?.activeScheme?.guid && !planLoading && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#14181D]/80 border border-[#2A313A] text-[11px] font-mono text-[#6B7380]" title={backendState.activeScheme.guid}>
                   GUID: {backendState.activeScheme.guid.slice(0, 8)}…{backendState.activeScheme.guid.slice(-4)}
                 </span>
               )}
-
               {isElectron && backendState && !planLoading && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/25 text-[11px] text-primary/80">
                   <ShieldCheck className="size-3" /> SwitchControl Managed
                 </span>
               )}
-
               {isCloseMatch && !planLoading && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-[11px] text-amber-400">
                   <AlertTriangle className="size-3" /> Some settings differ
                 </span>
               )}
-
               {isCustomState && !planLoading && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/25 text-[11px] text-blue-400">
                   <Settings2 className="size-3" /> Custom Windows state
                 </span>
               )}
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {/* ══════════════════════════════════════════════════════════════════
             SECTION 2, TABS
@@ -1355,258 +1282,34 @@ export default function PowerPlan() {
           ══════════════════════════════════════════════════════════════ */}
           <TabsContent value="profiles" className="space-y-6">
 
-            {/* ── Premium Profile Cards ─────────────────────────────────── */}
-            {/* Cards use static POWER_PROFILES data, always render immediately.
-                The "Active" badge and verification badge update naturally once
-                planLoading resolves, with no skeleton flash or empty boxes. */}
-            {(
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {/* Standard profiles */}
-                {POWER_PROFILES.map((profile) => {
-                  const isActive   =
-                    optimisticActiveProfileId === profile.id ||
-                    (applyResult?.success && applyResult.profileId === profile.id);
-                  const isApplying = applying === profile.id;
-                  const Icon       = profile.icon;
-                  const t          = PROFILE_THEME[profile.id];
-                  const impact     = PROFILE_IMPACT[profile.id];
-                  const keySettings = PROFILE_KEY_SETTINGS[profile.id];
-
-                  return (
-                    <motion.div
-                      key={profile.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                      whileHover={{ y: -6, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
-                      className="h-full"
-                    >
-                      <div
-                        className={cn(
-                          "relative overflow-hidden rounded-2xl border h-full flex flex-col transition-all duration-300",
-                          isActive && "ring-2 shadow-[0_0_48px_-10px]"
-                        )}
-                        style={{
-                          background: t.bgGrad,
-                          borderColor: isActive ? t.accent : t.borderColor,
-                          boxShadow: isActive
-                            ? `0 0 0 1px rgba(52,211,153,.24), 0 0 18px -10px rgba(52,211,153,.72), 0 0 48px -10px ${t.glow}`
-                            : undefined,
-                        }}
-                        data-testid={`card-profile-${profile.id}`}
-                      >
-                        {/* Top accent line */}
-                        <div className="h-[2px] w-full shrink-0" style={{ background: `linear-gradient(90deg, transparent 0%, ${t.accent} 50%, transparent 100%)` }} />
-
-                        <div className="p-5 flex-1 flex flex-col">
-                          {/* Icon + active badge */}
-                          <div className="flex items-start justify-between mb-4">
-                            <div
-                              className="size-12 rounded-xl flex items-center justify-center"
-                              style={{ backgroundColor: `${t.accent}22`, border: `1px solid ${t.accent}44` }}
-                            >
-                              <Icon className="size-6" style={{ color: t.accent }} />
-                            </div>
-                            <div className="flex flex-col items-end gap-1.5">
-                              {isActive && (
-                                <span
-                                  className="text-[10px] px-2.5 py-0.5 rounded-full border font-medium flex items-center gap-1.5"
-                                  style={{ backgroundColor: `${t.accent}18`, borderColor: `${t.accent}44`, color: t.accent }}
-                                >
-                                  <span className="size-1.5 rounded-full animate-pulse" style={{ backgroundColor: t.accent }} />
-                                  Active
-                                </span>
-                              )}
-                              <div className="flex gap-1">
-                                {profile.compatibility.includes("desktop") && (
-                                  <span className="size-5 rounded bg-[#2A313A] flex items-center justify-center" title="Desktop"><Monitor className="size-2.5 text-[#6B7380]" /></span>
-                                )}
-                                {profile.compatibility.includes("laptop") && (
-                                  <span className="size-5 rounded bg-[#2A313A] flex items-center justify-center" title="Laptop"><Laptop className="size-2.5 text-[#6B7380]" /></span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Name + desc */}
-                          <h3 className="text-base font-bold text-[#E6EAF0] mb-1.5">{profile.name}</h3>
-                          <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{profile.description}</p>
-
-                          {/* Key settings pills */}
-                          <div className="flex flex-wrap gap-1 mb-4">
-                            {keySettings.map(s => (
-                              <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-[#21262D] border border-[#2A313A] text-[#A0A8B3]">{s}</span>
-                            ))}
-                          </div>
-
-                          {/* Estimated impact bars */}
-                          <div className="space-y-2 mb-5">
-                            <p className="text-[10px] uppercase tracking-widest text-[#6B7380] font-medium mb-2.5 flex items-center gap-1.5">
-                              <TrendingDown className="size-2.5" />
-                              Estimated Impact
-                            </p>
-                            <ImpactBar label="Latency Reduction" value={impact.latency} color={t.accent} />
-                            <ImpactBar label="Responsiveness"    value={impact.speed}   color={t.accent} />
-                            <ImpactBar label="Battery Efficiency" value={impact.battery} color="#4b5563" />
-                          </div>
-
-                          <motion.button
-                            type="button"
-                            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            transition={{ type: "spring", stiffness: 420, damping: 28 }}
-                            onClick={() => setExpandedProfileId(expandedProfileId === profile.id ? null : profile.id)}
-                             className="mt-auto mb-4 flex h-9 min-h-9 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[10px] font-semibold text-[#D6DEE8] transition-colors hover:text-white"
-                            style={{ borderColor: `${t.accent}55`, background: `linear-gradient(135deg, ${t.accent}18, rgba(23,28,34,.9))` }}
-                            aria-expanded={expandedProfileId === profile.id}
-                            data-testid={`button-settings-${profile.id}`}
-                          >
-                            <Info className="size-3.5" style={{ color: t.accent }} />
-                            {isActive ? "View applied settings" : "See what this changes"}
-                            {expandedProfileId === profile.id ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-                          </motion.button>
-                          {/* Apply button */}
-                          <Button
-                            onClick={() => activateProfile(profile.id)}
-                            disabled={isApplying || !!applying}
-                            className={cn("w-full font-medium transition-all duration-200", isActive ? "border" : "border")}
-                            style={isActive
-                              ? { backgroundColor: `${t.accent}22`, color: t.accent, borderColor: `${t.accent}44` }
-                              : { background: `linear-gradient(135deg, ${t.accent}55, ${t.accent}28)`, color: "#fff", borderColor: `${t.accent}44` }
-                            }
-                            data-testid={`button-activate-${profile.id}`}
-                          >
-                            {isApplying ? (
-                              <><Loader2 className="size-4 mr-2 animate-spin" /> {translate("Applying…")}</>
-                            ) : isActive ? (
-                              <><Check className="size-4 mr-2" /> {translate("Active")}{isCloseMatch ? translate(" (close)") : ""}</>
-                            ) : (
-                              <><Zap className="size-4 mr-2" /> {translate("Activate")}</>
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-
-                {/* ── Custom profile card ──────────────────────────── */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                  whileHover={{ y: -6, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
-                  className="h-full"
-                >
-                  <div
-                    className={cn(
-                      "relative overflow-hidden rounded-2xl border h-full flex flex-col transition-all duration-300",
-                      effectiveCustomApplied && "ring-2"
-                    )}
-                    style={{
-                      background: PROFILE_THEME.custom.bgGrad,
-                      borderColor: effectiveCustomApplied ? PROFILE_THEME.custom.accent : PROFILE_THEME.custom.borderColor,
-                        boxShadow: effectiveCustomApplied
-                          ? "0 0 0 1px rgba(52,211,153,.24), 0 0 18px -10px rgba(52,211,153,.72), 0 0 48px -10px rgba(167,139,250,.25)"
-                          : undefined,
-                    }}
-                    data-testid="card-profile-custom"
-                  >
-                    <div className="h-[2px] w-full shrink-0" style={{ background: "linear-gradient(90deg, transparent 0%, #a78bfa 50%, transparent 100%)" }} />
-
-                    <div className="p-5 flex-1 flex flex-col">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="size-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#a78bfa22", border: "1px solid #a78bfa44" }}>
-                          <Settings2 className="size-6 text-[#33E0FF]" />
-                        </div>
-                        <div className="flex flex-col items-end gap-1.5">
-                          {effectiveCustomApplied && (
-                            <span className="text-[10px] px-2.5 py-0.5 rounded-full border font-medium flex items-center gap-1.5 text-[#33E0FF]" style={{ backgroundColor: "#a78bfa18", borderColor: "#a78bfa44" }}>
-                              <span className="size-1.5 rounded-full bg-[#00D4FF] animate-pulse" />
-                              Active
-                            </span>
-                          )}
-                          <div className="flex gap-1">
-                            <span className="size-5 rounded bg-[#2A313A] flex items-center justify-center" title="Desktop"><Monitor className="size-2.5 text-[#6B7380]" /></span>
-                            <span className="size-5 rounded bg-[#2A313A] flex items-center justify-center" title="Laptop"><Laptop className="size-2.5 text-[#6B7380]" /></span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <h3 className="text-base font-bold text-[#E6EAF0] mb-1.5" data-testid="text-custom-plan-name">
-                        {customPlanMeta?.name ?? "Custom Plan"}
-                      </h3>
-                      {customPlanMeta?.guid && (
-                        <p className="text-[10px] font-mono text-muted-foreground/45 mb-1 truncate">{customPlanMeta.guid}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{translate("Your personal power configuration, tuned for your exact needs.")}</p>
-
-                      <div className="flex flex-wrap gap-1 mb-4">
-                        {PROFILE_KEY_SETTINGS.custom.map(s => (
-                          <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-[#21262D] border border-[#2A313A] text-[#A0A8B3]">{s}</span>
-                        ))}
-                      </div>
-
-                      <div className="space-y-2 mb-5">
-                        <p className="text-[10px] uppercase tracking-widest text-[#6B7380] font-medium mb-2.5 flex items-center gap-1.5">
-                          <TrendingDown className="size-2.5" />
-                          Estimated Impact
-                        </p>
-                        <ImpactBar label="Latency Reduction" value={computeCustomImpact(localState.customSettings).latency} color="#a78bfa" />
-                        <ImpactBar label="Responsiveness"    value={computeCustomImpact(localState.customSettings).speed}   color="#a78bfa" />
-                        <ImpactBar label="Battery Efficiency" value={computeCustomImpact(localState.customSettings).battery} color="#4b5563" />
-                      </div>
-
-                        <motion.button
-                          type="button"
-                          initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          transition={{ type: "spring", stiffness: 420, damping: 28 }}
-                          onClick={() => setExpandedProfileId(expandedProfileId === "custom" ? null : "custom")}
-                            className="mt-auto mb-4 flex h-9 min-h-9 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[10px] font-semibold text-[#D6DEE8] transition-colors hover:text-white"
-                          style={{ borderColor: "#a78bfa66", background: "linear-gradient(135deg, rgba(167,139,250,.14), rgba(23,28,34,.9))" }}
-                          aria-expanded={expandedProfileId === "custom"}
-                          data-testid="button-settings-custom"
-                        >
-                          <Info className="size-3.5 text-[#a78bfa]" />
-                          {effectiveCustomApplied ? "View applied settings" : "See what this changes"}
-                          {expandedProfileId === "custom" ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-                        </motion.button>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={applyCustomProfile}
-                          disabled={applyingCustom || !!applying}
-                          className={cn("flex-1 font-medium border transition-all duration-200")}
-                          style={effectiveCustomApplied
-                            ? { backgroundColor: "#a78bfa22", color: "#a78bfa", borderColor: "#a78bfa44" }
-                            : { background: "linear-gradient(135deg, rgba(167,139,250,0.55), rgba(167,139,250,0.25))", color: "#fff", borderColor: "#a78bfa44" }
-                          }
-                          data-testid="button-activate-custom"
-                        >
-                          {applyingCustom ? (
-                            <><Loader2 className="size-4 mr-2 animate-spin" /> {translate("Applying…")}</>
-                          ) : effectiveCustomApplied ? (
-                            <><Check className="size-4 mr-2" /> {translate("Active")}</>
-                          ) : (
-                            <><Zap className="size-4 mr-2" /> {translate("Activate")}</>
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setActiveTab("custom")}
-                          className="size-10 shrink-0 bg-[#21262D] hover:bg-[#2A313A] border border-[#2A313A]"
-                          title="Edit custom settings"
-                          data-testid="button-edit-custom"
-                        >
-                          <Settings2 className="size-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-            )}
+            <PowerPlanProfileCards
+              profiles={POWER_PROFILES.map(profile => ({
+                ...profile,
+                theme: PROFILE_THEME[profile.id],
+                impact: PROFILE_IMPACT[profile.id],
+                keySettings: PROFILE_KEY_SETTINGS[profile.id],
+                active: optimisticActiveProfileId === profile.id ||
+                  (applyResult?.success && applyResult.profileId === profile.id) || false,
+                applying: applying === profile.id,
+              })) as ProfileCardPresentation[]}
+              custom={{
+                name: customPlanMeta?.name ?? "Custom Plan",
+                guid: customPlanMeta?.guid,
+                theme: PROFILE_THEME.custom,
+                impact: computeCustomImpact(localState.customSettings),
+                keySettings: PROFILE_KEY_SETTINGS.custom,
+                applied: effectiveCustomApplied,
+                applying: applyingCustom,
+              }}
+              expandedProfileId={expandedProfileId}
+              applyingProfileId={applying}
+              closeMatch={isCloseMatch}
+              onActivate={activateProfile}
+              onApplyCustom={applyCustomProfile}
+              onToggleSettings={profileId => setExpandedProfileId(expandedProfileId === profileId ? null : profileId)}
+              onEditCustom={() => setActiveTab("custom")}
+              translate={translate}
+            />
 
             {/* Render the settings dialog once, outside the cards. Keeping the
                 portal host at tab level means every profile button opens the

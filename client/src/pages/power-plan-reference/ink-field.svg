@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" preserveAspectRatio="none">
+  <defs>
+    <filter id="pigment" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency=".008 .013" numOctaves="3" seed="25"/>
+      <feDisplacementMap in="SourceGraphic" scale="42"/><feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <radialGradient id="teal"><stop stop-color="#105469" stop-opacity=".42"/><stop offset="1" stop-color="#101728" stop-opacity="0"/></radialGradient>
+    <radialGradient id="blue"><stop stop-color="#1c3a56" stop-opacity=".48"/><stop offset="1" stop-color="#101728" stop-opacity="0"/></radialGradient>
+  </defs>
+  <g filter="url(#pigment)">
+    <ellipse cx="176" cy="270" rx="360" ry="270" fill="url(#teal)"/>
+    <ellipse cx="820" cy="175" rx="510" ry="290" fill="url(#blue)"/>
+    <ellipse cx="687" cy="650" rx="500" ry="260" fill="url(#teal)"/>
+    <path d="M-40 358q190-166 352-17t314 42 323-97 332 30v171q-184 62-312-5t-308 53-322 7-379 53Z" fill="#0b3447" opacity=".18"/>
+  </g>
+</svg>

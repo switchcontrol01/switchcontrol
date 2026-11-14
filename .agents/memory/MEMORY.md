@@ -22,6 +22,7 @@
 - [electronAPI global typing](electron-api-typing.md) — per-page `declare global` clashes with electron.d.ts; pre-existing tsc errors, build ignores them, do not fix inline.
 - [Premium revert engine reliability](premium-revert-engine.md) — startup state is not ownership proof; never adopt active Windows tweaks without a baseline, and release unverifiable claims without blocking reset.
 - [Driver Intelligence design constraints](driver-intelligence.md) — detect-and-redirect only; green needs version or Windows device evidence; official source quirks; "partial" is cached.
+- [Driver Inspector motion](driver-inspector-motion.md) — one 1.5s PNG sweep on entry/Rescan, no blue CPU highlight; feature motion follows the app preference, not Windows Animation Effects.
 - [Premium slider/preset revert](premium-slider-preset-revert.md) — slider/preset tweaks were completely skipped by trial-expiry revert engine (0% success); backend sweeps existed but had no IPC exposure and no client-side caller.
 - [Slider hydration interaction](slider-hydration-interaction.md) — a busy native read must not prevent an explicit slider selection from becoming applyable.
 - [ps-shared module](ps-shared.md) — single shared PS primitive module (electron/ps-shared.js); all three executors import runPS/queryPS/checkIsAdmin/runElevated from it; one semaphore, one _isAdminCache.
@@ -54,6 +55,7 @@
 - [Ring graph design rule](ring-graph-design.md) — SVG ring gauges: track + value arc only; never add an inner tick/dashed ring; glow via drop-shadow on arc, not extra circle strokes.
 - [Power-plan module integrity](power-plan-module-integrity.md) — Electron power-plan manager had a committed truncated body; keep Windows-only operations explicit and verify activation rather than reporting placeholder success.
 - [Desktop route loading](desktop-route-loading.md) — Electron routes load eagerly; never restore the full-route Suspense skeleton that could strand packaged file:// navigation.
+- [Immersive page top edge](immersive-top-edge.md) — hidden network-status padding can expose a top strip; immersive surfaces need full-height content and non-layout connection warnings.
 - [Tour dynamic-step stability](tour-dynamic-step-stability.md) — TourShell must keep changing step arrays in a ref so auth/countdown rerenders cannot reactivate the sidebar lock after completion.
 - [Authenticated POST conventions](authenticated-post-conventions.md) — protected raw POST callers must use the shared API helper so JWT, Electron headers, and CSRF remain intact.
 - [Fresh-install auth boot](fresh-install-auth-boot.md) — logged-out cold boots must make cleanup non-blocking so a stale logout cannot strand the app before login.
@@ -111,3 +113,4 @@
 - [Retired adapter tuning policy](retired-adapter-tuning-policy.md) — NIC retirement preserves settings and recovery evidence; legacy RSS badges cannot authorize network expiry writes.
 - [Patch failure recovery](patch-failure-recovery.md) — a failed multi-hunk patch may leave earlier edits applied; inspect files before retrying.
 - [Feature light surfaces](feature-light-surfaces.md) — light feature themes must pair text and background overrides, including shared controls and portal notices.
+- [Power Plan and Debloater references](power-debloater-reference-fidelity.md) — recreate the approved watercolor references, not the green Depth palette; verify actual production components.

@@ -7,6 +7,9 @@ import {
 import { useTranslation } from "@/lib/i18n";
 import { getHealthMeta, type ComponentKind, type DriverComponent, type HealthScore } from "@/lib/driver-intel-data";
 import "./driver-board-inspector.css";
+import { MotherboardArtwork } from "./MotherboardArtwork";
+import { DriverLiquidGlassWaves } from "./DriverLiquidGlassWaves";
+import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 
 const ICONS = { cpu: Cpu, monitor: Monitor, gpu: Activity, ssd: HardDrive, network: Network, chipset: Gauge, audio: AudioLines, bluetooth: Bluetooth };
 const HOTSPOTS: Partial<Record<ComponentKind, { x: number; y: number; side: string }>> = {
@@ -53,8 +56,8 @@ function useGlassReflection<T extends HTMLElement = HTMLElement>() {
     const node = ref.current;
     if (!node) return;
     const page = node.closest(".driver-intel-page");
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      || page?.getAttribute("data-reduced-motion") === "true") return;
+    if (page?.getAttribute("data-reduced-motion") === "true"
+      || document.documentElement.classList.contains("sc-reduced-motion")) return;
     bounds.current = node.getBoundingClientRect();
     node.setAttribute("data-glint-active", "true");
   };
@@ -103,6 +106,7 @@ function ComponentCard({
       aria-pressed={selected}
       data-testid={`component-card-${component.kind}`}
     >
+      <DriverLiquidGlassWaves surface="component" />
       <span className="di-glass-sheen" aria-hidden="true" />
       <Icon size={21} />
       <span><b>{t(component.title)}</b><small>{component.device}</small></span>
@@ -133,7 +137,7 @@ export function DriverBoardInspector({
 }: DriverBoardInspectorProps) {
   const { t } = useTranslation();
   const [selectedKind, setSelectedKind] = useState<ComponentKind>("gpu");
-  const [boardImageReady, setBoardImageReady] = useState(false);
+  const reducedMotion = useUserPreferencesStore(state => state.preferences.reducedMotion);
   const [boardSweepId, setBoardSweepId] = useState(0);
   const metricsReflection = useGlassReflection<HTMLDivElement>();
   const boardReflection = useGlassReflection<HTMLDivElement>();
@@ -147,12 +151,6 @@ export function DriverBoardInspector({
   const value = ready && score ? Math.max(0, Math.min(100, score.overall)) : null;
   const headline = value === null ? t("Awaiting scan") : value >= 85 ? t("Good foundation") : value >= 65 ? t("Review your results") : t("Needs attention");
   const boardImageSrc = `${import.meta.env.BASE_URL}images/driver-intel/aorus-ice-holographic-render.png`;
-  useEffect(() => {
-    // Let the 580ms page entrance finish before the one-shot board highlight.
-    // Rescan remains an immediate, separate trigger in startScan().
-    const timer = window.setTimeout(() => setBoardSweepId(1), 650);
-    return () => window.clearTimeout(timer);
-  }, []);
   const startScan = () => {
     setBoardSweepId((id) => id + 1);
     onScan();
@@ -175,6 +173,7 @@ export function DriverBoardInspector({
       <section className="di-intro">
         <div><h2>{t("Know what’s")}<br /><em>{t("under the hood.")}</em></h2><p>{t("Probe a component to see its driver evidence, verification state, and a clear next step.")}</p></div>
           <div className="di-metrics di-glass-reflect" ref={metricsReflection.ref} onPointerEnter={metricsReflection.onPointerEnter} onPointerMove={metricsReflection.onPointerMove} onPointerLeave={metricsReflection.onPointerLeave}>
+          <DriverLiquidGlassWaves surface="health" />
             <span className="di-glass-sheen" aria-hidden="true" />
           <div className="di-ring" role="img" aria-label={value === null ? t("Run a scan to see your score") : `${t("Health Score")}: ${value}/100`}>
             <svg viewBox="0 0 92 92" aria-hidden="true"><circle className="di-ring-track" cx="46" cy="46" r="38" /><circle className="di-ring-value" cx="46" cy="46" r="38" style={{ strokeDashoffset: 239 - 239 * (value ?? 0) / 100 }} /></svg>
@@ -188,21 +187,14 @@ export function DriverBoardInspector({
       {error && <div className="di-notice di-error" role="alert">{error} <button onClick={startScan} disabled={scanning}>{t("Retry")}</button></div>}
       <section className="di-workbench" aria-label={t("Motherboard component inspector")} aria-busy={scanning}>
         <div className="di-board-stage di-glass-reflect" ref={boardReflection.ref} onPointerEnter={boardReflection.onPointerEnter} onPointerMove={boardReflection.onPointerMove} onPointerLeave={boardReflection.onPointerLeave}>
+          <DriverLiquidGlassWaves surface="board" />
           <span className="di-glass-sheen" aria-hidden="true" />
           <div className="di-stage-head"><div><span className="di-label">{t("COMPONENT INSPECTOR")}</span><h3>X870E AORUS PRO ICE</h3></div><span className="di-manufacturer"><i /> GIGABYTE</span></div>
           <div className="di-board-viewport">
             <div className="di-board-art">
-              <img src={boardImageSrc} alt={t("X870E AORUS PRO ICE motherboard, white and silver.")} fetchPriority="high" decoding="async" draggable={false} onLoad={() => setBoardImageReady(true)} />
-              {boardImageReady && boardSweepId > 0 && (
-                <span
-                  key={boardSweepId}
-                  className="di-board-sun-sweep"
-                  data-testid="motherboard-light-sweep"
-                  data-sweep-id={boardSweepId}
-                  style={{ "--di-board-mask": `url("${boardImageSrc}")` } as CSSProperties}
-                  aria-hidden="true"
-                />
-              )}
+              <MotherboardArtwork src={boardImageSrc}
+                alt={t("X870E AORUS PRO ICE motherboard, white and silver.")}
+                rescanToken={boardSweepId} motionEnabled={!reducedMotion} />
               {ordered.map(component => {
                 const point = HOTSPOTS[component.kind];
                 if (!point) return null;
@@ -217,6 +209,7 @@ export function DriverBoardInspector({
         </div>
 
         <aside className="di-inspector di-glass-reflect" aria-live="polite" ref={inspectorReflection.ref} onPointerEnter={inspectorReflection.onPointerEnter} onPointerMove={inspectorReflection.onPointerMove} onPointerLeave={inspectorReflection.onPointerLeave}>
+          <DriverLiquidGlassWaves surface="inspector" />
           <span className="di-glass-sheen" aria-hidden="true" />
           <div className="di-inspector-top"><span className="di-label">{t("SELECTED COMPONENT")}</span><span>{selected ? String(ordered.indexOf(selected) + 1).padStart(2, "0") : "—"} / {String(ordered.length).padStart(2, "0")}</span></div>
           <div key={selected?.kind ?? "empty"} className="di-selection-content">

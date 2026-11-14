@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 420" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <filter id="wash" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency=".025" numOctaves="3" seed="17"/>
+      <feDisplacementMap in="SourceGraphic" scale="18"/><feGaussianBlur stdDeviation="2"/>
+    </filter>
+    <radialGradient id="r"><stop stop-color="#ce3948" stop-opacity=".8"/><stop offset="1" stop-color="#742a3a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="g"><stop stop-color="#b64b45" stop-opacity=".68"/><stop offset="1" stop-color="#311d34" stop-opacity="0"/></radialGradient>
+  </defs>
+  <g filter="url(#wash)">
+    <ellipse cx="62" cy="67" rx="107" ry="120" fill="url(#r)"/>
+    <ellipse cx="245" cy="226" rx="126" ry="185" fill="url(#g)"/>
+    <path d="M-33 122Q30 54 78 107t69 2 75-30 122 30v45q-68-26-109 1t-71 12-67 34-94-7Z" fill="#e24b50" opacity=".32"/>
+    <path d="M-11 316q62-78 121-38t79-4 130-23v107H-11Z" fill="#792c48" opacity=".45"/>
+    <path d="M13 40q31-16 53 10t47 0q24-11 38 13-19 27-48 18t-53 10Q24 91 5 71Z" fill="#f06a61" opacity=".18"/>
+    <path d="M179 176q24-27 55-14t41 38q-22 29-47 20t-57 3q-18-25 8-47Z" fill="#b23249" opacity=".24"/>
+  </g>
+</svg>
