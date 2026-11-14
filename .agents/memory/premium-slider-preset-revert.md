@@ -1,6 +1,6 @@
 ---
 name: Premium Slider/Preset Revert Fix
-description: Slider and preset tweaks were skipped during trial expiry revert; fixed in v2 by wiring backend batch reverts; fixed again in v3 for three deeper root causes; v4 fixes preset Zustand store clear + tcp-throttling-index check.
+description: Slider and preset tweaks need reliable premium expiry reverts and separate persistent user intent for safe startup recovery.
 ---
 
 **Problem:** Slider and preset tweaks never got reverted when trial expired. The client-side `runPremiumRevert()` engine in `premiumRevertEngine.ts` had NO code to handle them.
@@ -50,3 +50,13 @@ In PowerShell 5.1, `0xFFFFFFF0` is a hex literal parsed as Int32 = **-16**. So t
 Fix: Changed to `if ($null -ne $v -and $v -lt 0) { "true" } else { "false" }`. The applied value (0xFFFFFFFF) is read by PS as Int32 -1 (< 0 ✓). The reverted value (10) correctly returns false.
 
 **Why this PowerShell gotcha matters:** Registry DWORD values larger than Int32.MaxValue (2147483647) are read back by PowerShell 5.1 as negative Int32 values. Any hex literal `0xXXXXXXXX` > 0x7FFFFFFF is also parsed as negative Int32. Never use `$v -ge 0xFFFFF...` range checks for these; use `$v -lt 0` or `$v -eq -1`.
+
+---
+
+## Startup restoration invariant
+
+Keep a slider’s last successfully applied, Windows-verified target separate from both its original-value backup and the UI cache of values observed from Windows. Reapply only after entitlement is confirmed active, verify every native write, and clear the target only when a user reset or premium revert succeeds. Group changed machine-wide values into one elevated batch rather than showing one UAC prompt per slider.
+
+**Why:** Windows can change registry-backed sliders during restart, while startup hydration overwrites the UI cache with the newly observed value. Treating that cache as user intent can restore a value the user never applied or preserve a value after reset or expiry.
+
+**How to apply:** Any slider startup-recovery or state-schema change must preserve the distinction between original baseline, last explicit applied target, and current Windows observation.

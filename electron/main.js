@@ -5385,6 +5385,19 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
     if (!token) return { value: null, error: 'busy' };
     try { return await sliderTweakExecutor.readSliderValue(tweakId); } finally { psLimiter.release(token); }
   });
+
+  ipcMain.handle('tweak:reapplyAppliedValues', async (_event, premiumActive) => {
+    const token = psLimiter.tryAcquire({ file: 'main.js', fn: 'slider:reapplyAppliedValues', reason: 'slider-startup-restore' });
+    if (!token) return { ok: false, busy: true, reapplied: [], unchanged: [], skipped: [], failed: [] };
+    try {
+      return await sliderTweakExecutor.reapplyAppliedSliderValues(premiumActive === true);
+    } catch (e) {
+      console.error('[IPC] tweak:reapplyAppliedValues error:', e.message);
+      return { ok: false, error: e.message, reapplied: [], unchanged: [], skipped: [], failed: [] };
+    } finally {
+      psLimiter.release(token);
+    }
+  });
   
   ipcMain.handle('tweak:applyValue', async (event, tweakId, value) => {
     if (typeof tweakId !== 'string') return { ok: false, error: 'Invalid tweakId' };

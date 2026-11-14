@@ -23,7 +23,7 @@
 - [Premium revert engine reliability](premium-revert-engine.md) — startup state is not ownership proof; never adopt active Windows tweaks without a baseline, and release unverifiable claims without blocking reset.
 - [Driver Intelligence design constraints](driver-intelligence.md) — detect-and-redirect only; green needs version or Windows device evidence; official source quirks; "partial" is cached.
 - [Driver Inspector motion](driver-inspector-motion.md) — one 1.5s PNG sweep on entry/Rescan, no blue CPU highlight; feature motion follows the app preference, not Windows Animation Effects.
-- [Premium slider/preset revert](premium-slider-preset-revert.md) — slider/preset tweaks were completely skipped by trial-expiry revert engine (0% success); backend sweeps existed but had no IPC exposure and no client-side caller.
+- [Premium slider/preset revert](premium-slider-preset-revert.md) — keep last verified slider targets separate from Windows observations; restore only after entitlement checks and clear on reset/expiry.
 - [Slider hydration interaction](slider-hydration-interaction.md) — a busy native read must not prevent an explicit slider selection from becoming applyable.
 - [ps-shared module](ps-shared.md) — single shared PS primitive module (electron/ps-shared.js); all three executors import runPS/queryPS/checkIsAdmin/runElevated from it; one semaphore, one _isAdminCache.
 - [Version release process](version-release-process.md) — update all duplicated version and patch-note surfaces; the user handles Cloudflare uploads.

@@ -33,14 +33,17 @@ function ensureDir() {
 function loadSliderState() {
   try {
     ensureDir();
-    if (!fs.existsSync(SLIDER_STATE_FILE)) return { originalValues: {} };
+    if (!fs.existsSync(SLIDER_STATE_FILE)) return { originalValues: {}, appliedValues: {} };
     const raw = fs.readFileSync(SLIDER_STATE_FILE, 'utf8');
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return { originalValues: {} };
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { originalValues: {}, appliedValues: {} };
     if (!parsed.originalValues || typeof parsed.originalValues !== 'object') parsed.originalValues = {};
+    if (!parsed.appliedValues || typeof parsed.appliedValues !== 'object' || Array.isArray(parsed.appliedValues)) {
+      parsed.appliedValues = {};
+    }
     return parsed;
   } catch {
-    return { originalValues: {} };
+    return { originalValues: {}, appliedValues: {} };
   }
 }
 
@@ -48,9 +51,17 @@ function saveSliderState(state) {
   try {
     ensureDir();
     fs.writeFileSync(SLIDER_STATE_FILE, JSON.stringify(state, null, 2));
+    return true;
   } catch (e) {
     console.error('[SliderExecutor] saveSliderState failed:', e.message);
+    return false;
   }
+}
+
+function persistAppliedValue(tweakId, value) {
+  const state = loadSliderState();
+  state.appliedValues[tweakId] = value;
+  return saveSliderState(state);
 }
 
 function logSliderEntry(entry) {
@@ -608,11 +619,19 @@ async function applySliderValue(tweakId, value) {
       error: verification.ok ? null : (verification.error || 'Verification failed'),
     });
 
+    const persisted = verification.ok ? persistAppliedValue(tweakId, numValue) : false;
+    if (verification.ok) {
+      if (!persisted) {
+        console.warn(`[SliderExecutor] ${tweakId}: applied value verified but could not be saved for startup restore`);
+      }
+    }
+
     return {
       ok:            verification.ok,
       verified:      verification.ok,
       actualValue:   verification.actualValue,
       previousValue,
+      persisted,
       error:         verification.ok ? null : (verification.error || 'Verification failed — value did not persist.'),
     };
 
@@ -705,6 +724,7 @@ async function resetSliderValue(tweakId) {
   // Clear the backup on successful revert so next apply re-captures fresh original
   if (verification.ok) {
     delete state.originalValues[tweakId];
+    delete state.appliedValues[tweakId];
     saveSliderState(state);
   }
 
@@ -830,11 +850,20 @@ async function forceRevertSliderToDefault(tweakId) {
 
   const verification = await verifySliderValue(tweakId, restoredTo);
 
-  // Also clear any stale backup so the next manual apply captures a fresh original
-  const state = loadSliderState();
-  if (state.originalValues[tweakId]) {
-    delete state.originalValues[tweakId];
-    saveSliderState(state);
+  // Clear ownership only after Windows confirms the revert. If verification
+  // fails, retain the applied target so a later entitled launch can recover it.
+  if (verification.ok) {
+    const state = loadSliderState();
+    let stateChanged = false;
+    if (state.originalValues[tweakId]) {
+      delete state.originalValues[tweakId];
+      stateChanged = true;
+    }
+    if (Object.prototype.hasOwnProperty.call(state.appliedValues, tweakId)) {
+      delete state.appliedValues[tweakId];
+      stateChanged = true;
+    }
+    if (stateChanged) saveSliderState(state);
   }
 
   logSliderEntry({
@@ -854,6 +883,142 @@ async function forceRevertSliderToDefault(tweakId) {
     restoredTo,
     error:       verification.ok ? null : (verification.error || 'Revert verification failed.'),
   };
+}
+
+/**
+ * Reapply values that the user explicitly applied and that were verified by
+ * Windows. The renderer calls this only after entitlement verification.
+ * If several changed settings require admin, restore them in one elevated
+ * PowerShell batch so startup never triggers a stack of UAC prompts.
+ */
+async function reapplyAppliedSliderValues(premiumActive = false) {
+  const state = loadSliderState();
+  const saved = state.appliedValues || {};
+  const candidates = [];
+  const skipped = [];
+  const failed = [];
+  const unchanged = [];
+  const reapplied = [];
+  let stateChanged = false;
+
+  for (const [tweakId, rawValue] of Object.entries(saved)) {
+    const def = SLIDER_TWEAKS[tweakId];
+    if (!def || def.disabled) {
+      delete state.appliedValues[tweakId];
+      stateChanged = true;
+      skipped.push({ tweakId, reason: def?.disabled ? 'disabled' : 'unknown_tweak' });
+      continue;
+    }
+    const value = Number(rawValue);
+    if (!Number.isInteger(value) ||
+        (def.safeMin !== undefined && value < def.safeMin) ||
+        (def.safeMax !== undefined && value > def.safeMax)) {
+      delete state.appliedValues[tweakId];
+      stateChanged = true;
+      skipped.push({ tweakId, reason: 'invalid_saved_value' });
+      continue;
+    }
+    if (def.premium && premiumActive !== true) {
+      skipped.push({ tweakId, reason: 'premium_not_verified_active' });
+      continue;
+    }
+    candidates.push({ tweakId, value, def });
+  }
+
+  if (stateChanged) saveSliderState(state);
+  const needsAdmin = candidates.some(({ def }) => def.requiresAdmin);
+  let isAdmin = false;
+  if (needsAdmin) {
+    try { isAdmin = await checkIsAdmin(); } catch {}
+  }
+
+  console.log(`[SliderExecutor] Startup restore checking ${candidates.length} explicitly applied slider values`);
+  const mismatches = [];
+  for (const { tweakId, value, def } of candidates) {
+    try {
+      const current = await readSliderValue(tweakId);
+      if (current.error || current.value === null || current.value === undefined) {
+        failed.push({ tweakId, error: current.error || 'Current value could not be read.' });
+        continue;
+      }
+      if (current.value === value) {
+        unchanged.push({ tweakId, value });
+        continue;
+      }
+      mismatches.push({ tweakId, value, def, currentValue: current.value });
+    } catch (err) {
+      failed.push({ tweakId, error: err.message || 'Unexpected startup restore error.' });
+    }
+  }
+
+  const elevated = !isAdmin ? mismatches.filter(({ def }) => def.requiresAdmin) : [];
+  const direct = mismatches.filter(({ def }) => isAdmin || !def.requiresAdmin);
+
+  for (const { tweakId, value } of direct) {
+    try {
+      console.info(`[SliderExecutor] Startup restore ${tweakId}: restoring saved ${value}`);
+      const result = await applySliderValue(tweakId, value);
+      if (result.ok && result.verified && result.actualValue === value) {
+        reapplied.push({ tweakId, value });
+      } else {
+        failed.push({ tweakId, error: result.error || `Windows did not retain ${value}.` });
+      }
+    } catch (err) {
+      failed.push({ tweakId, error: err.message || 'Unexpected startup restore error.' });
+    }
+  }
+
+  if (elevated.length > 0) {
+    console.info(`[SliderExecutor] Startup restore elevating one batch for ${elevated.length} system-wide slider values`);
+    let elevationResult = null;
+    try {
+      const command = elevated.map(({ def, value }) => def.writeCommand(value)).join(';\n');
+      elevationResult = await runElevated(command, { tempFilePrefix: 'sc_slider_restore_' });
+    } catch (err) {
+      elevationResult = { ok: false, error: err.message || 'Could not start elevated restore.' };
+    }
+
+    // Verify each value independently: an elevated script can partially apply
+    // before PowerShell reports an error, so only readback determines success.
+    for (const { tweakId, value, currentValue } of elevated) {
+      try {
+        const verification = await verifySliderValue(tweakId, value);
+        if (verification.ok && verification.actualValue === value) {
+          const persisted = loadSliderState();
+          if (!persisted.originalValues[tweakId]) {
+            persisted.originalValues[tweakId] = {
+              value: currentValue,
+              capturedAt: new Date().toISOString(),
+              missing: false,
+            };
+          }
+          persisted.appliedValues[tweakId] = value;
+          if (!saveSliderState(persisted)) {
+            console.warn(`[SliderExecutor] ${tweakId}: restored and verified, but could not save its slider state`);
+          }
+          logSliderEntry({
+            tweakId,
+            action: 'apply',
+            previousValue: currentValue,
+            newValue: value,
+            success: true,
+            restoredAtStartup: true,
+          });
+          reapplied.push({ tweakId, value });
+        } else {
+          failed.push({
+            tweakId,
+            error: verification.error || elevationResult?.error || `Windows did not retain ${value}.`,
+          });
+        }
+      } catch (err) {
+        failed.push({ tweakId, error: err.message || elevationResult?.error || 'Elevated restore verification failed.' });
+      }
+    }
+  }
+
+  console.log(`[SliderExecutor] Startup restore complete — reapplied=${reapplied.length} unchanged=${unchanged.length} skipped=${skipped.length} failed=${failed.length}`);
+  return { ok: true, reapplied, unchanged, skipped, failed };
 }
 
 /**
@@ -932,6 +1097,7 @@ module.exports = {
   verifySliderValue,
   resetSliderValue,
   forceRevertSliderToDefault,
+  reapplyAppliedSliderValues,
   revertAllPremiumSliders,
   stopTimerResolutionKeeper,
   checkCrashSentinel,

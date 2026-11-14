@@ -314,7 +314,7 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
     try {
       const api = getSliderAPI();
       if (!api?.applyValue || !api?.readValue) throw new Error('Slider verification is unavailable.');
-      const result: { ok: boolean; verified: boolean; actualValue: number | null; error: string | null } =
+      const result: { ok: boolean; verified: boolean; actualValue: number | null; error: string | null; persisted?: boolean } =
         await api.applyValue(tweakId, valueToApply);
 
       if (result.ok && result.verified) {
@@ -356,8 +356,10 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
           lastError:     null,
         }));
         toast({
-          title:       'Setting Applied',
-          description: `Value set to ${valueToApply} and verified on your system.`,
+          title: result.persisted === false ? 'Applied but not saved for restart' : 'Setting Applied',
+          description: result.persisted === false
+            ? `Value ${valueToApply} is active, but SwitchControl could not save it for automatic restoration. Check app data permissions.`
+            : `Value set to ${valueToApply} and verified on your system.`,
         });
         logHistory(`Slider: ${tweakId}`, "Tweaks", "Applied", `Tweak ID: ${tweakId} | Value: ${confirmedValue}`, {
           category: "slider", targetId: tweakId, restoreValue, reversible: restoreValue !== null,

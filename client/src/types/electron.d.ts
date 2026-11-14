@@ -262,6 +262,15 @@ declare global {
         getLocalState: () => Promise<LocalTweakState>;
         saveVerifiedState: (stateMap: Record<string, boolean>) => Promise<{ ok: boolean; error?: string }>;
         getInfo: () => Promise<TweakInfo[]>;
+        reapplyAppliedValues: (premiumActive: boolean) => Promise<{
+          ok: boolean;
+          busy?: boolean;
+          error?: string;
+          reapplied: Array<{ tweakId: string; value: number }>;
+          unchanged: Array<{ tweakId: string; value: number }>;
+          skipped: Array<{ tweakId: string; reason: string }>;
+          failed: Array<{ tweakId: string; error: string }>;
+        }>;
       };
 
       presetTweaks: {

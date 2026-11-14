@@ -686,8 +686,111 @@ function ElectronAppContent() {
 
   const realtimeMetricsEnabled = useStore((s) => s.realtimeMetricsEnabled);
   const setTweak = useStore((s) => s.setTweak);
+  const setSliderValue = useStore((s) => s.setSliderValue);
   const setSystemConditions = useSystemConditionsStore((s) => s.setConditions);
   const { toast } = useToast();
+  const sliderStartupRestoreAttemptedRef = useRef(false);
+
+  // Restore only values that were explicitly applied and verified before.
+  // Wait for server-verified entitlement and the first-run/overlay flows, then
+  // give startup PowerShell work time to settle before touching Windows.
+  useEffect(() => {
+    if (
+      !isElectron ||
+      !entitlementsOk ||
+      !entitlementsVerified ||
+      !premiumIsActive ||
+      !user?.loggedIn ||
+      firstRunSequencePending ||
+      competingOverlayActive ||
+      sliderStartupRestoreAttemptedRef.current
+    ) return;
+
+    let cancelled = false;
+    let timer: number | undefined;
+    const scheduleRestore = (attempt: number) => {
+      timer = window.setTimeout(async () => {
+        if (cancelled) return;
+        const api = (window as any).electronAPI?.tweaks;
+        if (typeof api?.reapplyAppliedValues !== "function") {
+          sliderStartupRestoreAttemptedRef.current = true;
+          console.warn("[SliderRestore] Electron restore API is unavailable.");
+          return;
+        }
+
+        sliderStartupRestoreAttemptedRef.current = true;
+        try {
+          const result = await api.reapplyAppliedValues(true);
+          if (result?.busy && attempt < 3) {
+            scheduleRestore(attempt + 1);
+            return;
+          }
+          if (!result?.ok) {
+            console.warn("[SliderRestore] Startup restore did not complete:", result?.error ?? "PowerShell is busy.");
+            return;
+          }
+
+          const restored = Array.isArray(result.reapplied) ? result.reapplied : [];
+          for (const item of restored) {
+            if (typeof item?.tweakId !== "string" || typeof item?.value !== "number") continue;
+            setSliderValue(item.tweakId, item.value);
+            window.dispatchEvent(new CustomEvent("sc:slider-state-changed", {
+              detail: { sliderId: item.tweakId, value: item.value },
+            }));
+            if (item.tweakId === "net-throttle-index") {
+              setTweak("tcp-throttling-index", item.value === 4294967295);
+            }
+            if (item.tweakId === "timer-resolution-slider") {
+              const enabled = item.value < 156;
+              setTweak("timer-res", enabled);
+              window.dispatchEvent(new CustomEvent("sc:timer-toggle-state-changed", {
+                detail: { enabled },
+              }));
+            }
+          }
+
+          const adminSkipped = Array.isArray(result.skipped)
+            ? result.skipped.filter((item: any) => item?.reason === "administrator_required").length
+            : 0;
+          const failures = Array.isArray(result.failed) ? result.failed.length : 0;
+          if (restored.length > 0 || adminSkipped > 0 || failures > 0) {
+            const details = [
+              restored.length > 0 ? `Restored ${restored.length} saved slider value${restored.length === 1 ? "" : "s"}.` : "",
+              adminSkipped > 0 ? `${adminSkipped} system-wide value${adminSkipped === 1 ? "" : "s"} need SwitchControl to run as administrator.` : "",
+              failures > 0 ? `${failures} saved value${failures === 1 ? "" : "s"} could not be verified; check the Windows permission prompt and try applying them again.` : "",
+            ].filter(Boolean).join(" ");
+            toast({
+              title: restored.length > 0
+                ? "Saved slider settings checked"
+                : failures > 0
+                  ? "Some slider settings were not restored"
+                  : "Administrator access needed",
+              description: details,
+            });
+          }
+        } catch (error) {
+          console.warn("[SliderRestore] Startup restore failed:", error);
+        }
+      }, attempt === 0 ? 15000 : 5000);
+    };
+
+    scheduleRestore(0);
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [
+    isElectron,
+    entitlementsOk,
+    entitlementsVerified,
+    premiumIsActive,
+    user?.loggedIn,
+    firstRunSequencePending,
+    competingOverlayActive,
+    setSliderValue,
+    setTweak,
+    toast,
+  ]);
 
   // Startup reconciliation, fires once, non-blocking.
   // Reads real Windows tweak state via a single batched PowerShell call and

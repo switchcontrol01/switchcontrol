@@ -384,6 +384,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
       assertString(tweakId, 'tweakId');
       return ipcRenderer.invoke('tweak:readValue', tweakId);
     },
+    reapplyAppliedValues: (premiumActive) => {
+      if (typeof premiumActive !== 'boolean') throw new TypeError('tweaks.reapplyAppliedValues: premiumActive must be a boolean');
+      return ipcRenderer.invoke('tweak:reapplyAppliedValues', premiumActive);
+    },
     applyValue: (tweakId, value) => {
       assertString(tweakId, 'tweakId');
       if (typeof value !== 'number' || !Number.isFinite(value)) throw new TypeError('tweaks.applyValue: value must be a finite number');
