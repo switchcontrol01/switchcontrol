@@ -7,6 +7,9 @@ import { openFileFixture } from "./helpers/chromium";
 
 test("packaged-file motherboard sweep visibly runs once, replays on Rescan, and honors app Reduce Motion", { timeout: 40_000 }, async () => {
   const src = `file://${path.resolve("client/public/images/driver-intel/aorus-ice-holographic-render.png")}`;
+  const artworkSource = fs.readFileSync("client/src/components/driver-intel/MotherboardArtwork.tsx", "utf8");
+  assert.match(artworkSource, /rgba\(255,255,255,\.68\)/, "the sweep uses a softened, still-visible white highlight");
+  assert.doesNotMatch(artworkSource, /255,222,176|255,247,217|255,231,192/, "the sweep no longer uses the golden palette");
   const bundle = await build({
     stdin: { contents: `
       import React, { useState } from "react";
@@ -63,10 +66,13 @@ test("packaged-file motherboard sweep visibly runs once, replays on Rescan, and 
       format: "png", clip: { x: 0, y: 0, width: 620, height: 620, scale: 1 },
     }).then(value => value.data as string);
     const before = await capture();
+    fs.mkdirSync("generated-artifacts", { recursive: true });
+    fs.writeFileSync("generated-artifacts/driver-intel-sweep-before.png", Buffer.from(before, "base64"));
     await browser.waitFor(`${canvas}?.dataset.sweepState === "running"`);
     await new Promise(resolve => setTimeout(resolve, 650));
     const during = await capture();
     assert.ok(during !== before, "The light sweep must visibly change the rendered board, not only its state.");
+    fs.writeFileSync("generated-artifacts/driver-intel-sweep-midpoint.png", Buffer.from(during, "base64"));
     await browser.waitFor(`${canvas}?.dataset.sweepState === "complete"`);
     const after = await capture();
     assert.ok(after !== during, "The completed board must no longer display the mid-sweep light.");

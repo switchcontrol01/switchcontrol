@@ -786,3 +786,128 @@ html.sc-reduced-motion .debloater-scan-root * {
   .debloater-stat-grid [data-testid^="stat-"] p:nth-child(2) { font-size: 1.5rem; }
   .debloater-progress-card { padding: 18px !important; }
 }
+
+/* Full-width layout: remove the oversized blank notebook leaves and let the
+   working Debloater content use the whole app section. */
+.debloater-paper-mat {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: calc(100vh - 120px);
+  padding: clamp(12px, 1.6vw, 22px);
+  overflow: hidden;
+  border-radius: 18px;
+}
+.debloater-paper-mat::before,
+.debloater-paper-mat::after {
+  display: none;
+}
+.debloater-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: clamp(18px, 2vw, 30px) !important;
+  container: debloater-content / inline-size;
+}
+.debloater-page::before {
+  display: none;
+}
+.debloater-notebook-head {
+  margin: 0 0 16px;
+  padding: 14px 16px 16px;
+  border: 1px solid rgba(155, 204, 218, .24);
+  border-radius: 14px;
+  background:
+    linear-gradient(112deg, rgba(8, 19, 35, .82), rgba(21, 66, 82, .58)),
+    url("/images/debloater-reference/teal-wash.webp") right center / cover no-repeat;
+  box-shadow: 0 12px 28px rgba(4, 12, 26, .25), inset 0 1px rgba(231, 247, 250, .08);
+}
+.debloater-notebook-head > div:first-child {
+  background: transparent !important;
+}
+.debloater-notebook-head h1,
+.debloater-notebook-head h2,
+.debloater-notebook-head h3,
+.debloater-intensity > div:first-child {
+  color: #edf4f7 !important;
+}
+.debloater-page .debloater-notebook-head [class*="text-"] {
+  color: #e8f1f4 !important;
+}
+.debloater-page .debloater-notebook-head svg {
+  color: #79d0d4 !important;
+}
+.debloater-notebook-head h1,
+.debloater-notebook-head p {
+  color: #e8f1f4 !important;
+}
+.debloater-notebook-head .debloater-tabs {
+  margin-top: 12px;
+  background: rgba(7, 17, 31, .72) !important;
+  border-color: rgba(150, 193, 207, .28) !important;
+}
+.debloater-notebook-head .debloater-tabs button {
+  color: #b8c7d1 !important;
+  background: transparent !important;
+}
+.debloater-notebook-head .debloater-tabs button[class*="bg-primary"] {
+  color: #f3fbfc !important;
+  background: #17676c !important;
+}
+.debloater-stat-grid,
+.debloater-level-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+}
+.debloater-stat-grid [data-testid^="stat-"] {
+  min-height: 112px;
+  padding: 14px !important;
+}
+.debloater-level-card {
+  min-height: 184px;
+  padding: 16px !important;
+}
+.debloater-level-card h3 {
+  font-size: 1.12rem !important;
+}
+.debloater-level-card p {
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+.debloater-actionbar {
+  margin-top: 8px;
+  padding: 14px 18px !important;
+}
+
+@container debloater-content (min-width: 1040px) {
+  .debloater-stat-grid,
+  .debloater-level-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@container debloater-content (max-width: 540px) {
+  .debloater-stat-grid,
+  .debloater-level-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .debloater-level-card {
+    min-height: 160px;
+  }
+}
+
+@media (max-width: 767px) {
+  .debloater-paper-mat {
+    min-height: calc(100vh - 92px);
+    padding: 10px;
+  }
+  .debloater-page {
+    width: 100%;
+    margin: 0;
+    padding: 16px !important;
+  }
+  .debloater-notebook-head {
+    margin-bottom: 14px;
+    padding: 12px;
+  }
+}

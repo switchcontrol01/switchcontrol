@@ -44,7 +44,26 @@ test("production Power Plan hero and profile cards render and remain interactive
     await browser.navigate();
     await browser.waitFor('document.querySelectorAll(\'[data-testid^="card-profile-"]\').length === 4');
     const profileColumns = await browser.evaluate('getComputedStyle(document.querySelector(\'[data-testid="power-profile-grid"]\')).gridTemplateColumns');
-    assert.equal(profileColumns.split(" ").length, 4, `Expected four reference columns, got ${profileColumns}`);
+    assert.equal(profileColumns.split(" ").length, 2, `Narrow app content should use two readable columns, got ${profileColumns}`);
+    const equalCardWidths = await browser.evaluate(`(() => {
+      const cards = [...document.querySelectorAll('[data-testid^="card-profile-"]')];
+      const firstRow = cards.slice(0, 2).map(card => card.getBoundingClientRect().width);
+      return Math.abs(firstRow[0] - firstRow[1]) < 1;
+    })()`);
+    assert.equal(equalCardWidths, true, "the two visible profiles must share equal card widths");
+    await browser.evaluate('document.querySelector(".power-plan-page").style.width = "460px"');
+    assert.equal(
+      (await browser.evaluate('getComputedStyle(document.querySelector(\'[data-testid="power-profile-grid"]\')).gridTemplateColumns')).split(" ").length,
+      1,
+      "very narrow content should stack into one column",
+    );
+    await browser.evaluate('document.querySelector(".power-plan-page").style.width = "1100px"');
+    assert.equal(
+      (await browser.evaluate('getComputedStyle(document.querySelector(\'[data-testid="power-profile-grid"]\')).gridTemplateColumns')).split(" ").length,
+      4,
+      "wide content should use four even columns",
+    );
+    await browser.evaluate('document.querySelector(".power-plan-page").style.width = "100%"');
     assert.equal(await browser.evaluate('document.querySelectorAll(\'[data-testid^="button-activate-"]\').length'), 4);
     assert.equal(await browser.evaluate('document.querySelectorAll(\'[data-testid^="button-settings-"]\').length'), 4);
     assert.match(await browser.evaluate('document.body.innerText'), /no Windows state queried/i);

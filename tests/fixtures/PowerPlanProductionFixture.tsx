@@ -104,8 +104,8 @@ function Fixture() {
       <style>{`
         html, body, #root { margin:0; min-width:100%; min-height:100%; background:#090b10; }
         * { box-sizing:border-box; }
-        .power-plan-capture-canvas { width:769px; height:454px; overflow:hidden; padding:34px 0 0 30px; background:#090b10; }
-        .power-plan-capture-canvas .power-plan-page { width:581px; height:410px; overflow:hidden; padding:14px 16px; }
+        .power-plan-capture-canvas { width:769px; min-height:454px; height:auto; overflow:visible; padding:24px 30px; background:#090b10; }
+        .power-plan-capture-canvas .power-plan-page { width:100%; max-width:1280px; min-height:410px; height:auto; overflow:visible; padding:20px 22px; }
         .power-plan-capture-canvas .pp-fixture-status { padding:2px 7px; border:1px solid rgba(24,191,210,.24); border-radius:9px; color:#77c8d3; background:rgba(7,17,32,.5); font-size:8px; }
         .power-plan-capture-canvas .pp-fixture-builder { padding:12px; border:1px solid rgba(143,191,204,.2); border-radius:10px; color:#d9e4ec; background:#111a2a; }
       `}</style>

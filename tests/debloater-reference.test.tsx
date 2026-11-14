@@ -58,11 +58,24 @@ test("production Debloater notebook frame renders its deterministic browser fixt
     const details = await browser.evaluate(`(() => {
       const frame = document.querySelector('[data-testid="debloater-paper-mat"]');
       const left = document.querySelector('.debloater-reference-fixture');
+      const statGrid = document.querySelector('.debloater-stat-grid');
+      const levelGrid = document.querySelector('.debloater-level-grid');
+      const headerTitle = document.querySelector('.debloater-notebook-head h1');
+      const headerSubtitle = document.querySelector('.debloater-notebook-head p');
+      const installedAppsTab = document.querySelector('.debloater-notebook-head .debloater-tabs button:nth-child(2)');
+      const columns = element => getComputedStyle(element).gridTemplateColumns.match(/[\\d.]+px/g)?.length ?? 0;
       const cards = [...document.querySelectorAll('.debloater-level-card')];
       return {
         frame: frame.getBoundingClientRect().toJSON(),
         left: left.getBoundingClientRect().toJSON(),
         cards: cards.length,
+        statColumns: columns(statGrid),
+        levelColumns: columns(levelGrid),
+        blankLeafBefore: getComputedStyle(frame, "::before").display,
+        blankLeafAfter: getComputedStyle(frame, "::after").display,
+        headerTitleColor: getComputedStyle(headerTitle).color,
+        headerSubtitleColor: getComputedStyle(headerSubtitle).color,
+        installedTabBackground: getComputedStyle(installedAppsTab).backgroundColor,
         matImage: getComputedStyle(frame).backgroundImage.includes('data:image/webp'),
         text: document.body.innerText.includes('Curated Removals') && document.body.innerText.includes('Maximum Performance'),
         values: ['53','1225','1995','44'].every(value => document.body.innerText.includes(value))
@@ -72,12 +85,32 @@ test("production Debloater notebook frame renders its deterministic browser fixt
     assert.equal(details.matImage, true, "watercolor mat is loaded from the original production art asset");
     assert.equal(details.text, true);
     assert.equal(details.values, true, "deterministic illustrative reference values are present in the actual production cards");
-    assert.ok(details.frame.width > details.left.width, "the decorative facing notebook leaf is outside the working page");
+    assert.ok(details.left.width >= details.frame.width * 0.9, "the working page fills the available app section");
+    assert.equal(details.blankLeafBefore, "none", "the oversized blank paper leaf is removed");
+    assert.equal(details.blankLeafAfter, "none", "the empty facing leaf is removed");
+    assert.equal(details.headerTitleColor, "rgb(232, 241, 244)", "the title remains legible on the dark full-width header");
+    assert.equal(details.headerSubtitleColor, "rgb(232, 241, 244)", "the subtitle remains legible on the dark full-width header");
+    assert.equal(details.installedTabBackground, "rgba(0, 0, 0, 0)", "inactive header tabs stay transparent rather than becoming blank white pills");
+    assert.equal(details.statColumns, 4, "wide sections use four evenly sized overview columns");
+    assert.equal(details.levelColumns, 4, "wide sections use four evenly sized intensity columns");
     const shot = await browser.page("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
     const output = path.resolve("generated-artifacts/debloater-reference-fixture.png");
     await fs.mkdir(path.dirname(output), { recursive: true });
     await fs.writeFile(output, Buffer.from(shot.data, "base64"));
     console.log(`Fixture screenshot: ${output}`);
+
+    await browser.page("Emulation.setDeviceMetricsOverride", { width: 900, height: 900, deviceScaleFactor: 1, mobile: false });
+    assert.equal(
+      await browser.evaluate('getComputedStyle(document.querySelector(".debloater-level-grid")).gridTemplateColumns.match(/[\\d.]+px/g).length'),
+      2,
+      "medium content uses two balanced columns",
+    );
+    await browser.page("Emulation.setDeviceMetricsOverride", { width: 500, height: 874, deviceScaleFactor: 1, mobile: false });
+    assert.equal(
+      await browser.evaluate('getComputedStyle(document.querySelector(".debloater-level-grid")).gridTemplateColumns.match(/[\\d.]+px/g).length'),
+      1,
+      "narrow content stacks cards instead of squeezing them",
+    );
   } finally {
     await browser.close();
   }

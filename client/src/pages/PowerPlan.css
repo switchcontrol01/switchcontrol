@@ -18,6 +18,7 @@
   --pp-lavender: #b294d2;
   position: relative;
   isolation: isolate;
+  container: power-plan-content / inline-size;
   color: var(--pp-text);
   font-family: "Segoe UI", "DM Sans", sans-serif;
 }
@@ -52,8 +53,8 @@
    than a full-screen screenshot or a smooth gradient imitation. */
 .power-plan-page .power-plan-hero {
   isolation: isolate;
-  min-height: 136px;
-  padding: 15px 14px 0 !important;
+  min-height: 168px;
+  padding: 22px 24px !important;
   border-radius: 11px !important;
   border-color: rgba(97, 152, 177, .3) !important;
   background:
@@ -86,27 +87,27 @@
 }
 
 .power-plan-page .power-plan-hero h2 {
-  font-size: clamp(17px, 2vw, 21px) !important;
+  font-size: clamp(20px, 2vw, 26px) !important;
   letter-spacing: -.035em;
 }
 .power-plan-page .power-plan-hero h1 {
-  font-size: 17px !important;
-  line-height: 1.15 !important;
+  font-size: 20px !important;
+  line-height: 1.25 !important;
 }
 .power-plan-page .power-plan-hero h1 > span:first-child svg {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
 }
 .power-plan-page .power-plan-hero h1 + p {
-  margin-top: 1px !important;
-  font-size: 9px !important;
+  margin-top: 4px !important;
+  font-size: 13px !important;
 }
 .power-plan-page .power-plan-hero .relative.z-10 > div:first-child {
-  margin-bottom: 8px !important;
+  margin-bottom: 14px !important;
 }
 .power-plan-page .power-plan-hero .relative.z-10 > div:nth-child(2) {
-  min-height: 0 !important;
-  margin-bottom: 8px !important;
+  min-height: 4rem !important;
+  margin-bottom: 14px !important;
 }
 
 .power-plan-page .power-plan-hero [data-testid="button-refresh-power-state"] {
@@ -121,42 +122,42 @@
 .power-plan-page [role="tablist"] {
   width: fit-content;
   max-width: 100%;
-  height: 22px !important;
-  min-height: 22px !important;
-  padding: 3px;
-  gap: 2px;
-  border-radius: 8px;
+  height: auto !important;
+  min-height: 42px !important;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 10px;
   background: rgba(12,19,31,.84) !important;
   border-color: rgba(110,154,176,.22) !important;
   box-shadow: inset 0 1px 3px rgba(0,0,0,.34);
 }
 .power-plan-page [role="tab"] {
-  height: 16px !important;
-  min-height: 16px !important;
-  padding: 3px 9px;
-  border-radius: 6px;
+  height: auto !important;
+  min-height: 34px !important;
+  padding: 7px 14px;
+  border-radius: 7px;
   color: #a9b8c7;
   font-family: "Segoe UI", "DM Sans", sans-serif;
-  font-size: 10px;
+  font-size: 13px;
 }
 .power-plan-page [role="tab"] svg {
-  width: 11px;
-  height: 11px;
+  width: 15px;
+  height: 15px;
 }
 .power-plan-page [role="tabpanel"] {
-  margin-block-start: 8px !important;
+  margin-block-start: 20px !important;
 }
 .power-plan-page [role="tablist"] {
-  margin-block-end: 0 !important;
+  margin-block-end: 2px !important;
 }
 .power-plan-page [data-orientation="horizontal"].space-y-6 > :not(:first-child) {
-  margin-block-start: 8px !important;
+  margin-block-start: 20px !important;
 }
 .power-plan-page [data-orientation="horizontal"].space-y-6 > :not(:last-child) {
   margin-block-end: 0 !important;
 }
 .power-plan-page.space-y-6 > :not(:first-child) {
-  margin-block-start: 9px !important;
+  margin-block-start: 22px !important;
 }
 .power-plan-page.space-y-6 > :not(:last-child) {
   margin-block-end: 0 !important;
@@ -169,12 +170,24 @@
 
 .power-plan-page [data-testid="power-profile-grid"] {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px !important;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px !important;
+  align-items: stretch;
+}
+
+@container power-plan-content (min-width: 520px) {
+  .power-plan-page [data-testid="power-profile-grid"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container power-plan-content (min-width: 1040px) {
+  .power-plan-page [data-testid="power-profile-grid"] {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .power-plan-page [data-testid^="card-profile-"] {
-  container-type: inline-size;
   position: relative;
   isolation: isolate;
   min-width: 0;
@@ -243,40 +256,39 @@
   opacity: .85;
 }
 .power-plan-page [data-testid^="card-profile-"] h3 {
-  font-size: clamp(9px, 6.6cqi, 16px) !important;
+  font-size: 17px !important;
   line-height: 1.25;
   letter-spacing: -.02em;
 }
 .power-plan-page [data-testid^="card-profile-"] p {
   color: #c0cbd5;
-  font-size: clamp(7.5px, 5.7cqi, 12px);
-  line-height: 1.3;
+  font-size: 13px;
+  line-height: 1.55;
 }
 .power-plan-page [data-testid^="card-profile-"] .p-5 {
-  padding: clamp(8px, 6cqi, 14px) !important;
+  padding: 20px !important;
 }
-.power-plan-page [data-testid^="card-profile-"] .mb-4 { margin-bottom: 5px !important; }
-.power-plan-page [data-testid^="card-profile-"] .mb-1\.5 { margin-bottom: 3px !important; }
-.power-plan-page [data-testid^="card-profile-"] .gap-1 { gap: 3px; }
-.power-plan-page [data-testid^="card-profile-"] .text-\[10px\] { font-size: clamp(6.5px, 4.8cqi, 10px); }
-.power-plan-page [data-testid^="card-profile-"] .size-5 { width: 13px; height: 13px; }
-.power-plan-page [data-testid^="card-profile-"] .text-\[10px\].rounded-full { padding: 2px 4px; gap: 3px; }
+.power-plan-page [data-testid^="card-profile-"] .mb-4 { margin-bottom: 16px !important; }
+.power-plan-page [data-testid^="card-profile-"] .mb-1\.5 { margin-bottom: 6px !important; }
+.power-plan-page [data-testid^="card-profile-"] .text-\[10px\] { font-size: 11px; }
+.power-plan-page [data-testid^="card-profile-"] .size-5 { width: 20px; height: 20px; }
+.power-plan-page [data-testid^="card-profile-"] .text-\[10px\].rounded-full { padding: 3px 8px; gap: 5px; }
 .power-plan-page [data-testid^="card-profile-"] .size-12 {
-  width: 29px;
-  height: 29px;
-  border-radius: 9px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
 }
 .power-plan-page [data-testid^="card-profile-"] .size-6 {
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
 }
 .power-plan-page [data-testid^="card-profile-"] .rounded-full.bg-\[\#21262D\] {
-  padding: 2px 5px;
+  padding: 4px 9px;
   background: rgba(7,14,25,.49) !important;
   border-color: rgba(204,226,238,.16) !important;
   color: #d5e0e8 !important;
-  font-size: clamp(6.5px, 4.8cqi, 10px);
-  line-height: 1.3;
+  font-size: 11px;
+  line-height: 1.4;
 }
 .power-plan-page [data-testid^="card-profile-"] .h-1.rounded-full,
 .power-plan-page [data-testid^="card-profile-"] .h-1\.5.rounded-full {
@@ -284,25 +296,33 @@
   box-shadow: inset 0 1px 2px rgba(0,0,0,.55);
 }
 .power-plan-page [data-testid^="card-profile-"] [class*="uppercase"] {
-  font-size: 8px !important;
+  font-size: 11px !important;
   letter-spacing: .12em;
 }
 .power-plan-page [data-testid^="button-settings-"] {
-  min-height: 27px;
-  height: 27px;
-  margin-bottom: 7px;
-  padding: 3px 5px;
+  min-height: 44px;
+  height: auto;
+  margin: auto 0 12px;
+  padding: 9px 12px;
   color: #e1e9ef !important;
   border-color: rgba(196,218,229,.23) !important;
   background: rgba(9,16,28,.57) !important;
-  font-size: clamp(6px, 4.3cqi, 10px);
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: normal;
 }
 .power-plan-page [data-testid^="button-activate-"] {
-  min-height: 29px;
-  height: 29px;
-  border-radius: 6px;
-  font-size: 10px;
+  min-height: 44px;
+  height: auto;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.35;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+}
+.power-plan-page [data-testid="button-edit-custom"] {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
 }
 .power-plan-page [data-testid="button-activate-performance"]:not(:has(.lucide-check)) {
   background: linear-gradient(135deg,rgba(232,73,83,.72),rgba(167,45,57,.48)) !important;
@@ -378,21 +398,29 @@
 }
 
 @media (max-width: 767px) {
-  .power-plan-page [data-testid="power-profile-grid"] {
-    grid-template-columns: minmax(0,1fr);
-    gap: 12px !important;
-  }
   .power-plan-page .power-plan-hero {
     min-height: auto;
-    padding: 14px !important;
+    padding: 18px !important;
     border-radius: 10px !important;
   }
-  .power-plan-page [role="tablist"] { width: 100%; }
+  .power-plan-page [role="tablist"] {
+    width: 100%;
+    min-height: 44px !important;
+  }
   .power-plan-page [role="tab"] {
     flex: 1;
     justify-content: center;
-    padding-inline: .55rem;
-    font-size: .75rem;
+    padding-inline: .45rem;
+    font-size: 12px;
+  }
+  .power-plan-page [data-testid^="card-profile-"] .p-5 {
+    padding: 18px !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .power-plan-page [data-testid="power-profile-grid"] {
+    gap: 14px !important;
   }
 }
 

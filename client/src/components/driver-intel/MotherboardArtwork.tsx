@@ -47,11 +47,11 @@ export function MotherboardArtwork({ src, alt, rescanToken, motionEnabled }: Mot
         position * width - band, position * height - band,
         position * width + band, position * height + band,
       );
-      gradient.addColorStop(0, "rgba(255,222,176,0)");
-      gradient.addColorStop(.3, "rgba(255,222,176,.24)");
-      gradient.addColorStop(.5, "rgba(255,247,217,.94)");
-      gradient.addColorStop(.7, "rgba(255,231,192,.24)");
-      gradient.addColorStop(1, "rgba(255,222,176,0)");
+      gradient.addColorStop(0, "rgba(247,250,253,0)");
+      gradient.addColorStop(.3, "rgba(247,250,253,.16)");
+      gradient.addColorStop(.5, "rgba(255,255,255,.68)");
+      gradient.addColorStop(.7, "rgba(247,250,253,.16)");
+      gradient.addColorStop(1, "rgba(247,250,253,0)");
       context.fillStyle = gradient;
       context.fillRect(0, 0, width, height);
       canvas.style.opacity = String(Math.min(1, progress * 10, (1 - progress) * 10));

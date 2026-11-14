@@ -12,6 +12,9 @@ test("Driver Intelligence fades and blurs in and out over 1.5 seconds, with the 
   assert.match(appSource, /const appReducedMotion = useUserPreferencesStore\(\(state\) => state\.reducedMotion\)/);
   assert.match(pageSource, /useUserPreferencesStore\(state => state\.reducedMotion\)/);
   assert.match(inspectorSource, /useUserPreferencesStore\(state => state\.reducedMotion\)/);
+  assert.doesNotMatch(pageSource, /<motion\.div|animate=\{isExiting|onAnimationComplete=\{definition/);
+  assert.doesNotMatch(pageSource, /setIsExiting|pendingNavigation/);
+  assert.match(pageSource, /navigateWithRouteTransition/);
   assert.match(preferencesStoreSource, /interface UserPreferencesState extends UserPreferences/);
   for (const source of [appSource, pageSource, inspectorSource]) {
     assert.doesNotMatch(source, /state\.preferences\.reducedMotion/);
@@ -96,7 +99,7 @@ test("Driver Intelligence fades and blurs in and out over 1.5 seconds, with the 
       reducedEntry.filter === "none" || /^blur\(0(?:\.0+)?px\)$/.test(reducedEntry.filter),
       "SwitchControl Reduce Motion clears the route blur.",
     );
-    console.log("Verified rendered Driver Intelligence entry and exit: both fade and blur for 1.5s, the exit waits before unmounting, OS motion reduction does not disable them, and SwitchControl Reduce Motion stops them.");
+    console.log("Verified one rendered 1.5s fade/blur route transition; Driver Intelligence has no second page-level exit, OS motion reduction does not disable it, and SwitchControl Reduce Motion stops it.");
   } finally {
     await browser.close();
   }
