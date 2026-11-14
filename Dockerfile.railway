@@ -1,0 +1,30 @@
+FROM node:24.13.0-bookworm-slim
+
+WORKDIR /app
+
+RUN npm install -g npm@11.18.0
+
+COPY package.json package-lock.json ./
+
+# Railway builds run outside Replit, so the Replit-only package mirror in the
+# committed lockfile cannot resolve there. Rewrite only this container's copy;
+# Replit's managed builder continues to use the Package Firewall.
+RUN node -e "const fs=require('node:fs');const lock=JSON.parse(fs.readFileSync('package-lock.json','utf8'));const prefix='http://package-firewall.replit.internal/npm/';let changed=0;for(const pkg of Object.values(lock.packages||{})){if(typeof pkg.resolved==='string'&&pkg.resolved.startsWith(prefix)){pkg.resolved='https://registry.npmjs.org/'+pkg.resolved.slice(prefix.length);changed++;}}if(!changed)throw new Error('No Replit package mirror URLs found; refusing an unexpected lockfile rewrite.');fs.writeFileSync('package-lock.json',JSON.stringify(lock,null,2)+'\\n');console.log('Normalized '+changed+' package URLs for Railway.');"
+
+# --ignore-scripts skips postinstall (which tries `cd electron && npm install`
+# and the Replit-specific tsx/esbuild proxy — neither is needed in a container)
+RUN npm ci --legacy-peer-deps --no-audit --no-fund --ignore-scripts
+
+COPY . .
+
+RUN npm run build
+
+# ws and systeminformation are kept external in the server bundle (not inlined by
+# esbuild) so dist/index.cjs requires them from node_modules at runtime.
+# Re-install them explicitly after the build to guarantee they are present even
+# if an earlier npm ci layer was served from cache with a stale node_modules.
+RUN npm install --no-save --ignore-scripts --legacy-peer-deps ws systeminformation
+
+ENV NODE_ENV=production
+
+CMD ["npm", "run", "start"]
