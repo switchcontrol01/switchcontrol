@@ -2,6 +2,11 @@
 type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
 export const modules: ModuleMap = {
   "./components/mockups/cleaner-redesign/Current.tsx": () => import("../components/mockups/cleaner-redesign/Current.tsx"),
+  "./components/mockups/driver-intel-3d/BoardAtlas.tsx": () => import("../components/mockups/driver-intel-3d/BoardAtlas.tsx"),
+  "./components/mockups/driver-intel-3d/BoardHotspots.tsx": () => import("../components/mockups/driver-intel-3d/BoardHotspots.tsx"),
+  "./components/mockups/driver-intel-3d/Current.tsx": () => import("../components/mockups/driver-intel-3d/Current.tsx"),
+  "./components/mockups/driver-intel-3d/TiltedWorkstation.tsx": () => import("../components/mockups/driver-intel-3d/TiltedWorkstation.tsx"),
+  "./components/mockups/driver-intel-3d/XrayInspection.tsx": () => import("../components/mockups/driver-intel-3d/XrayInspection.tsx"),
   "./components/mockups/dashboard-redesign/Assembly.tsx": () => import("../components/mockups/dashboard-redesign/Assembly.tsx"),
   "./components/mockups/dashboard-redesign/Current.tsx": () => import("../components/mockups/dashboard-redesign/Current.tsx"),
   "./components/mockups/dashboard-redesign/CurrentFlow.tsx": () => import("../components/mockups/dashboard-redesign/CurrentFlow.tsx"),
@@ -9,11 +14,6 @@ export const modules: ModuleMap = {
   "./components/mockups/dashboard-redesign/Observatory.tsx": () => import("../components/mockups/dashboard-redesign/Observatory.tsx"),
   "./components/mockups/dashboard-redesign/Studio.tsx": () => import("../components/mockups/dashboard-redesign/Studio.tsx"),
   "./components/mockups/driver-intel-current/Current.tsx": () => import("../components/mockups/driver-intel-current/Current.tsx"),
-  "./components/mockups/driver-intel-3d/BoardAtlas.tsx": () => import("../components/mockups/driver-intel-3d/BoardAtlas.tsx"),
-  "./components/mockups/driver-intel-3d/BoardHotspots.tsx": () => import("../components/mockups/driver-intel-3d/BoardHotspots.tsx"),
-  "./components/mockups/driver-intel-3d/Current.tsx": () => import("../components/mockups/driver-intel-3d/Current.tsx"),
-  "./components/mockups/driver-intel-3d/TiltedWorkstation.tsx": () => import("../components/mockups/driver-intel-3d/TiltedWorkstation.tsx"),
-  "./components/mockups/driver-intel-3d/XrayInspection.tsx": () => import("../components/mockups/driver-intel-3d/XrayInspection.tsx"),
   "./components/mockups/switchcontrol-depth/ExplodedAssembly.tsx": () => import("../components/mockups/switchcontrol-depth/ExplodedAssembly.tsx"),
   "./components/mockups/cleaner-redesign/flow/FluidSpace.tsx": () => import("../components/mockups/cleaner-redesign/flow/FluidSpace.tsx"),
   "./components/mockups/cleaner-redesign/orbit/OrbitalCore.tsx": () => import("../components/mockups/cleaner-redesign/orbit/OrbitalCore.tsx"),
