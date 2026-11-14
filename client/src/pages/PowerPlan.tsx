@@ -1,3 +1,4 @@
+import "./PowerPlan.css";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { logHistory } from "@/lib/logHistory";
 import { createPortal } from "react-dom";
@@ -284,36 +285,6 @@ function backendIdToFrontendId(backendId: BackendProfileId | null | undefined): 
 
 // ── Premium sub-components ────────────────────────────────────────────────────
 
-function EnergyLines() {
-  if (typeof document === "undefined") return null;
-
-  return createPortal((
-    <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" aria-hidden>
-      <defs>
-        <linearGradient id="pp-eg1" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="rgba(139,92,246,0)" />
-          <stop offset="45%" stopColor="rgba(139,92,246,0.5)" />
-          <stop offset="100%" stopColor="rgba(139,92,246,0)" />
-        </linearGradient>
-        <linearGradient id="pp-eg2" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="rgba(6,182,212,0)" />
-          <stop offset="55%" stopColor="rgba(6,182,212,0.3)" />
-          <stop offset="100%" stopColor="rgba(6,182,212,0)" />
-        </linearGradient>
-      </defs>
-      <path d="M -100 45 Q 200 25 500 45 Q 800 65 1100 45" stroke="url(#pp-eg1)" strokeWidth="1" fill="none" opacity="0.7">
-        <animateTransform attributeName="transform" type="translate" values="-100 0;200 0;-100 0" dur="8s" repeatCount="indefinite" />
-      </path>
-      <path d="M -200 70 Q 300 55 600 70 Q 900 85 1200 70" stroke="url(#pp-eg2)" strokeWidth="1" fill="none" opacity="0.4">
-        <animateTransform attributeName="transform" type="translate" values="0 0;150 0;0 0" dur="11s" repeatCount="indefinite" />
-      </path>
-      <path d="M 0 20 Q 400 35 700 20 Q 1000 5 1300 20" stroke="url(#pp-eg1)" strokeWidth="0.5" fill="none" opacity="0.25">
-        <animateTransform attributeName="transform" type="translate" values="100 0;-100 0;100 0" dur="14s" repeatCount="indefinite" />
-      </path>
-    </svg>
-  ), document.body);
-}
-
 function VerificationBadge({ match, loading }: { match?: string; loading?: boolean }) {
   const { t } = useTranslation();
   if (loading) return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#21262D] border border-[#2A313A] text-[11px] text-[#6B7380]"><span className="size-1.5 rounded-full bg-[#1A1F26]0 animate-pulse" /> {t("Checking…")}</span>;
@@ -328,7 +299,7 @@ function VerificationBadge({ match, loading }: { match?: string; loading?: boole
   if (typeof document === "undefined") return null;
 
   return createPortal((
-    <span className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-medium", s.cls)}>
+    <span data-match={match} className={cn("power-plan-status-badge inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-medium", s.cls)}>
       {s.icon} {s.label}
     </span>
   ), document.body);
@@ -1238,7 +1209,7 @@ export default function PowerPlan() {
   return (
     <AppLayout>
       <motion.div
-        className={cn("space-y-6 relative", !isPremium && "opacity-60 blur-[2px]")}
+        className={cn("power-plan-page space-y-6 relative", !isPremium && "opacity-60 blur-[2px]")}
         variants={pageTransition}
         initial="initial"
         animate="animate"
@@ -1274,10 +1245,8 @@ export default function PowerPlan() {
             SECTION 1, HERO STATUS PANEL
         ══════════════════════════════════════════════════════════════════ */}
         <div
-          className="relative overflow-hidden rounded-2xl border border-[#2A313A] p-6 md:p-8"
-          style={{ background: "linear-gradient(135deg, rgba(10,10,20,0.98) 0%, rgba(30,15,50,0.4) 50%, rgba(10,10,20,0.98) 100%)", boxShadow: "0 0 80px -20px rgba(139,92,246,0.18), inset 0 1px 0 rgba(255,255,255,0.04)" }}
+          className="power-plan-hero relative overflow-hidden rounded-2xl border border-[#2A313A] p-6 md:p-8"
         >
-          <EnergyLines />
           <div className="relative z-10">
             {/* Header row */}
             <div className="flex items-start justify-between mb-5">
@@ -1878,7 +1847,7 @@ export default function PowerPlan() {
             )}
 
             {/* ── Plan name ────────────────────────────────────────────── */}
-            <GlassCard className="p-6">
+            <GlassCard className="power-plan-panel p-6">
               <div className="flex items-start justify-between mb-5">
                 <div>
                   <h2 className="text-base font-semibold text-[#E6EAF0] flex items-center gap-2">
@@ -1924,7 +1893,7 @@ export default function PowerPlan() {
             </GlassCard>
 
             {/* ── CPU Settings ─────────────────────────────────────────── */}
-            <GlassCard className="p-6">
+            <GlassCard className="power-plan-panel p-6">
               <h3 className="text-sm font-semibold text-[#E6EAF0] flex items-center gap-2 mb-4">
                 <Cpu className="size-4 text-primary" /> CPU Behavior
               </h3>
@@ -1972,7 +1941,7 @@ export default function PowerPlan() {
             </GlassCard>
 
             {/* ── Processor State Range ─────────────────────────────────── */}
-            <GlassCard className="p-6">
+            <GlassCard className="power-plan-panel p-6">
               <h3 className="text-sm font-semibold text-[#E6EAF0] flex items-center gap-2 mb-4">
                 <Gauge className="size-4 text-primary" /> Processor State Range
               </h3>
@@ -2015,7 +1984,7 @@ export default function PowerPlan() {
             </GlassCard>
 
             {/* ── USB & Sleep ───────────────────────────────────────────── */}
-            <GlassCard className="p-6">
+            <GlassCard className="power-plan-panel p-6">
               <h3 className="text-sm font-semibold text-[#E6EAF0] flex items-center gap-2 mb-4">
                 <Usb className="size-4 text-primary" /> USB & Sleep
               </h3>
