@@ -2,7 +2,7 @@
   min-height: 100dvh;
   color: var(--scd-text);
   background:
-    radial-gradient(ellipse at 78% 0%, rgba(158, 190, 117, 0.085), transparent 39%),
+    radial-gradient(ellipse at 78% 0%, var(--scd-light-bloom), transparent 39%),
     linear-gradient(145deg, #101816, #131c19 54%, #111916);
   font-family: var(--scd-font-body);
   position: relative;
@@ -65,12 +65,12 @@
   border-radius: 10px;
   font: 600 12px var(--scd-font-body);
   cursor: pointer;
-  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+  transition: transform var(--scd-motion-fast) var(--scd-ease-standard), background-color var(--scd-motion-fast) ease, border-color var(--scd-motion-fast) ease;
 }
-.scd-button:hover { background: linear-gradient(180deg, #3b4a42, #2a3731); border-color: rgba(210,243,107,.38); transform: translateY(-1px); }
+.scd-button:hover { background: linear-gradient(180deg, #3b4a42, #2a3731); border-color: color-mix(in srgb, var(--scd-state-focus) 38%, transparent); transform: translateY(-1px); }
 .scd-button:active { transform: translateY(0); }
 .scd-button:focus-visible, .scd-part-button:focus-visible, .scd-view:focus-visible, .scd-reset:focus-visible {
-  outline: 2px solid var(--scd-acid);
+  outline: 2px solid var(--scd-state-focus);
   outline-offset: 3px;
 }
 .scd-button--accent {
@@ -117,10 +117,10 @@
   padding: 10px;
   min-height: 50px;
   cursor: pointer;
-  transition: transform 160ms ease, background-color 160ms ease, color 160ms ease;
+  transition: transform var(--scd-motion-fast) var(--scd-ease-standard), background-color var(--scd-motion-fast) ease, color var(--scd-motion-fast) ease;
 }
-.scd-part-button:hover { color: var(--scd-text); background: rgba(255,255,255,.045); transform: translateX(2px); }
-.scd-part-button[aria-pressed="true"] { color: var(--scd-text); background: linear-gradient(90deg, rgba(210,243,107,.12), rgba(210,243,107,.035)); border-color: rgba(210,243,107,.24); }
+.scd-part-button:hover { color: var(--scd-text); background: var(--scd-state-hover); transform: translateX(2px); }
+.scd-part-button[aria-pressed="true"] { color: var(--scd-text); background: linear-gradient(90deg, var(--scd-state-selected), rgba(210,243,107,.035)); border-color: color-mix(in srgb, var(--scd-state-focus) 24%, transparent); }
 .scd-part-marker { width: 8px; height: 8px; background: var(--part-color, var(--scd-acid)); border-radius: 2px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--part-color, var(--scd-acid)) 12%, transparent); flex: none; }
 
 .scd-model-stage {
@@ -128,7 +128,7 @@
   min-height: 356px;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 50% 57%, rgba(186, 211, 157, .12), transparent 42%),
+    radial-gradient(ellipse at 50% 57%, var(--scd-light-bloom), transparent 42%),
     linear-gradient(180deg, rgba(18, 28, 24, .22), rgba(8, 14, 12, .44));
 }
 .scd-model-stage::before {
@@ -185,7 +185,7 @@
 .scd-accessible-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 @keyframes scd-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-.scd-enter { animation: scd-enter 520ms cubic-bezier(.2,.7,.2,1) both; }
+.scd-enter { animation: scd-enter var(--scd-motion-enter) var(--scd-ease-standard) both; }
 .scd-enter--1 { animation-delay: 60ms; }
 .scd-enter--2 { animation-delay: 120ms; }
 .scd-enter--3 { animation-delay: 180ms; }

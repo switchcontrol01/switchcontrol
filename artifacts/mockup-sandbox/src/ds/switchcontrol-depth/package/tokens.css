@@ -15,12 +15,37 @@
   --scd-amber: #efb66a;
   --scd-coral: #df8571;
   --scd-blue: #82c7c0;
+  --scd-state-selected: rgba(210, 243, 107, 0.12);
+  --scd-state-hover: rgba(255, 255, 255, 0.045);
+  --scd-state-focus: #d2f36b;
+  --scd-state-confirmed: #82c7c0;
+  --scd-state-unknown: #efb66a;
+  --scd-state-error: #df8571;
+
+  --scd-space-1: 4px;
+  --scd-space-2: 8px;
+  --scd-space-3: 12px;
+  --scd-space-4: 16px;
+  --scd-space-5: 24px;
+  --scd-space-6: 32px;
+  --scd-space-7: 48px;
+
+  --scd-light-ambient: #cbdac4;
+  --scd-light-key: #f5f5dc;
+  --scd-light-rim: #b2cf8e;
+  --scd-light-bloom: rgba(186, 211, 157, 0.12);
+  --scd-light-specular: rgba(255, 255, 255, 0.075);
+
   --scd-shadow-1: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 12px 28px rgba(0, 0, 0, 0.16);
   --scd-shadow-2: 0 1px 0 rgba(255, 255, 255, 0.075) inset, 0 24px 60px rgba(0, 0, 0, 0.30);
   --scd-shadow-3: 0 1px 0 rgba(255, 255, 255, 0.09) inset, 0 38px 90px rgba(0, 0, 0, 0.42);
   --scd-radius-sm: 8px;
   --scd-radius-md: 14px;
   --scd-radius-lg: 22px;
+  --scd-motion-fast: 160ms;
+  --scd-motion-enter: 520ms;
+  --scd-ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --scd-ease-emphasis: cubic-bezier(0.22, 1, 0.36, 1);
   --scd-font-display: "Outfit", "Trebuchet MS", sans-serif;
   --scd-font-body: "DM Sans", "Segoe UI", sans-serif;
   --scd-font-mono: "IBM Plex Mono", "Consolas", monospace;
