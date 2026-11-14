@@ -14,6 +14,7 @@ import { ResponsivenessModelSummary, SignalBenchModel } from "@/components/laten
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 import { useMeasuredSystemLoad } from "@/hooks/useMeasuredSystemLoad";
+import { useSoftwareLatencyProbe } from "@/hooks/useSoftwareLatencyProbe";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useLatencyAnalyzerStore, type DriverRow } from "@/stores/latencyAnalyzerStore";
 import { calculateResponsivenessModel } from "@/lib/responsivenessModel";
@@ -129,14 +130,31 @@ export default function LatencyAnalyzer() {
   const cancelRef = useRef<(() => void) | null>(null);
   const generationRef = useRef(0);
   const stopRef = useRef<() => Promise<void>>(async () => {});
-  const clearTimers = useCallback(() => {
+  const {
+    summary: softwareLatency,
+    sampleCount: softwareProbeCount,
+    active: softwareProbeActive,
+    unavailable: softwareProbeUnavailable,
+    start: startSoftwareProbe,
+    stop: stopSoftwareProbe,
+    reset: resetSoftwareProbe,
+  } = useSoftwareLatencyProbe();
+  const pingLatencyAnalyzerIpc = useCallback(() => {
+    const ping = api()?.latencyAnalyzer?.ping;
+    if (typeof ping !== "function") {
+      return Promise.reject(new Error("Electron IPC timing is unavailable."));
+    }
+    return ping();
+  }, []);
+  const clearTimers = useCallback((updateProbeUi = true) => {
     if (tickRef.current) clearInterval(tickRef.current);
     if (durationRef.current) clearTimeout(durationRef.current);
     tickRef.current = null;
     durationRef.current = null;
     cancelRef.current?.();
     cancelRef.current = null;
-  }, []);
+    stopSoftwareProbe(updateProbeUi);
+  }, [stopSoftwareProbe]);
 
   useEffect(() => { useLatencyAnalyzerStore.getState().loadBaseline(); }, []);
   useEffect(() => {
@@ -145,7 +163,7 @@ export default function LatencyAnalyzer() {
   }, [locked]);
   useEffect(() => () => {
     generationRef.current++;
-    clearTimers();
+    clearTimers(false);
     if (desktopAvailable()) api().latencyAnalyzer.stop().catch(() => {});
     const current = useLatencyAnalyzerStore.getState();
     if (["starting", "collecting", "stopping"].includes(current.sessionStatus)) {
@@ -180,6 +198,7 @@ export default function LatencyAnalyzer() {
     const prior = useLatencyAnalyzerStore.getState();
     const label = prior.testLabel;
     const duration = prior.durationSec;
+    resetSoftwareProbe();
     clearTimers();
     prior.reset();
     prior.setTestLabel(label);
@@ -192,6 +211,7 @@ export default function LatencyAnalyzer() {
       const current = useLatencyAnalyzerStore.getState();
       current.setStartedAt(Number.isFinite(response.startedAt) ? response.startedAt : Date.now());
       current.setSessionStatus("collecting");
+      startSoftwareProbe(pingLatencyAnalyzerIpc);
       tickRef.current = setInterval(() => useLatencyAnalyzerStore.getState().tick(), 1000);
       if (duration > 0) durationRef.current = setTimeout(() => { void stopRef.current(); }, duration * 1000);
 
@@ -234,14 +254,15 @@ export default function LatencyAnalyzer() {
       useLatencyAnalyzerStore.getState().finalize("failed");
       useLatencyAnalyzerStore.getState().setSessionStatus("error", error instanceof Error ? error.message : "The Windows counter collector failed.");
     }
-  }, [clearTimers, locked]);
+  }, [clearTimers, locked, pingLatencyAnalyzerIpc, resetSoftwareProbe, startSoftwareProbe]);
 
   const handleReset = useCallback(() => {
     generationRef.current++;
     clearTimers();
+    resetSoftwareProbe();
     if (desktopAvailable()) api().latencyAnalyzer.stop().catch(() => {});
     useLatencyAnalyzerStore.getState().reset();
-  }, [clearTimers]);
+  }, [clearTimers, resetSoftwareProbe]);
 
   if (locked) return <LockedState />;
   return (
@@ -260,7 +281,14 @@ export default function LatencyAnalyzer() {
             <Controls onStart={() => { void handleStart(); }} onStop={() => { void handleStop(); }} onReset={handleReset} />
             <CollectionSummary desktop={desktopAvailable()} />
           </div>
-          <ResponsivenessModelSummary model={responsivenessModel} validSampleCount={store.sampleCount} />
+          <ResponsivenessModelSummary
+            model={responsivenessModel}
+            validSampleCount={store.sampleCount}
+            softwareLatency={softwareLatency}
+            softwareProbeCount={softwareProbeCount}
+            softwareProbeActive={softwareProbeActive}
+            softwareProbeUnavailable={softwareProbeUnavailable}
+          />
         </div>
         <SignalBenchModel samples={store.chartSamples} model={responsivenessModel} />
         <details className="la-bench-advanced">

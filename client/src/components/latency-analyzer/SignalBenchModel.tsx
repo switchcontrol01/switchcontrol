@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { MIN_RESPONSIVENESS_MODEL_SAMPLES } from "@/lib/latency-analyzer-config";
 import type { ResponsivenessModelResult, ResponsivenessModelSample } from "@/lib/responsivenessModel";
+import type { SoftwareLatencyEstimate } from "@/lib/softwareLatencyEstimate";
 import { useTranslation } from "@/lib/i18n";
 import { LatencySignalBenchGraph, type SignalSelection } from "./LatencySignalBenchGraph";
 
@@ -18,9 +19,17 @@ function formatTime(timestamp: number): string {
 export function ResponsivenessModelSummary({
   model,
   validSampleCount,
+  softwareLatency,
+  softwareProbeCount,
+  softwareProbeActive,
+  softwareProbeUnavailable,
 }: {
   model: ResponsivenessModelResult | null;
   validSampleCount: number;
+  softwareLatency: SoftwareLatencyEstimate | null;
+  softwareProbeCount: number;
+  softwareProbeActive: boolean;
+  softwareProbeUnavailable: boolean;
 }) {
   const { t } = useTranslation();
   const metrics = model
@@ -66,6 +75,52 @@ export function ResponsivenessModelSummary({
           </p>
         </div>
       )}
+      <section className="la-bench-software-estimate" aria-label={t("Estimated software response breakdown")}>
+        <div className="la-bench-estimate-heading">
+          <div>
+            <span className="la-bench-readout-kicker">{t("Observed in this Electron app")}</span>
+            <h3>{t("Estimated software response")}</h3>
+          </div>
+          <span className="la-bench-estimate-badge">P95</span>
+        </div>
+        {softwareLatency ? (
+          <>
+            <strong className="la-bench-estimate-total">{format(softwareLatency.softwarePathP95Ms)}<small>ms</small></strong>
+            <div className="la-bench-estimate-grid">
+              <div>
+                <span>{t("Renderer scheduling proxy")}<small>{t("timer lateness · P95")}</small></span>
+                <b>{format(softwareLatency.schedulingP95Ms)} ms</b>
+              </div>
+              <div>
+                <span>{t("Electron IPC round-trip")}<small>{t("renderer ↔ main · P95")}</small></span>
+                <b>{format(softwareLatency.ipcRoundTripP95Ms)} ms</b>
+              </div>
+            </div>
+            <div className="la-bench-estimate-math">
+              <span>{t("Latest probe math")}</span>
+              <code>{format(softwareLatency.latestSchedulingLatenessMs)} + {format(softwareLatency.latestIpcRoundTripMs)} = {format(softwareLatency.latestSoftwarePathMs)} ms</code>
+            </div>
+          </>
+        ) : (
+          <p className={softwareProbeUnavailable ? "la-bench-estimate-unavailable" : "la-bench-estimate-wait"} role="status">
+            {softwareProbeUnavailable
+              ? t("Electron IPC timing is unavailable; no estimate is shown.")
+              : softwareProbeActive
+                ? `${t("Collecting timing probes")} · ${softwareProbeCount}/30`
+                : softwareProbeCount > 0
+                  ? `${t("Capture stopped before enough timing probes")} · ${softwareProbeCount}/30`
+                  : t("Start a capture to collect software timing probes.")}
+          </p>
+        )}
+        {model && (
+          <p className="la-bench-estimate-context">
+            {t("Separate Windows counters at P95: DPC")} {format(model.p95DpcPct)}% {t("CPU time; interrupt")} {format(model.p95InterruptPct)}% {t("CPU time. They are not per-event delays and are not added to the software total.")}
+          </p>
+        )}
+        <p className="la-bench-estimate-context">
+          {t("P95 is calculated from each probe's timer lateness + IPC round-trip. DPC/interrupt CPU-time shares stay separate; mouse-to-screen input latency is not measured.")}
+        </p>
+      </section>
     </GlassCard>
   );
 }

@@ -607,6 +607,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   latencyAnalyzer: {
     start:            () => ipcRenderer.invoke('latencyAnalyzer:start'),
     stop:             () => ipcRenderer.invoke('latencyAnalyzer:stop'),
+    ping:             () => ipcRenderer.invoke('latencyAnalyzer:ping'),
     getSample:        () => ipcRenderer.invoke('latencyAnalyzer:getSample'),
     getStatus:        () => ipcRenderer.invoke('latencyAnalyzer:getStatus'),
     scanDrivers:      () => ipcRenderer.invoke('latencyAnalyzer:scanDrivers'),

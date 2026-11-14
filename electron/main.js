@@ -6617,6 +6617,8 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     return { ...latencyAnalyzer.getStatus(), lastError: _latencyLastError };
   });
 
+  ipcMain.handle('latencyAnalyzer:ping', () => true);
+
   ipcMain.handle('latencyAnalyzer:scanDrivers', async () => {
     console.info('[LatencyAnalyzer]', JSON.stringify({ event: 'ipc_driver_scan_request', ts: new Date().toISOString() }));
     try {

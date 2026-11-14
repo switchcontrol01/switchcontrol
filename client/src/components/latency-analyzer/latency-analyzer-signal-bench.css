@@ -392,6 +392,131 @@
   line-height: 1.55;
 }
 
+.la-bench-software-estimate {
+  width: 100%;
+  margin-top: 18px;
+  padding-top: 15px;
+  border-top: 1px solid var(--la-bench-line-soft);
+}
+
+.la-bench-estimate-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.la-bench-estimate-heading h3 {
+  margin: 3px 0 0;
+  color: #e6edf3;
+  font-size: 15px;
+  font-weight: 560;
+}
+
+.la-bench-estimate-badge {
+  padding: 4px 7px;
+  color: #a7dced;
+  background: rgba(142, 205, 231, 0.08);
+  border: 1px solid rgba(142, 205, 231, 0.18);
+  border-radius: 4px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+}
+
+.la-bench-estimate-total {
+  display: block;
+  margin-top: 10px;
+  color: #a9dff1;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 30px;
+  font-weight: 620;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.la-bench-estimate-total small {
+  margin-left: 5px;
+  color: #bdc9d4;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.la-bench-estimate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.la-bench-estimate-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.la-bench-estimate-grid span,
+.la-bench-estimate-grid b {
+  color: #c8d2dc;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.la-bench-estimate-grid span small {
+  display: block;
+  margin-top: 2px;
+  color: #91a0ae;
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.la-bench-estimate-grid b {
+  color: #e6edf3;
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.la-bench-estimate-math {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px 12px;
+  margin-top: 12px;
+  padding-top: 9px;
+  border-top: 1px solid var(--la-bench-line-soft);
+}
+
+.la-bench-estimate-math span {
+  color: #91a0ae;
+  font-size: 11px;
+}
+
+.la-bench-estimate-math code {
+  color: #c6e8f4;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.la-bench-estimate-context,
+.la-bench-estimate-wait,
+.la-bench-estimate-unavailable {
+  margin: 10px 0 0;
+  color: #91a0ae;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.la-bench-estimate-wait {
+  color: #dfbf85;
+}
+
+.la-bench-estimate-unavailable {
+  color: #f0b2a5;
+}
+
 .la-bench-signal-deck {
   padding: 24px;
   overflow: hidden;
@@ -1091,6 +1216,10 @@
   }
 
   .la-bench-capture-stamps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .la-bench-estimate-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
