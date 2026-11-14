@@ -532,6 +532,21 @@ html.sc-reduced-motion .debloater-scan-root * {
     #102341;
   box-shadow: 0 18px 48px rgba(7, 15, 30, .34), inset 0 0 0 1px rgba(218, 230, 233, .14);
 }
+
+@keyframes debloater-first-visit-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.debloater-first-visit-fade {
+  animation: debloater-first-visit-fade-in 1000ms cubic-bezier(.22, 1, .36, 1) both;
+}
+html.sc-reduced-motion .debloater-first-visit-fade {
+  animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .debloater-first-visit-fade { animation: none !important; }
+}
+
 .debloater-page .debloater-stat-grid > [data-testid^="stat-"]::after {
   content: "";
   position: absolute;

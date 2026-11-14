@@ -40,7 +40,7 @@ The token needs **Object Read & Write** permission scoped to the `switchcontrol-
 
 ### 3. Note on versioning
 
-Current release is **v1.3.5**. `npm run release` uploads whatever
+Current release is **v1.3.6**. `npm run release` uploads whatever
 `electron/dist/` contains — it does **not** bump the version automatically. To
 cut a new release, bump the version in both `package.json` (root) and
 `electron/package.json`, then rebuild on Windows before uploading.
@@ -268,5 +268,6 @@ All three should return `HTTP/2 200`.
 | 1.3.1 | 2026-08-30 | Entitlement safety, Windows network-state synchronization, startup overlay arbitration |
 | 1.3.2 | 2026-08-30 | Localized onboarding, adaptive performance profiles, honest telemetry, desktop reliability |
 | 1.3.5 | 2026-11-14 | Driver Intelligence, latency analysis, system diagnostics, and cleanup accuracy |
+| 1.3.6 | 2026-11-15 | Saved slider recovery, accurate process counts, and Debloater watercolor motion |
 
 Add each release here as you ship it.

@@ -37,8 +37,8 @@ Renderer (use-updater.ts hook)
 
 | Channel | Tag pattern | Notes |
 |---------|------------|-------|
-| stable | `v1.3.5` | Default for all users |
-| beta | `v1.3.5-beta.1` | Opt-in (structure ready, not yet exposed in UI) |
+| stable | `v1.3.6` | Default for all users |
+| beta | `v1.3.6-beta.1` | Opt-in (structure ready, not yet exposed in UI) |
 
 ## How a new release reaches users
 

@@ -73,7 +73,7 @@ export function LicenseManagementModal({ open, onOpenChange }: LicenseManagement
     : verifiedSnapshot;
 
   const [isRestoring, setIsRestoring] = useState(false);
-  const [appVersion, setAppVersion] = useState("1.3.5");
+  const [appVersion, setAppVersion] = useState("1.3.6");
   const [platform, setPlatform] = useState("Web");
   // null  = not yet loaded (show skeleton), only used in Electron
   // ""    = IPC returned empty / unavailable (show "Unavailable")

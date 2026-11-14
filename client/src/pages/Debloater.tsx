@@ -28,6 +28,17 @@ import { DebloaterIntensityCards, DebloaterOverviewStats } from "@/components/de
   import "@/components/debloater/Debloater.css";
 import { DebloaterNotebookFrame } from "@/components/debloater/DebloaterNotebookFrame";
   
+  const DEBLOATER_ENTRY_FADE_SEEN_KEY = "switchcontrol-debloater-entry-fade-seen-v1";
+
+  function hasSeenDebloaterEntryFade() {
+    if (typeof window === "undefined") return true;
+    try {
+      return window.localStorage.getItem(DEBLOATER_ENTRY_FADE_SEEN_KEY) === "true";
+    } catch {
+      return true;
+    }
+  }
+
   // ── Types ─────────────────────────────────────────────────────────────────────
   
   type SystemRole = "gaming" | "streaming" | "workstation" | "laptop" | "minimal";
@@ -783,6 +794,16 @@ import { DebloaterNotebookFrame } from "@/components/debloater/DebloaterNotebook
     const { user } = useAppAuth();
     const { prefersReducedMotion } = useMotion();
     const { telemetry: liveTel } = useLiveTelemetryValues();
+    const [firstVisitFade] = useState(() => !hasSeenDebloaterEntryFade());
+
+    useEffect(() => {
+      if (!firstVisitFade) return;
+      try {
+        window.localStorage.setItem(DEBLOATER_ENTRY_FADE_SEEN_KEY, "true");
+      } catch {
+        // Storage can be unavailable in restricted browser contexts.
+      }
+    }, [firstVisitFade]);
   
     const [mainTab, setMainTab] = useState<"curated" | "installed">("curated");
   
@@ -1567,7 +1588,9 @@ import { DebloaterNotebookFrame } from "@/components/debloater/DebloaterNotebook
   
     return (
       <AppLayout>
-        <DebloaterNotebookFrame>
+        <DebloaterNotebookFrame
+          className={firstVisitFade && !prefersReducedMotion ? "debloater-first-visit-fade" : undefined}
+        >
         <Reveal className="debloater-page sc-page-blur-in space-y-5">
   
           {/* Header */}

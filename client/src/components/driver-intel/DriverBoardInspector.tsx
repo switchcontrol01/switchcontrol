@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import {
   Activity, AudioLines, Bluetooth, ChevronRight, CircleHelp, Cpu,
-  Eye, Gauge, HardDrive, Monitor, Network, RefreshCw, ShieldCheck, Sparkles, ArrowLeft,
+  Eye, Gauge, HardDrive, Monitor, Network, RefreshCw, Sparkles, ArrowLeft,
   type LucideIcon,
 } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useTranslation } from "@/lib/i18n";
 import { getHealthMeta, type ComponentKind, type DriverComponent, type HealthScore } from "@/lib/driver-intel-data";
 import "./driver-board-inspector.css";
@@ -160,8 +161,13 @@ export function DriverBoardInspector({
     <>
       <header className="di-topbar">
         <div className="di-brand">
-          <span className="di-brand-icon"><ShieldCheck size={20} /></span>
-          <h1 data-testid="text-driver-intel-title">SWITCHCONTROL <span>/ {t("DRIVER INTELLIGENCE")}</span></h1>
+          <BrandLogo
+            size="sm"
+            linkTo=""
+            animate={false}
+            className="di-brand-logo"
+          />
+          <h1 data-testid="text-driver-intel-title"><span>/</span> {t("DRIVER INTELLIGENCE")}</h1>
         </div>
         <div className="di-top-actions">
           <span className="di-scan-state" aria-live="polite"><i className={scanning ? "is-scanning" : ""} />{scanning ? t("Scanning…") : scannedLabel}</span>

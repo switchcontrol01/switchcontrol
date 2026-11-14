@@ -31,13 +31,15 @@
 .driver-intel-page button:disabled { opacity: .5; cursor: not-allowed; }
 .driver-intel-page button:focus-visible { outline: 2px solid var(--di-copper); outline-offset: 4px; }
 .driver-intel-page .di-topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 84px; border: 0; }
-.driver-intel-page .di-brand { display: flex; align-items: center; gap: 12px; }
-.driver-intel-page .di-brand-icon {
-  color: var(--di-blue); padding: 9px; border: 1px solid rgba(142, 205, 231, .29);
-  border-radius: 11px; background: linear-gradient(145deg, rgba(142, 205, 231, .16), rgba(142, 205, 231, .035));
-  box-shadow: inset 0 1px rgba(255,255,255,.12), 0 6px 22px rgba(0,0,0,.17);
+.driver-intel-page .di-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.driver-intel-page .di-brand-logo { flex: 0 0 auto; gap: 8px; }
+.driver-intel-page .di-brand-logo > div:first-child { width: 34px; height: 34px; }
+.driver-intel-page .di-brand-logo > div:first-child img { width: 100%; height: 100%; }
+.driver-intel-page .di-brand-logo > img { width: auto; height: 19px; max-width: 136px; }
+.driver-intel-page .di-brand h1 {
+  display: flex; align-items: center; gap: 8px; min-width: 0; margin: 0;
+  font-size: 11px; font-weight: 700; letter-spacing: .085em; white-space: nowrap;
 }
-.driver-intel-page .di-brand h1 { font-size: 12px; font-weight: 800; letter-spacing: .09em; margin: 0; }
 .driver-intel-page .di-brand h1 span { color: var(--di-muted); font-weight: 500; }
 .driver-intel-page .di-top-actions { display: flex; align-items: center; gap: 15px; }
 .driver-intel-page .di-button {
@@ -274,6 +276,10 @@
   .driver-intel-page .di-component-grid, .driver-intel-page .di-news-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 480px) {
+  .driver-intel-page .di-brand { gap: 8px; }
+  .driver-intel-page .di-brand-logo > div:first-child { width: 30px; height: 30px; }
+  .driver-intel-page .di-brand-logo > img { height: 16px; max-width: 112px; }
+  .driver-intel-page .di-brand h1 { gap: 5px; font-size: 10px; letter-spacing: .06em; }
   .driver-intel-page .di-metrics { flex-wrap: wrap; gap: 12px; }
   .driver-intel-page .di-counts { width: 100%; border-left: 0; border-top: 1px solid var(--di-line); padding: 12px 0 0; justify-content: space-around; }
   .driver-intel-page .di-board-stage { min-height: 460px; }
