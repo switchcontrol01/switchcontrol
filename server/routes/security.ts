@@ -3,7 +3,8 @@ import { z } from "zod";
 import OpenAI from "openai";
 import { createAiClient, sendAiFailure } from "../lib/aiService";
 import { requireJwt } from "../middleware/requireCloudAuth";
-import { securityLimiter } from "../middleware/rateLimiter";
+import { securityHourlyLimiter, securityLimiter } from "../middleware/rateLimiter";
+import { AiRequestResultCache, hashAiRequestParts } from "../lib/aiRequestResultCache";
 import { generateRecommendations } from "../security/recommendations";
 import type {
   SecurityStatus,
@@ -19,10 +20,6 @@ const securityRouter = Router();
 // Express's default body-parser limit is 100 KB — set it explicitly here so
 // large images aren't silently rejected with a 413 before reaching the handler.
 securityRouter.use(express.json({ limit: "10mb" }));
-
-// Rate limiting is handled by the centralised rateLimiter module so composite-
-// key logic and future changes stay in one place.
-securityRouter.use(securityLimiter);
 
 // ---------------------------------------------------------------------------
 // Helper: get OpenAI client
@@ -174,7 +171,24 @@ const SECURITY_IMAGE_PROMPTS: Record<string, string> = {
   "generic": "The user has uploaded a Windows system screenshot. Look carefully at everything visible: application names, process names, status indicators, warning icons, resource usage numbers, firewall status, network connections, enabled/disabled toggles, version numbers, or any text shown. Describe every notable element you can see. Identify security risks, misconfigured settings, performance issues, suspicious processes, high resource usage, or anything that looks unusual. Be very specific about what is actually visible in the image.",
 };
 
-securityRouter.post("/image-analysis", requireJwt, requirePremium, async (req: Request, res: Response) => {
+type SecurityImageResult = {
+  analysisType: string;
+  findings: unknown[];
+  recommendations: unknown[];
+  rawAnalysis: string;
+};
+
+class InvalidSecurityImageResponse extends Error {}
+
+const securityImageResultCache = new AiRequestResultCache<SecurityImageResult>(24 * 60 * 60 * 1000, 200);
+
+securityRouter.post(
+  "/image-analysis",
+  requireJwt,
+  requirePremium,
+  securityLimiter,
+  securityHourlyLimiter,
+  async (req: Request, res: Response) => {
   const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean } | undefined;
   // Always use a vision-capable model for image analysis
   const model = "gpt-4o-mini";
@@ -191,13 +205,8 @@ securityRouter.post("/image-analysis", requireJwt, requirePremium, async (req: R
   }
 
   const { imageData, imageType, analysisType } = parsed.data;
-
-  let openai: OpenAI;
-  try {
-    openai = getOpenAI(cloudUser?.id);
-  } catch (error) {
-    return sendAiFailure(res, error);
-  }
+  const fingerprint = hashAiRequestParts("security-image-v1", analysisType, imageType, imageData);
+  const cacheKey = hashAiRequestParts("security-image-cache-v1", cloudUser!.id, fingerprint);
 
   const systemPrompt = `You are SwitchControl System Integrity Analyzer — an expert in Windows security posture, gaming performance optimization, and system configuration. You analyze screenshots to identify security issues, performance problems, and actionable improvements.
 
@@ -217,66 +226,74 @@ RULES:
   const userPrompt = SECURITY_IMAGE_PROMPTS[analysisType] || SECURITY_IMAGE_PROMPTS["generic"];
 
   try {
-    const completion = await openai.chat.completions.create({
-      model,
-      max_tokens: 1000,
-      temperature: 0.3,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: userPrompt },
-            { type: "image_url", image_url: { url: `data:${imageType};base64,${imageData}`, detail: "auto" } },
-          ] as any,
-        },
-      ],
-    });
+    const { value: result, source } = await securityImageResultCache.run(
+      cacheKey,
+      fingerprint,
+      async () => {
+        const openai = getOpenAI(cloudUser?.id);
+        const completion = await openai.chat.completions.create({
+          model,
+          max_tokens: 1000,
+          temperature: 0.3,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: systemPrompt },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: userPrompt },
+                { type: "image_url", image_url: { url: `data:${imageType};base64,${imageData}`, detail: "auto" } },
+              ] as any,
+            },
+          ],
+        });
 
-    const rawContent = completion.choices[0]?.message?.content;
-    // Distinguish empty content (null/empty string) from a null message object —
-    // both correctly produce a 502, but the log should reflect which occurred.
-    if (!rawContent) {
-      const reason = completion.choices[0]?.message == null ? "null message object" : "empty content";
-      console.warn(`[Security:image] AI returned no content (${reason}) | user=${cloudUser?.id}`);
-      return res.status(502).json({ error: "AI returned an empty response. Please try again." });
+        const rawContent = completion.choices[0]?.message?.content;
+        if (!rawContent) {
+          const reason = completion.choices[0]?.message == null ? "null message object" : "empty content";
+          throw new InvalidSecurityImageResponse(`AI returned no content (${reason}).`);
+        }
+
+        let aiResult: any;
+        try {
+          aiResult = JSON.parse(rawContent);
+        } catch {
+          throw new InvalidSecurityImageResponse("AI returned invalid format.");
+        }
+
+        const MAX_STRING = 500;
+        const truncate = (s: unknown) => typeof s === "string" ? s.slice(0, MAX_STRING) : s;
+        const sanitizeFinding = (f: any) =>
+          typeof f === "object" && f !== null
+            ? { ...f, title: truncate(f.title), description: truncate(f.description) }
+            : f;
+
+        return {
+          analysisType,
+          findings: Array.isArray(aiResult.findings)
+            ? aiResult.findings.slice(0, 20).map(sanitizeFinding)
+            : [],
+          recommendations: Array.isArray(aiResult.recommendations)
+            ? aiResult.recommendations.slice(0, 20).map((r: unknown) => truncate(r))
+            : [],
+          rawAnalysis: typeof aiResult.summary === "string"
+            ? aiResult.summary.slice(0, 2000)
+            : rawContent.slice(0, 2000),
+        };
+      },
+    );
+
+    if (source === "fresh") {
+      console.log(`[Security:image] OK | user=${cloudUser?.id} | findings=${result.findings.length}`);
+    } else {
+      console.info(`[Security:image] ${source === "cache" ? "CACHE_HIT" : "IN_FLIGHT_JOIN"} | user=${cloudUser?.id} | hash=${fingerprint.slice(0, 12)}`);
     }
-
-    let aiResult: any;
-    try {
-      aiResult = JSON.parse(rawContent);
-    } catch {
-      return res.status(502).json({ error: "AI returned invalid format. Please try again." });
-    }
-
-    // Cap array lengths and string lengths on AI-supplied data before forwarding
-    // to the client — a jailbroken or misbehaving model could return thousands of
-    // findings or extremely long strings.
-    const MAX_STRING = 500;
-    const truncate = (s: unknown) =>
-      typeof s === "string" ? s.slice(0, MAX_STRING) : s;
-    const sanitizeFinding = (f: any) =>
-      typeof f === "object" && f !== null
-        ? { ...f, title: truncate(f.title), description: truncate(f.description) }
-        : f;
-
-    const result = {
-      analysisType,
-      findings: Array.isArray(aiResult.findings)
-        ? aiResult.findings.slice(0, 20).map(sanitizeFinding)
-        : [],
-      recommendations: Array.isArray(aiResult.recommendations)
-        ? aiResult.recommendations.slice(0, 20).map((r: unknown) => truncate(r))
-        : [],
-      rawAnalysis: typeof aiResult.summary === "string"
-        ? aiResult.summary.slice(0, 2000)
-        : rawContent.slice(0, 2000),
-    };
-
-    console.log(`[Security:image] OK | user=${cloudUser?.id} | findings=${result.findings.length}`);
     return res.json(result);
   } catch (error: any) {
+    if (error instanceof InvalidSecurityImageResponse) {
+      console.warn(`[Security:image] ${error.message} | user=${cloudUser?.id}`);
+      return res.status(502).json({ error: `${error.message} Please try again.` });
+    }
     return sendAiFailure(res, error);
   }
 });

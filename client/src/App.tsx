@@ -689,92 +689,139 @@ function ElectronAppContent() {
   const setSliderValue = useStore((s) => s.setSliderValue);
   const setSystemConditions = useSystemConditionsStore((s) => s.setConditions);
   const { toast } = useToast();
-  const sliderStartupRestoreAttemptedRef = useRef(false);
+  const sliderStartupRestoreAttemptedForUserRef = React.useRef<string | null>(null);
 
   // Restore only values that were explicitly applied and verified before.
-  // Wait for server-verified entitlement and the first-run/overlay flows, then
-  // give startup PowerShell work time to settle before touching Windows.
+  // Wait for server-verified entitlement and the authenticated app phase, then
+  // give startup PowerShell work time to settle before touching Windows. Do not
+  // let onboarding or informational overlays suppress recovery: a previous
+  // explicit slider choice should survive a restart even when an overlay opens.
   useEffect(() => {
     if (
       !isElectron ||
       !entitlementsOk ||
       !entitlementsVerified ||
-      !premiumIsActive ||
       !user?.loggedIn ||
-      firstRunSequencePending ||
-      competingOverlayActive ||
-      sliderStartupRestoreAttemptedRef.current
+      !user.id ||
+      phase !== "authenticated" ||
+      sliderStartupRestoreAttemptedForUserRef.current === user.id
     ) return;
 
+    const restoreUserId = user.id;
     let cancelled = false;
     let timer: number | undefined;
-    const scheduleRestore = (attempt: number) => {
-      timer = window.setTimeout(async () => {
+    console.info("[SliderRestore] Entitlement verified; scheduling saved slider recovery.");
+
+    const scheduleRestore = (nextAttempt: number, delayMs: number) => {
+      timer = window.setTimeout(() => {
+        void runRestore(nextAttempt);
+      }, delayMs);
+    };
+
+    async function runRestore(currentAttempt: number): Promise<void> {
+      if (cancelled) return;
+
+      const api = (window as any).electronAPI?.tweaks;
+      if (typeof api?.reapplyAppliedValues !== "function") {
+        sliderStartupRestoreAttemptedForUserRef.current = restoreUserId;
+        console.warn("[SliderRestore] Electron restore API is unavailable.");
+        toast({
+          title: "Saved slider settings could not be checked",
+          description: "Restart SwitchControl and try applying the slider again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.info(`[SliderRestore] Running startup check attempt=${currentAttempt + 1}/5.`);
+      try {
+        // The executor restores non-premium sliders for free accounts and
+        // independently skips premium values unless entitlement is active.
+        const result = await api.reapplyAppliedValues(premiumIsActive === true);
         if (cancelled) return;
-        const api = (window as any).electronAPI?.tweaks;
-        if (typeof api?.reapplyAppliedValues !== "function") {
-          sliderStartupRestoreAttemptedRef.current = true;
-          console.warn("[SliderRestore] Electron restore API is unavailable.");
+
+        if (result?.busy && currentAttempt < 4) {
+          const retryDelayMs = Math.min(2500 * (currentAttempt + 1), 10000);
+          console.warn(`[SliderRestore] PowerShell is busy; retrying in ${retryDelayMs}ms.`);
+          scheduleRestore(currentAttempt + 1, retryDelayMs);
+          return;
+        }
+        if (!result?.ok) {
+          sliderStartupRestoreAttemptedForUserRef.current = restoreUserId;
+          console.warn("[SliderRestore] Startup restore did not complete:", result?.error ?? "PowerShell is busy.");
+          toast({
+            title: "Saved slider settings could not be checked",
+            description: "PowerShell stayed busy during startup. Reapply the slider settings from Tweaks.",
+            variant: "destructive",
+          });
           return;
         }
 
-        sliderStartupRestoreAttemptedRef.current = true;
-        try {
-          const result = await api.reapplyAppliedValues(true);
-          if (result?.busy && attempt < 3) {
-            scheduleRestore(attempt + 1);
-            return;
+        const restored = Array.isArray(result.reapplied) ? result.reapplied : [];
+        for (const item of restored) {
+          if (typeof item?.tweakId !== "string" || typeof item?.value !== "number") continue;
+          setSliderValue(item.tweakId, item.value);
+          window.dispatchEvent(new CustomEvent("sc:slider-state-changed", {
+            detail: { sliderId: item.tweakId, value: item.value },
+          }));
+          if (item.tweakId === "net-throttle-index") {
+            setTweak("tcp-throttling-index", item.value === 4294967295);
           }
-          if (!result?.ok) {
-            console.warn("[SliderRestore] Startup restore did not complete:", result?.error ?? "PowerShell is busy.");
-            return;
-          }
-
-          const restored = Array.isArray(result.reapplied) ? result.reapplied : [];
-          for (const item of restored) {
-            if (typeof item?.tweakId !== "string" || typeof item?.value !== "number") continue;
-            setSliderValue(item.tweakId, item.value);
-            window.dispatchEvent(new CustomEvent("sc:slider-state-changed", {
-              detail: { sliderId: item.tweakId, value: item.value },
+          if (item.tweakId === "timer-resolution-slider") {
+            const enabled = item.value < 156;
+            setTweak("timer-res", enabled);
+            window.dispatchEvent(new CustomEvent("sc:timer-toggle-state-changed", {
+              detail: { enabled },
             }));
-            if (item.tweakId === "net-throttle-index") {
-              setTweak("tcp-throttling-index", item.value === 4294967295);
-            }
-            if (item.tweakId === "timer-resolution-slider") {
-              const enabled = item.value < 156;
-              setTweak("timer-res", enabled);
-              window.dispatchEvent(new CustomEvent("sc:timer-toggle-state-changed", {
-                detail: { enabled },
-              }));
-            }
           }
-
-          const adminSkipped = Array.isArray(result.skipped)
-            ? result.skipped.filter((item: any) => item?.reason === "administrator_required").length
-            : 0;
-          const failures = Array.isArray(result.failed) ? result.failed.length : 0;
-          if (restored.length > 0 || adminSkipped > 0 || failures > 0) {
-            const details = [
-              restored.length > 0 ? `Restored ${restored.length} saved slider value${restored.length === 1 ? "" : "s"}.` : "",
-              adminSkipped > 0 ? `${adminSkipped} system-wide value${adminSkipped === 1 ? "" : "s"} need SwitchControl to run as administrator.` : "",
-              failures > 0 ? `${failures} saved value${failures === 1 ? "" : "s"} could not be verified; check the Windows permission prompt and try applying them again.` : "",
-            ].filter(Boolean).join(" ");
-            toast({
-              title: restored.length > 0
-                ? "Saved slider settings checked"
-                : failures > 0
-                  ? "Some slider settings were not restored"
-                  : "Administrator access needed",
-              description: details,
-            });
-          }
-        } catch (error) {
-          console.warn("[SliderRestore] Startup restore failed:", error);
         }
-      }, attempt === 0 ? 15000 : 5000);
-    };
 
-    scheduleRestore(0);
+        const skipped = Array.isArray(result.skipped) ? result.skipped : [];
+        const awaitingPremium = skipped.some((item: any) => item?.reason === "premium_not_verified_active");
+        const adminSkipped = skipped.filter((item: any) => item?.reason === "administrator_required").length;
+        const failures = Array.isArray(result.failed) ? result.failed.length : 0;
+        if (awaitingPremium) {
+          console.info("[SliderRestore] Premium slider targets remain saved until premium entitlement is active.");
+          return;
+        }
+
+        sliderStartupRestoreAttemptedForUserRef.current = restoreUserId;
+        console.info(`[SliderRestore] Startup check complete restored=${restored.length} skipped=${skipped.length} failed=${failures}.`);
+        if (restored.length > 0 || adminSkipped > 0 || failures > 0) {
+          const details = [
+            restored.length > 0 ? `Restored ${restored.length} saved slider value${restored.length === 1 ? "" : "s"}.` : "",
+            adminSkipped > 0 ? `${adminSkipped} system-wide value${adminSkipped === 1 ? "" : "s"} need SwitchControl to run as administrator.` : "",
+            failures > 0 ? `${failures} saved value${failures === 1 ? "" : "s"} could not be verified; check the Windows permission prompt and try applying them again.` : "",
+          ].filter(Boolean).join(" ");
+          toast({
+            title: restored.length > 0
+              ? "Saved slider settings checked"
+              : failures > 0
+                ? "Some slider settings were not restored"
+                : "Administrator access needed",
+            description: details,
+          });
+        }
+      } catch (error) {
+        if (cancelled) return;
+        const message = error instanceof Error ? error.message : String(error);
+        if (/busy|temporarily unavailable/i.test(message) && currentAttempt < 4) {
+          const retryDelayMs = Math.min(2500 * (currentAttempt + 1), 10000);
+          console.warn(`[SliderRestore] Temporary startup contention; retrying in ${retryDelayMs}ms.`);
+          scheduleRestore(currentAttempt + 1, retryDelayMs);
+          return;
+        }
+        sliderStartupRestoreAttemptedForUserRef.current = restoreUserId;
+        console.warn("[SliderRestore] Startup restore failed:", error);
+        toast({
+          title: "Saved slider settings could not be checked",
+          description: message,
+          variant: "destructive",
+        });
+      }
+    }
+
+    scheduleRestore(0, 15000);
     return () => {
       cancelled = true;
       if (timer !== undefined) window.clearTimeout(timer);
@@ -783,10 +830,10 @@ function ElectronAppContent() {
     isElectron,
     entitlementsOk,
     entitlementsVerified,
-    premiumIsActive,
     user?.loggedIn,
-    firstRunSequencePending,
-    competingOverlayActive,
+    user?.id,
+    phase,
+    premiumIsActive,
     setSliderValue,
     setTweak,
     toast,

@@ -8,6 +8,11 @@ import {
 } from "../server/lib/aiService";
 import { isBillableAiPath, shouldRetryCloudPost } from "../shared/aiRequestPolicy";
 import { clearAiUnavailable, getAiUnavailable, rememberAiUnavailable } from "../client/src/lib/ai-availability";
+import {
+  AiIdempotencyConflictError,
+  AiRequestResultCache,
+  hashAiRequest,
+} from "../server/lib/aiRequestResultCache";
 
 test("quota is not confused with temporary rate limiting or cloud login failure", () => {
   const quota = classifyAiFailure({ status: 429, code: "insufficient_quota" });
@@ -182,6 +187,81 @@ test("routes use the shared no-retry client, negative cache and quota notice", (
   assert.match(recs, /aiRecsFailures\.get\(key\)/);
   assert.match(recs, /aiRecsFailures\.set\(key, error\)/);
   assert.match(fs.readFileSync("client/src/pages/AiAdvisor.tsx", "utf8"), /ai-unavailable-notice/);
+});
+
+test("AI result cache joins duplicate work, caches success, and rejects changed idempotency payloads", async () => {
+  const cache = new AiRequestResultCache<{ answer: string }>(60_000, 10);
+  let calls = 0;
+  let finish!: (value: { answer: string }) => void;
+  const work = () => {
+    calls++;
+    return new Promise<{ answer: string }>(resolve => { finish = resolve; });
+  };
+
+  const first = cache.run("request-key", "body-hash", work);
+  const duplicate = cache.run("request-key", "body-hash", work);
+  await Promise.resolve();
+  finish({ answer: "one provider response" });
+  const [firstResult, duplicateResult] = await Promise.all([first, duplicate]);
+  assert.equal(calls, 1);
+  assert.equal(firstResult.value.answer, "one provider response");
+  assert.equal(duplicateResult.value.answer, "one provider response");
+  assert.equal(duplicateResult.source, "in-flight");
+
+  const cached = await cache.run("request-key", "body-hash", async () => {
+    calls++;
+    return { answer: "should not run" };
+  });
+  assert.equal(cached.source, "cache");
+  assert.equal(calls, 1);
+  await assert.rejects(
+    cache.run("request-key", "different-body", async () => ({ answer: "wrong" })),
+    AiIdempotencyConflictError,
+  );
+});
+
+test("AI result cache does not retain failures and expires successful entries", async t => {
+  let now = 1000;
+  t.mock.method(Date, "now", () => now);
+  const cache = new AiRequestResultCache<string>(100, 2);
+  let calls = 0;
+  await assert.rejects(cache.run("retryable", "fp", async () => {
+    calls++;
+    throw new Error("temporary failure");
+  }));
+  assert.equal((await cache.run("retryable", "fp", async () => {
+    calls++;
+    return "success";
+  })).source, "fresh");
+  assert.equal(calls, 2);
+  assert.equal(hashAiRequest({ b: 2, a: 1 }), hashAiRequest({ a: 1, b: 2 }));
+  now += 101;
+  assert.equal((await cache.run("retryable", "fp", async () => {
+    calls++;
+    return "new success";
+  })).source, "fresh");
+  assert.equal(calls, 3);
+});
+
+test("image and chat cost controls are wired to authenticated, bounded request paths", () => {
+  const security = fs.readFileSync("server/routes/security.ts", "utf8");
+  const imageRoute = security.slice(security.indexOf('"/image-analysis"'));
+  assert.ok(imageRoute.indexOf("requireJwt") < imageRoute.indexOf("securityLimiter"));
+  assert.ok(imageRoute.indexOf("securityLimiter") < imageRoute.indexOf("securityHourlyLimiter"));
+  assert.match(security, /securityImageResultCache\.run/);
+  assert.doesNotMatch(security, /securityRouter\.use\(securityLimiter\)/);
+
+  const bios = fs.readFileSync("server/routes/bios.ts", "utf8");
+  assert.match(bios, /biosPhotoHourlyLimiter/);
+  assert.match(bios, /biosPhotoResultCache\.run/);
+  assert.match(bios, /biosExplanationCache\.run/);
+  assert.match(bios, /Math\.min\(2500, 1000 \+ images\.length \* 300\)/);
+  assert.match(fs.readFileSync("client/src/pages/BiosAdvisor.tsx", "utf8"), /MAX_IMAGE_DIMENSION = 3000/);
+
+  const chat = fs.readFileSync("server/routes/ai.ts", "utf8");
+  assert.match(chat, /aiChatIdempotencyCache\.run/);
+  assert.match(chat, /aiChatConcurrentDeduper\.run/);
+  assert.match(fs.readFileSync("client/src/pages/AiAdvisor.tsx", "utf8"), /idempotencyKey: userMsg\.id/);
 });
 
 // Run last: shared quota circuit is intentionally process-global.

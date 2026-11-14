@@ -4,6 +4,8 @@ import rateLimit from "express-rate-limit";
 import OpenAI from "openai";
 import { createAiClient, sendAiFailure } from "../lib/aiService";
 import crypto from "crypto";
+import { biosPhotoHourlyLimiter } from "../middleware/rateLimiter";
+import { AiRequestResultCache, hashAiRequest, hashAiRequestParts } from "../lib/aiRequestResultCache";
 
 const biosRouter = Router();
 
@@ -30,7 +32,23 @@ biosRouter.use(biosLimiter);
 // In-flight dedup — prevents duplicate concurrent requests per user
 // ---------------------------------------------------------------------------
 
-const inFlightScans = new Map<string, Promise<any>>();
+const activePhotoScanByUser = new Map<string, string>();
+type BiosPhotoScanResult = {
+  detections: Array<Record<string, unknown>>;
+  settingsFound: number;
+  analysisTimeMs: number;
+  imagesProcessed: number;
+};
+type BiosExplanationResult = {
+  overview: string;
+  settingExplanations: Array<{ settingId: string; explanation: string; impact: string }>;
+  recommendations: string[];
+  confidenceNote: string;
+  analysisTimeMs: number;
+};
+
+const biosPhotoResultCache = new AiRequestResultCache<BiosPhotoScanResult>(24 * 60 * 60 * 1000, 200);
+const biosExplanationCache = new AiRequestResultCache<BiosExplanationResult>(24 * 60 * 60 * 1000, 300);
 
 // ---------------------------------------------------------------------------
 // Helper: get OpenAI client (OPENAI_API_KEY lives on cloud server only)
@@ -113,7 +131,7 @@ const ALLOWED_SETTING_IDS = new Set([
 
 const MIN_PHOTO_CONFIDENCE = 0.55;
 
-biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
+biosRouter.post("/photo-scan", biosPhotoHourlyLimiter, async (req: Request, res: Response) => {
   const requestId = crypto.randomUUID().slice(0, 8);
   const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean } | undefined;
 
@@ -124,47 +142,39 @@ biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
     return res.status(403).json({ error: "Premium required." });
   }
 
-  // Spam protection — reject if this user already has a scan in flight
   const userId = cloudUser.id;
-  if (inFlightScans.has(userId)) {
-    console.warn(`[BIOS:photo-scan:${requestId}] DUPLICATE in-flight for user=${userId}`);
+  const parsed = photoScanSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const sizeIssue = parsed.error.issues.find(i => i.path.includes("imageBase64") && i.code === "too_big");
+    if (sizeIssue) return res.status(413).json({ error: "Image too large. Please use an image under 7MB." });
+    return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+  }
+
+  const images: Array<{ imageBase64: string; mimeType: string }> =
+    "images" in parsed.data && parsed.data.images
+      ? parsed.data.images
+      : [{ imageBase64: (parsed.data as any).imageBase64, mimeType: (parsed.data as any).mimeType }];
+  const totalChars = images.reduce((sum, img) => sum + img.imageBase64.length, 0);
+  if (totalChars > MAX_TOTAL_BASE64_CHARS) {
+    return res.status(413).json({ error: "Total upload size too large. Keep total images under 40MB." });
+  }
+
+  const imageParts = images.flatMap(img => [img.mimeType, img.imageBase64]);
+  const fingerprint = hashAiRequestParts("bios-photo-v2", ...imageParts);
+  const cacheKey = hashAiRequestParts("bios-photo-cache-v2", userId, fingerprint);
+  const activeKey = activePhotoScanByUser.get(userId);
+  if (activeKey && activeKey !== cacheKey) {
+    console.warn(`[BIOS:photo-scan:${requestId}] DIFFERENT_SCAN_IN_FLIGHT | user=${userId}`);
     return res.status(429).json({ error: "A scan is already in progress. Please wait for it to complete." });
   }
+  activePhotoScanByUser.set(userId, cacheKey);
 
-  let openai: OpenAI;
   try {
-    openai = getOpenAI("bios.photo", cloudUser?.id);
-  } catch (error) {
-    return sendAiFailure(res, error);
-  }
-
-  const scanPromise = (async () => {
-    try {
-      const parsed = photoScanSchema.safeParse(req.body);
-      if (!parsed.success) {
-        const sizeIssue = parsed.error.issues.find(i => i.path.includes("imageBase64") && i.code === "too_big");
-        if (sizeIssue) return res.status(413).json({ error: "Image too large. Please use an image under 7MB." });
-        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
-      }
-
-      // Normalize to array regardless of input format
-      let images: Array<{ imageBase64: string; mimeType: string }>;
-      if ("images" in parsed.data && parsed.data.images) {
-        images = parsed.data.images;
-      } else {
-        images = [{ imageBase64: (parsed.data as any).imageBase64, mimeType: (parsed.data as any).mimeType }];
-      }
-
-      // Total size guard
-      const totalChars = images.reduce((sum, img) => sum + img.imageBase64.length, 0);
-      if (totalChars > MAX_TOTAL_BASE64_CHARS) {
-        return res.status(413).json({ error: "Total upload size too large. Keep total images under 40MB." });
-      }
-
+    const { value: result, source } = await biosPhotoResultCache.run(cacheKey, fingerprint, async () => {
+      const openai = getOpenAI("bios.photo", userId);
       const imageSizesKb = images.map(img => Math.round(img.imageBase64.length / 1024));
       console.log(`[BIOSUpload] ${JSON.stringify({ count: images.length, sizes: imageSizesKb, requestId })}`);
 
-      // Build OpenAI message content — all images in one call
       const imageBlocks: any[] = images.map(img => ({
         type: "image_url",
         image_url: {
@@ -172,102 +182,84 @@ biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
           detail: "high",
         },
       }));
-
-      console.log(`[BIOS:photo-scan:${requestId}] Calling OpenAI | user=${cloudUser?.id} | images=${images.length} totalKB=${Math.round(totalChars / 1024)}`);
+      console.log(`[BIOS:photo-scan:${requestId}] Calling OpenAI | user=${userId} | images=${images.length} totalKB=${Math.round(totalChars / 1024)}`);
 
       const startTime = Date.now();
-
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: BIOS_PHOTO_PROMPT },
-              ...imageBlocks,
-            ],
-          },
-        ],
-        max_tokens: Math.min(4000, 1500 + images.length * 500),
+        messages: [{
+          role: "user",
+          content: [{ type: "text", text: BIOS_PHOTO_PROMPT }, ...imageBlocks],
+        }],
+        max_tokens: Math.min(2500, 1000 + images.length * 300),
         temperature: 0.1,
       });
 
       const duration = Date.now() - startTime;
       const content = response.choices[0]?.message?.content || "[]";
-      console.log(`[BIOS:photo-scan:${requestId}] OpenAI OK | user=${cloudUser?.id} | ${duration}ms | images=${images.length}`);
-
       let rawSettings: any[] = [];
       try {
         const jsonMatch = content.match(/\[[\s\S]*\]/);
-        if (jsonMatch) rawSettings = JSON.parse(jsonMatch[0]);
+        if (jsonMatch) {
+          const parsedSettings = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(parsedSettings)) rawSettings = parsedSettings;
+        }
       } catch {
         console.error(`[BIOS:photo-scan:${requestId}] Failed to parse response`);
-        return res.status(500).json({ error: "Failed to parse BIOS photo analysis. Please try again." });
+        throw new Error("Failed to parse BIOS photo analysis.");
       }
 
-      // Validate, whitelist, deduplicate (keep highest confidence per settingId across all images)
       const seenIds = new Map<string, any>();
       let droppedCount = 0;
       let ocrSuccessCount = 0;
-
-      for (const s of rawSettings) {
-        const settingId = String(s.settingId || "").trim();
-        if (!settingId || typeof s.value !== "string") { droppedCount++; continue; }
-        if (!ALLOWED_SETTING_IDS.has(settingId)) {
-          console.warn(`[BIOS:photo-scan:${requestId}] Rejected unknown settingId: ${settingId}`);
+      for (const setting of rawSettings) {
+        const settingId = String(setting.settingId || "").trim();
+        if (!settingId || typeof setting.value !== "string" || !ALLOWED_SETTING_IDS.has(settingId)) {
           droppedCount++;
           continue;
         }
-        const confidence = typeof s.confidence === "number" ? Math.max(0, Math.min(1, s.confidence)) : 0.7;
+        const confidence = typeof setting.confidence === "number" ? Math.max(0, Math.min(1, setting.confidence)) : 0.7;
         if (confidence < MIN_PHOTO_CONFIDENCE) {
-          console.log(`[BIOS:photo-scan:${requestId}] Dropped low-confidence entry: ${settingId} (${Math.round(confidence * 100)}%)`);
           droppedCount++;
           continue;
         }
         ocrSuccessCount++;
-        // Keep highest confidence per settingId (merges across images)
         const existing = seenIds.get(settingId);
-        if (!existing || confidence > existing.confidence) {
-          seenIds.set(settingId, { ...s, confidence });
-        }
+        if (!existing || confidence > existing.confidence) seenIds.set(settingId, { ...setting, confidence });
       }
 
       const duplicatesRemoved = ocrSuccessCount - seenIds.size;
-
       console.log(`[BIOSAnalysis] ${JSON.stringify({ imagesProcessed: images.length, ocrSuccess: ocrSuccessCount, combinedSettings: seenIds.size, dropped: droppedCount, duplicatesRemoved, requestId })}`);
-
-      if (droppedCount > 0) {
-        console.log(`[BIOS:photo-scan:${requestId}] Dropped ${droppedCount} entries (invalid id, unknown, or low confidence)`);
-      }
-
-      const detections = Array.from(seenIds.values()).map((s: any) => {
-        const status = s.confidence >= 0.8 ? "Photo Verified" : "Photo Suspected";
+      const detections = Array.from(seenIds.values()).map((setting: any) => {
         const entry: Record<string, unknown> = {
-          settingId: String(s.settingId),
-          status,
-          confidence: s.confidence,
-          reason: `Derived from BIOS photo analysis: ${String(s.reason || s.value)}`,
-          detectedValue: String(s.value),
+          settingId: String(setting.settingId),
+          status: setting.confidence >= 0.8 ? "Photo Verified" : "Photo Suspected",
+          confidence: setting.confidence,
+          reason: `Derived from BIOS photo analysis: ${String(setting.reason || setting.value)}`,
+          detectedValue: String(setting.value),
         };
-        if (typeof s.isOptimalForGaming === "boolean") {
-          entry.isOptimal = s.isOptimalForGaming;
-        }
+        if (typeof setting.isOptimalForGaming === "boolean") entry.isOptimal = setting.isOptimalForGaming;
         return entry;
       });
+      const value: BiosPhotoScanResult = {
+        detections,
+        settingsFound: detections.length,
+        analysisTimeMs: duration,
+        imagesProcessed: images.length,
+      };
+      console.log(`[BIOS:photo-scan:${requestId}] OpenAI OK | user=${userId} | ${duration}ms | images=${images.length} detections=${detections.length} dropped=${droppedCount}`);
+      return value;
+    });
 
-      console.log(`[BIOS:photo-scan:${requestId}] OK | user=${cloudUser?.id} | detections=${detections.length} dropped=${droppedCount}`);
-      return res.json({ detections, settingsFound: detections.length, analysisTimeMs: duration, imagesProcessed: images.length });
-
-    } catch (err: any) {
-      return sendAiFailure(res, err);
+    console.info(`[BIOS:photo-scan:${requestId}] ${source === "fresh" ? "FRESH" : source === "cache" ? "CACHE_HIT" : "IN_FLIGHT_JOIN"} | user=${userId} | hash=${fingerprint.slice(0, 12)}`);
+    return res.json(result);
+  } catch (err: any) {
+    if (err instanceof Error && err.message === "Failed to parse BIOS photo analysis.") {
+      return res.status(502).json({ error: "Failed to parse BIOS photo analysis. Please try again." });
     }
-  })();
-
-  inFlightScans.set(userId, scanPromise);
-  try {
-    await scanPromise;
+    return sendAiFailure(res, err);
   } finally {
-    inFlightScans.delete(userId);
+    if (activePhotoScanByUser.get(userId) === cacheKey) activePhotoScanByUser.delete(userId);
   }
 });
 
@@ -276,21 +268,21 @@ biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 
 const explainSchema = z.object({
-  cpuModel: z.string().min(1),
-  gpuModel: z.string().min(1),
-  ramTotalGB: z.number(),
+  cpuModel: z.string().min(1).max(200),
+  gpuModel: z.string().min(1).max(200),
+  ramTotalGB: z.number().finite().min(0).max(1024),
   detections: z.array(z.object({
-    settingId: z.string(),
-    status: z.string(),
-    confidence: z.number(),
-    reason: z.string(),
-    detectedValue: z.string().nullable(),
-  })),
+    settingId: z.string().max(100),
+    status: z.string().max(40),
+    confidence: z.number().finite().min(0).max(1),
+    reason: z.string().max(500).transform(value => value.slice(0, 300)),
+    detectedValue: z.string().max(400).nullable().transform(value => value?.slice(0, 200) ?? null),
+  })).max(100),
   scores: z.object({
-    latency: z.number(),
-    frametime: z.number(),
-    stability: z.number(),
-    competitiveReadiness: z.number(),
+    latency: z.number().finite().min(0).max(100),
+    frametime: z.number().finite().min(0).max(100),
+    stability: z.number().finite().min(0).max(100),
+    competitiveReadiness: z.number().finite().min(0).max(100),
   }),
   motherboard: z.string().max(200).optional(),
   biosVersion: z.string().max(100).optional(),
@@ -388,97 +380,97 @@ biosRouter.post("/explain", async (req: Request, res: Response) => {
     return res.status(403).json({ error: "Premium required." });
   }
 
-  let openai: OpenAI;
-  try {
-    openai = getOpenAI("bios.explain", cloudUser?.id);
-  } catch (error) {
-    return sendAiFailure(res, error);
-  }
+  const parsed = explainSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Invalid request body" });
+
+  const input = parsed.data;
+  const fingerprint = hashAiRequest({ prompt: "bios-explain-v1", userId: cloudUser!.id, input });
+  const cacheKey = hashAiRequest({ scope: "bios-explain", userId: cloudUser!.id, fingerprint });
 
   try {
-    const parsed = explainSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: "Invalid request body" });
-    }
+    const { value: result, source } = await biosExplanationCache.run(cacheKey, fingerprint, async () => {
+      const openai = getOpenAI("bios.explain", cloudUser?.id);
+      const {
+        cpuModel, gpuModel, ramTotalGB, detections, scores,
+        motherboard, biosVersion, biosDate, ramLayout,
+        expoXmpState, secureBoot, vbsEnabled, hardwareDetails,
+      } = input;
 
-    const { cpuModel, gpuModel, ramTotalGB, detections, scores,
-            motherboard, biosVersion, biosDate, ramLayout,
-            expoXmpState, secureBoot, vbsEnabled, hardwareDetails } = parsed.data;
-
-    console.log(`[BIOS:explain:${requestId}] Calling OpenAI | user=${cloudUser?.id} | cpu=${cpuModel} gpu=${gpuModel} detections=${detections.length} | MB=${motherboard ?? "?"} BIOS=${biosVersion ?? "?"}`);
-
-    const startTime = Date.now();
-
-    const hwLines: string[] = [`Hardware: ${cpuModel}, ${gpuModel}, ${ramTotalGB}GB RAM`];
-    if (motherboard) hwLines.push(`Motherboard: ${motherboard}`);
-    if (biosVersion) hwLines.push(`BIOS: ${biosVersion}${biosDate ? ` (${biosDate})` : ""}`);
-    if (ramLayout) hwLines.push(`RAM Layout: ${ramLayout}`);
-    if (expoXmpState) hwLines.push(`EXPO/XMP: ${expoXmpState === "confirmed" ? "Confirmed Active" : expoXmpState === "likely" ? "Likely Active" : "Not Detected"}`);
-    if (secureBoot !== null && secureBoot !== undefined) hwLines.push(`Secure Boot: ${secureBoot ? "Enabled" : "Disabled"}`);
-    if (vbsEnabled !== null && vbsEnabled !== undefined) hwLines.push(`VBS/Memory Integrity: ${vbsEnabled ? "Enabled (may reduce GPU performance)" : "Disabled"}`);
-    if (hardwareDetails) {
-      const bool = (v: boolean | null | undefined): string => v === null || v === undefined ? "not exposed" : v ? "enabled" : "disabled";
-      const platform = hardwareDetails.platform;
-      const cpu = hardwareDetails.cpu;
-      const memory = hardwareDetails.memory;
-      const counts = hardwareDetails.deviceCounts;
-      if (platform) {
-        hwLines.push(`TPM: ${bool(platform.tpmPresent)}${platform.tpmVersion ? ` (${platform.tpmVersion})` : ""}`);
-        hwLines.push(`Boot mode: ${platform.uefiBoot === null || platform.uefiBoot === undefined ? "not exposed" : platform.uefiBoot ? "UEFI" : "Legacy BIOS"}`);
-        hwLines.push(`Virtualization: ${bool(platform.virtualizationEnabled)}; Hypervisor: ${bool(platform.hypervisorPresent)}`);
+      console.log(`[BIOS:explain:${requestId}] Calling OpenAI | user=${cloudUser?.id} | cpu=${cpuModel} gpu=${gpuModel} detections=${detections.length} | MB=${motherboard ?? "?"} BIOS=${biosVersion ?? "?"}`);
+      const startTime = Date.now();
+      const hwLines: string[] = [`Hardware: ${cpuModel}, ${gpuModel}, ${ramTotalGB}GB RAM`];
+      if (motherboard) hwLines.push(`Motherboard: ${motherboard}`);
+      if (biosVersion) hwLines.push(`BIOS: ${biosVersion}${biosDate ? ` (${biosDate})` : ""}`);
+      if (ramLayout) hwLines.push(`RAM Layout: ${ramLayout}`);
+      if (expoXmpState) hwLines.push(`EXPO/XMP: ${expoXmpState === "confirmed" ? "Confirmed Active" : expoXmpState === "likely" ? "Likely Active" : "Not Detected"}`);
+      if (secureBoot !== null && secureBoot !== undefined) hwLines.push(`Secure Boot: ${secureBoot ? "Enabled" : "Disabled"}`);
+      if (vbsEnabled !== null && vbsEnabled !== undefined) hwLines.push(`VBS/Memory Integrity: ${vbsEnabled ? "Enabled (may reduce GPU performance)" : "Disabled"}`);
+      if (hardwareDetails) {
+        const bool = (v: boolean | null | undefined): string => v === null || v === undefined ? "not exposed" : v ? "enabled" : "disabled";
+        const platform = hardwareDetails.platform;
+        const cpu = hardwareDetails.cpu;
+        const memory = hardwareDetails.memory;
+        const counts = hardwareDetails.deviceCounts;
+        if (platform) {
+          hwLines.push(`TPM: ${bool(platform.tpmPresent)}${platform.tpmVersion ? ` (${platform.tpmVersion})` : ""}`);
+          hwLines.push(`Boot mode: ${platform.uefiBoot === null || platform.uefiBoot === undefined ? "not exposed" : platform.uefiBoot ? "UEFI" : "Legacy BIOS"}`);
+          hwLines.push(`Virtualization: ${bool(platform.virtualizationEnabled)}; Hypervisor: ${bool(platform.hypervisorPresent)}`);
+        }
+        if (cpu) hwLines.push(`CPU topology: ${cpu.physicalCores ?? "not exposed"} physical cores, ${cpu.logicalCores ?? "not exposed"} logical cores`);
+        if (memory) hwLines.push(`Memory channels: ${memory.inferredDualChannel === null || memory.inferredDualChannel === undefined ? "not exposed" : memory.inferredDualChannel ? "dual-channel inferred" : "single-channel inferred"}`);
+        if (hardwareDetails.gpus?.length) hwLines.push(`GPU controllers: ${hardwareDetails.gpus.map(g => `${g.name ?? "unknown"}${g.vramMb ? ` ${Math.round(g.vramMb / 1024)}GB VRAM` : ""}`).join("; ")}`);
+        if (hardwareDetails.storage?.length) hwLines.push(`Storage layout: ${hardwareDetails.storage.map(d => `${d.name ?? "unknown"}${d.sizeGb ? ` ${d.sizeGb}GB` : ""}${d.type ? ` ${d.type}` : ""}`).join("; ")}`);
+        if (hardwareDetails.displays?.length) hwLines.push(`Displays: ${hardwareDetails.displays.map(d => `${d.model ?? "unknown"}${d.resolutionX && d.resolutionY ? ` ${d.resolutionX}x${d.resolutionY}` : ""}${d.refreshRate ? ` @ ${d.refreshRate}Hz` : ""}`).join("; ")}`);
+        if (counts) hwLines.push(`Device counts: ${counts.gpuControllers ?? 0} GPUs, ${counts.displays ?? 0} displays, ${counts.storageDevices ?? 0} storage, ${counts.networkInterfaces ?? 0} network, ${counts.audioDevices ?? 0} audio`);
       }
-      if (cpu) hwLines.push(`CPU topology: ${cpu.physicalCores ?? "not exposed"} physical cores, ${cpu.logicalCores ?? "not exposed"} logical cores`);
-      if (memory) hwLines.push(`Memory channels: ${memory.inferredDualChannel === null || memory.inferredDualChannel === undefined ? "not exposed" : memory.inferredDualChannel ? "dual-channel inferred" : "single-channel inferred"}`);
-      if (hardwareDetails.gpus?.length) hwLines.push(`GPU controllers: ${hardwareDetails.gpus.map(g => `${g.name ?? "unknown"}${g.vramMb ? ` ${Math.round(g.vramMb / 1024)}GB VRAM` : ""}`).join("; ")}`);
-      if (hardwareDetails.storage?.length) hwLines.push(`Storage layout: ${hardwareDetails.storage.map(d => `${d.name ?? "unknown"}${d.sizeGb ? ` ${d.sizeGb}GB` : ""}${d.type ? ` ${d.type}` : ""}`).join("; ")}`);
-      if (hardwareDetails.displays?.length) hwLines.push(`Displays: ${hardwareDetails.displays.map(d => `${d.model ?? "unknown"}${d.resolutionX && d.resolutionY ? ` ${d.resolutionX}x${d.resolutionY}` : ""}${d.refreshRate ? ` @ ${d.refreshRate}Hz` : ""}`).join("; ")}`);
-      if (counts) hwLines.push(`Device counts: ${counts.gpuControllers ?? 0} GPUs, ${counts.displays ?? 0} displays, ${counts.storageDevices ?? 0} storage, ${counts.networkInterfaces ?? 0} network, ${counts.audioDevices ?? 0} audio`);
-    }
 
-    const userMessage = `${hwLines.join("\n")}
+      const userMessage = `${hwLines.join("\n")}
 Firmware Scores: Latency ${scores.latency}/100, Frametime ${scores.frametime}/100, Stability ${scores.stability}/100, Readiness ${scores.competitiveReadiness}/100
 
 Detected Settings:
 ${detections.map(d => `- ${d.settingId}: ${d.detectedValue || "unknown"} (${d.status}, ${Math.round(d.confidence * 100)}% confidence) — ${d.reason}`).join("\n")}`;
 
-    const response = await openai.chat.completions.create({
-      model: process.env.AI_MODEL || "gpt-4o-mini",
-      messages: [
-        { role: "system", content: EXPLAIN_PROMPT },
-        { role: "user", content: userMessage },
-      ],
-      max_tokens: 1500,
-      temperature: 0.3,
+      const response = await openai.chat.completions.create({
+        model: process.env.AI_MODEL || "gpt-4o-mini",
+        messages: [
+          { role: "system", content: EXPLAIN_PROMPT },
+          { role: "user", content: userMessage },
+        ],
+        max_tokens: 1500,
+        temperature: 0.3,
+      });
+
+      const duration = Date.now() - startTime;
+      const content = response.choices[0]?.message?.content || "{}";
+      let explanation: any = {};
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) explanation = JSON.parse(jsonMatch[0]);
+      } catch {
+        explanation = { overview: content, settingExplanations: [], recommendations: [], confidenceNote: "" };
+      }
+      console.log(`[BIOS:explain:${requestId}] OpenAI OK | user=${cloudUser?.id} | ${duration}ms`);
+      return {
+        overview: String(explanation.overview || ""),
+        settingExplanations: Array.isArray(explanation.settingExplanations)
+          ? explanation.settingExplanations.map((e: any) => ({
+              settingId: String(e?.settingId || ""),
+              explanation: String(e?.explanation || ""),
+              impact: ["positive", "neutral", "negative", "uncertain"].includes(e?.impact) ? e.impact : "neutral",
+            }))
+          : [],
+        recommendations: Array.isArray(explanation.recommendations)
+          ? explanation.recommendations.map((r: any) => String(r))
+          : [],
+        confidenceNote: String(explanation.confidenceNote || ""),
+        analysisTimeMs: duration,
+      };
     });
 
-    const duration = Date.now() - startTime;
-    const content = response.choices[0]?.message?.content || "{}";
-    console.log(`[BIOS:explain:${requestId}] OpenAI OK | user=${cloudUser?.id} | ${duration}ms`);
-
-    let explanation: any = {};
-    try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) explanation = JSON.parse(jsonMatch[0]);
-    } catch {
-      explanation = { overview: content, settingExplanations: [], recommendations: [], confidenceNote: "" };
+    if (source !== "fresh") {
+      console.info(`[BIOS:explain:${requestId}] ${source === "cache" ? "CACHE_HIT" : "IN_FLIGHT_JOIN"} | user=${cloudUser?.id} | hash=${fingerprint.slice(0, 12)}`);
     }
-
-    return res.json({
-      overview: String(explanation.overview || ""),
-      settingExplanations: Array.isArray(explanation.settingExplanations)
-        ? explanation.settingExplanations.map((e: any) => ({
-            settingId: String(e?.settingId || ""),
-            explanation: String(e?.explanation || ""),
-            impact: ["positive", "neutral", "negative", "uncertain"].includes(e?.impact) ? e.impact : "neutral",
-          }))
-        : [],
-      recommendations: Array.isArray(explanation.recommendations)
-        ? explanation.recommendations.map((r: any) => String(r))
-        : [],
-      confidenceNote: String(explanation.confidenceNote || ""),
-      analysisTimeMs: duration,
-    });
-
+    return res.json(result);
   } catch (err: any) {
     return sendAiFailure(res, err);
   }

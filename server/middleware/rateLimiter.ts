@@ -122,8 +122,8 @@ export const telemetryRestLimiter = rateLimit({
 
 // ── Security advisor — OpenAI image analysis, independently killable ──────────
 // Centralised here so composite-key logic stays in one place. The security
-// router previously defined its own inline rateLimit instance which couldn't
-// benefit from future changes to compositeKey or blockHandler.
+// route must run JWT auth before these limiters so requests are budgeted by
+// authenticated user, not by the shared proxy IP.
 export const securityLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 20,
@@ -132,6 +132,26 @@ export const securityLimiter = rateLimit({
   validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
   keyGenerator: (req) => compositeKey(req, "sec"),
   handler: blockHandler("security"),
+});
+
+export const securityHourlyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
+  keyGenerator: (req) => compositeKey(req, "sec1h"),
+  handler: blockHandler("security_hourly"),
+});
+
+export const biosPhotoHourlyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
+  keyGenerator: (req) => compositeKey(req, "bios_photo1h"),
+  handler: blockHandler("bios_photo_hourly"),
 });
 
 // ── Debloat — PowerShell-backed, rate-limit to cap WMI load ──────────────────

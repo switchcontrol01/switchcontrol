@@ -55,8 +55,10 @@ Fix: Changed to `if ($null -ne $v -and $v -lt 0) { "true" } else { "false" }`. T
 
 ## Startup restoration invariant
 
-Keep a slider’s last successfully applied, Windows-verified target separate from both its original-value backup and the UI cache of values observed from Windows. Reapply only after entitlement is confirmed active, verify every native write, and clear the target only when a user reset or premium revert succeeds. Group changed machine-wide values into one elevated batch rather than showing one UAC prompt per slider.
+Keep a slider’s last successfully applied, Windows-verified target separate from both its original-value backup and the UI cache of values observed from Windows. Reapply only after server-verified login; premium targets additionally require active entitlement. Verify every native write, and clear the target only when a user reset or premium revert succeeds. Group changed machine-wide values into one elevated batch rather than showing one UAC prompt per slider.
 
-**Why:** Windows can change registry-backed sliders during restart, while startup hydration overwrites the UI cache with the newly observed value. Treating that cache as user intent can restore a value the user never applied or preserve a value after reset or expiry.
+**Startup recovery gate:** Start recovery once the authenticated app phase is active; onboarding and informational overlays must not suppress it. Retry a bounded number of explicit PowerShell-busy results, and mark the session complete only after a terminal response. Pass the real entitlement state to the executor so it remains responsible for premium checks.
 
-**How to apply:** Any slider startup-recovery or state-schema change must preserve the distinction between original baseline, last explicit applied target, and current Windows observation.
+**Why:** Windows can remove or change registry-backed slider values during restart, and startup PowerShell contention is transient. Overlay gates can prevent recovery from running at all; treating the UI cache as user intent can instead restore a value the user never applied or preserve one after reset or expiry.
+
+**How to apply:** Any slider startup-recovery or state-schema change must preserve the distinction between original baseline, last explicit applied target, and current Windows observation. Keep retry limits bounded, keep entitlement checks in the native executor, and log both the recovery attempt and its verified outcome.

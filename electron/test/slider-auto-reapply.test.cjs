@@ -120,6 +120,30 @@ test("restores verified slider values after restart with one UAC batch", async (
   }
 });
 
+test("restores a verified slider target when Windows removes its registry key", async () => {
+  const h = createHarness({ admin: true });
+  try {
+    h.registry.set("Win32PrioritySeparation", 38);
+    const firstRun = h.loadExecutor();
+    const applied = await firstRun.applySliderValue("win32-priority-sep", 26);
+    assert.equal(applied.ok, true);
+    assert.equal(applied.persisted, true);
+
+    // Reproduce the supplied before/after logs: the target was 26, but after
+    // restart Windows no longer has the registry value and reads its default.
+    h.registry.delete("Win32PrioritySeparation");
+    const result = await h.loadExecutor().reapplyAppliedSliderValues(true);
+
+    assert.equal(h.registry.get("Win32PrioritySeparation"), 26);
+    assert.equal(result.reapplied.length, 1);
+    assert.equal(result.reapplied[0].tweakId, "win32-priority-sep");
+    assert.equal(result.reapplied[0].value, 26);
+    assert.equal(result.failed.length, 0);
+  } finally {
+    h.cleanup();
+  }
+});
+
 test("does not restore premium slider values without verified active entitlement", async () => {
   const h = createHarness({ admin: true });
   try {

@@ -8,6 +8,7 @@ import { buildAdvisorServerContext } from "./advisorContext";
 import { aiPerWindowLimiter, aiHourlyLimiter } from "../middleware/rateLimiter";
 import { killSwitchMiddleware } from "../lib/killSwitch";
 import { summarizeHardwareIntelligence } from "@shared/hardwareIntelligence";
+import { AiIdempotencyConflictError, AiRequestResultCache, hashAiRequest, hashAiRequestParts } from "../lib/aiRequestResultCache";
 
 // Parse a refresh rate (Hz) out of a display string like "LG 2560x1440 @ 144Hz".
 function parseRefreshHz(display: string | undefined | null): number | null {
@@ -29,6 +30,12 @@ aiRouter.use(aiHourlyLimiter);
 // Key: userId+hash. Value: the in-flight Promise.
 // ---------------------------------------------------------------------------
 const inFlightRequests = new Map<string, Promise<any>>();
+const aiChatIdempotencyCache = new AiRequestResultCache<{ role: "assistant"; content: string }>(
+  10 * 60 * 1000,
+  500,
+);
+const aiChatConcurrentDeduper = new AiRequestResultCache<{ role: "assistant"; content: string }>(0, 300);
+class InvalidAiChatResponse extends Error {}
 
 // ---------------------------------------------------------------------------
 // Cache
@@ -1341,12 +1348,26 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
     }
   }
 
-  let openai: OpenAI;
-  try {
-    openai = getOpenAI("advisor.chat", cloudUser?.id);
-  } catch (error) {
-    return sendAiFailure(res, error);
+  const rawRequestId = req.body?.idempotencyKey;
+  if (rawRequestId !== undefined && (
+    typeof rawRequestId !== "string" ||
+    rawRequestId.length < 8 ||
+    rawRequestId.length > 128 ||
+    !/^[a-zA-Z0-9_-]+$/.test(rawRequestId)
+  )) {
+    return res.status(400).json({ error: "Invalid request ID." });
   }
+  const idempotencyKey = typeof rawRequestId === "string" ? rawRequestId : null;
+  const requestFingerprint = hashAiRequestParts(
+    "advisor-chat-v1",
+    hashAiRequest({ messages, context }),
+    String(imageType ?? ""),
+    typeof imageData === "string" ? imageData : "",
+  );
+  const cacheKey = idempotencyKey
+    ? hashAiRequestParts("advisor-chat-idempotency-v1", cloudUser!.id, idempotencyKey)
+    : null;
+  const concurrentKey = hashAiRequestParts("advisor-chat-concurrent-v1", cloudUser!.id, requestFingerprint);
 
   try {
     // Pull server-side context (display signal, network tweaks, sys intel, live telemetry)
@@ -1488,32 +1509,54 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
       }),
     ];
 
-    console.log(`[AI:chat] Calling OpenAI | user=${cloudUser?.id} | messages=${openaiMessages.length} | hasImage=${hasImage} | model=${visionModel}`);
+    const createChatResponse = async (): Promise<{ role: "assistant"; content: string }> => {
+      const openai = getOpenAI("advisor.chat", cloudUser?.id);
+      console.log(`[AI:chat] Calling OpenAI | user=${cloudUser?.id} | messages=${openaiMessages.length} | hasImage=${hasImage} | model=${visionModel}`);
+      const completion = await openai.chat.completions.create({
+        model: visionModel,
+        max_tokens: hasImage ? 900 : 1200,
+        temperature: 0.5,
+        messages: openaiMessages as any,
+      });
 
-    const completion = await openai.chat.completions.create({
-      model: visionModel,
-      max_tokens: hasImage ? 900 : 1200,
-      temperature: 0.5,
-      messages: openaiMessages as any,
-    });
+      const rawContent = completion.choices[0]?.message?.content?.trim();
+      if (!rawContent) throw new InvalidAiChatResponse("AI returned an empty response.");
 
-    const rawContent = completion.choices[0]?.message?.content?.trim();
-    if (!rawContent) {
-      return res.status(502).json({ error: "AI returned an empty response. Please try again." });
+      let finalContent = rawContent;
+      try {
+        const enforced = enforceApplyContract(rawContent, context, String(lastUserMsg), cloudUser?.id, resolvedTweakIds);
+        finalContent = enforced.content;
+        console.log(`[AI:chat] OK | user=${cloudUser?.id} | chars=${finalContent.length} | injected=${enforced.injected.length} rewritten=${enforced.rewritten}`);
+      } catch (contractErr: any) {
+        console.error(`[AI:chat] enforceApplyContract threw — returning raw content | user=${cloudUser?.id} | ${contractErr?.message}`);
+      }
+      return { role: "assistant", content: stripRetiredAdvisorLinks(finalContent) };
+    };
+
+    const { value: responseBody, source: concurrentSource } = await aiChatConcurrentDeduper.run(
+      concurrentKey,
+      requestFingerprint,
+      async () => {
+        if (!cacheKey) return createChatResponse();
+        const { value, source } = await aiChatIdempotencyCache.run(cacheKey, requestFingerprint, createChatResponse);
+        if (source !== "fresh") {
+          console.info(`[AI:chat] IDEMPOTENCY_${source === "cache" ? "HIT" : "JOIN"} | user=${cloudUser?.id} | request=${cacheKey.slice(0, 12)}`);
+        }
+        return value;
+      },
+    );
+    if (concurrentSource === "in-flight") {
+      console.info(`[AI:chat] DUPLICATE_IN_FLIGHT_JOIN | user=${cloudUser?.id} | hash=${requestFingerprint.slice(0, 12)}`);
     }
-
-    // lastUserMsg and resolvedTweakIds are already computed above (before OpenAI call)
-    let finalContent = rawContent;
-    try {
-      const enforced = enforceApplyContract(rawContent, context, String(lastUserMsg), cloudUser?.id, resolvedTweakIds);
-      finalContent = enforced.content;
-      console.log(`[AI:chat] OK | user=${cloudUser?.id} | chars=${finalContent.length} | injected=${enforced.injected.length} rewritten=${enforced.rewritten}`);
-    } catch (contractErr: any) {
-      console.error(`[AI:chat] enforceApplyContract threw — returning raw content | user=${cloudUser?.id} | ${contractErr?.message}`);
-    }
-    return res.json({ role: "assistant", content: stripRetiredAdvisorLinks(finalContent) });
+    return res.json(responseBody);
 
   } catch (error: any) {
+    if (error instanceof AiIdempotencyConflictError) {
+      return res.status(409).json({ error: "This chat request ID was already used for different input." });
+    }
+    if (error instanceof InvalidAiChatResponse) {
+      return res.status(502).json({ error: `${error.message} Please try again.` });
+    }
     return sendAiFailure(res, error);
   }
 });

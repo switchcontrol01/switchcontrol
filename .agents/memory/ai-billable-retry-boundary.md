@@ -14,3 +14,9 @@ Do not infer the external cloud host's model configuration from workspace defaul
 **Why:** Documentation-level price and modality support do not establish drop-in compatibility, actual account availability, or net savings with reasoning and image costs.
 
 **How to apply:** Report unverified external configuration honestly; never expose credentials or ask for them in chat to resolve it.
+
+Duplicate protection should use a per-user, bounded cache keyed by hashed request identity and content fingerprint. Cache successful responses only; keep chat idempotency keys bound to the original payload, and restrict content-only chat deduplication to requests that are concurrently in flight. For images, retain only hashes and results, never the uploaded bytes.
+
+**Why:** Replaying a billable request after its result is lost can charge twice; globally sharing image results can expose one user's private analysis to another.
+
+**How to apply:** Include prompt/schema versions in cache scopes, cap both TTL and entry count, and log cache/join outcomes without logging prompts, images, or credentials.

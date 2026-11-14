@@ -28,30 +28,45 @@ interface PendingImage {
 const MAX_IMAGES = 5;
 const MAX_PER_FILE_BYTES = 7 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 40 * 1024 * 1024;
+const MAX_IMAGE_DIMENSION = 3000;
 
 async function compressImageIfNeeded(file: File): Promise<{ base64: string; mimeType: string; sizeKb: number }> {
-  // If under limit, just read as-is
-  if (file.size <= MAX_PER_FILE_BYTES) {
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve((r.result as string).split(",")[1]);
-      r.onerror = reject;
-      r.readAsDataURL(file);
-    });
-    return { base64, mimeType: file.type, sizeKb: Math.round(file.size / 1024) };
-  }
-  // Compress via canvas
+  const readBase64 = (input: Blob) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(input);
+  });
+
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(url);
+      const largestDimension = Math.max(img.width, img.height);
+      const dimensionScale = largestDimension > MAX_IMAGE_DIMENSION
+        ? MAX_IMAGE_DIMENSION / largestDimension
+        : 1;
+      const sizeScale = file.size > MAX_PER_FILE_BYTES
+        ? Math.sqrt((MAX_PER_FILE_BYTES * 0.7) / file.size)
+        : 1;
+      const scale = Math.min(1, dimensionScale, sizeScale);
+
+      if (scale >= 1) {
+        void readBase64(file).then(base64 => {
+          resolve({ base64, mimeType: file.type, sizeKb: Math.round(file.size / 1024) });
+        }, reject);
+        return;
+      }
+
       const canvas = document.createElement("canvas");
-      // Scale down proportionally to target ~5MB output
-      const scale = Math.sqrt((MAX_PER_FILE_BYTES * 0.7) / file.size);
       canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
-      const ctx = canvas.getContext("2d")!;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Image processing is unavailable"));
+        return;
+      }
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       canvas.toBlob(
         (blob) => {
@@ -62,7 +77,7 @@ async function compressImageIfNeeded(file: File): Promise<{ base64: string; mime
           r.readAsDataURL(blob);
         },
         "image/jpeg",
-        0.82
+        0.88
       );
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
@@ -818,19 +833,25 @@ export default function BiosAdvisor() {
         continue;
       }
 
-      // Dedup by name+size fingerprint
-      const fingerprint = `${file.name}::${file.size}`;
-      const isDup = existing.some(p => p.id === fingerprint) || added.some(p => p.id === fingerprint);
-      if (isDup) { duplicatesRemoved++; continue; }
-
-      // Total size guard
-      if (currentTotalBytes + file.size > MAX_TOTAL_BYTES) {
+      if (file.size > MAX_TOTAL_BYTES) {
         errors.push(`${file.name}: would exceed 40MB total limit.`);
         continue;
       }
 
       try {
+        // Hash file bytes, not filenames: renamed copies still deduplicate,
+        // while different photos with identical names and sizes remain distinct.
+        const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+        const fingerprint = `sha256:${Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("")}`;
+        const isDup = existing.some(p => p.id === fingerprint) || added.some(p => p.id === fingerprint);
+        if (isDup) { duplicatesRemoved++; continue; }
+
         const compressed = await compressImageIfNeeded(file);
+        const compressedBytes = compressed.sizeKb * 1024;
+        if (currentTotalBytes + compressedBytes > MAX_TOTAL_BYTES) {
+          errors.push(`${file.name}: would exceed 40MB total limit after processing.`);
+          continue;
+        }
         const previewUrl = URL.createObjectURL(file);
         added.push({
           id: fingerprint,
@@ -840,7 +861,7 @@ export default function BiosAdvisor() {
           base64: compressed.base64,
           mimeType: compressed.mimeType,
         });
-        currentTotalBytes += file.size;
+        currentTotalBytes += compressedBytes;
       } catch {
         errors.push(`${file.name}: failed to process image.`);
       }

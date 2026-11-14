@@ -1737,15 +1737,17 @@ export default function AiAdvisor() {
 
     const thisReqId = ++reqIdRef.current;
 
+    const requestId = globalThis.crypto?.randomUUID?.()
+      ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
     const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`,
+      id: `user-${requestId}`,
       role: "user",
       content: messageContent,
       timestamp: new Date(),
       ...(imgData ? { imageDataUrl: imgData.dataUrl } : {}),
     };
 
-    const assistantId = `assistant-${Date.now()}`;
+    const assistantId = `assistant-${requestId}`;
     const placeholderMsg: ChatMessage = {
       id: assistantId,
       role: "assistant",
@@ -1988,6 +1990,7 @@ export default function AiAdvisor() {
           };
 
       const requestBody: Record<string, unknown> = {
+        idempotencyKey: userMsg.id,
         messages: chatHistory,
         context: requestContext,
       };
