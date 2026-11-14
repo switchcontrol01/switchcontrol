@@ -24,7 +24,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { MotionProvider } from "@/lib/motion";
+import { MotionProvider, useMotion } from "@/lib/motion";
 import { PremiumUpgradeAnimation } from "@/components/PremiumUpgradeAnimation";
 import { TrialActivationAnimation } from "@/components/TrialActivationAnimation";
 import { TrialTour } from "@/components/TrialTour";
@@ -266,6 +266,9 @@ const DarkFallback = () => (
 
 function ElectronAppRoutes() {
   const [location, navigate] = useLocation();
+  const { prefersReducedMotion } = useMotion();
+  const routePath = location.split("?")[0].replace(/\/+$/, "") || "/";
+  const isDriverIntelRoute = routePath === "/driver-intel";
   const realtimeMetricsEnabled = useStore((state) => state.realtimeMetricsEnabled);
 
   useEffect(() => {
@@ -296,29 +299,60 @@ function ElectronAppRoutes() {
   }, [location, realtimeMetricsEnabled]);
 
   return (
-    <ErrorBoundary route={location}>
-      <div style={{ minHeight: "100%" }}>
-        <Switch>
-          <Route path="/" component={desktopRoutes.Home} />
-          <Route path="/dashboard" component={desktopRoutes.Home} />
-          <Route path="/tweaks" component={desktopRoutes.Tweaks} />
-          <Route path="/power-plan" component={desktopRoutes.PowerPlan} />
+    <AnimatePresence mode="wait" initial={false}>
+      {isDriverIntelRoute ? (
+        <motion.div
+          key="driver-intelligence-route"
+          className="w-full min-h-full"
+          initial={prefersReducedMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={
+            prefersReducedMotion
+              ? { opacity: 1, pointerEvents: "none", transition: { duration: 0 } }
+              : {
+                  opacity: 0,
+                  pointerEvents: "none",
+                  transition: { duration: 0.4, ease: [0.4, 0, 1, 1] },
+                }
+          }
+          transition={
+            prefersReducedMotion
+              ? { duration: 0 }
+              : { duration: 0.46, ease: [0.22, 1, 0.36, 1] }
+          }
+          data-driver-intel-route-transition
+        >
+          <ErrorBoundary route={location}>
+            <desktopRoutes.DriverIntelligence />
+          </ErrorBoundary>
+        </motion.div>
+      ) : (
+        <div key="application-routes">
+          <ErrorBoundary route={location}>
+            <div style={{ minHeight: "100%" }}>
+              <Switch>
+                <Route path="/" component={desktopRoutes.Home} />
+                <Route path="/dashboard" component={desktopRoutes.Home} />
+                <Route path="/tweaks" component={desktopRoutes.Tweaks} />
+                <Route path="/power-plan" component={desktopRoutes.PowerPlan} />
 
-          <Route path="/network" component={desktopRoutes.NetworkTweaks} />
-          <Route path="/cleaner" component={desktopRoutes.SystemCleaner} />
-          <Route path="/debloat" component={desktopRoutes.Debloater} />
-          <Route path="/startup" component={desktopRoutes.StartupApps} />
-          <Route path="/bios-advisor" component={desktopRoutes.BiosAdvisor} />
-          <Route path="/ai-advisor" component={desktopRoutes.AiAdvisor} />
-          <Route path="/security" component={desktopRoutes.Security} />
-          <Route path="/history" component={desktopRoutes.History} />
-          <Route path="/driver-intel" component={desktopRoutes.DriverIntelligence} />
-          <Route path="/latency-analyzer" component={desktopRoutes.LatencyAnalyzer} />
-          <Route path="/settings" component={desktopRoutes.Settings} />
-          <Route component={desktopRoutes.Home} />
-        </Switch>
-      </div>
-    </ErrorBoundary>
+                <Route path="/network" component={desktopRoutes.NetworkTweaks} />
+                <Route path="/cleaner" component={desktopRoutes.SystemCleaner} />
+                <Route path="/debloat" component={desktopRoutes.Debloater} />
+                <Route path="/startup" component={desktopRoutes.StartupApps} />
+                <Route path="/bios-advisor" component={desktopRoutes.BiosAdvisor} />
+                <Route path="/ai-advisor" component={desktopRoutes.AiAdvisor} />
+                <Route path="/security" component={desktopRoutes.Security} />
+                <Route path="/history" component={desktopRoutes.History} />
+                <Route path="/latency-analyzer" component={desktopRoutes.LatencyAnalyzer} />
+                <Route path="/settings" component={desktopRoutes.Settings} />
+                <Route component={desktopRoutes.Home} />
+              </Switch>
+            </div>
+          </ErrorBoundary>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }
 

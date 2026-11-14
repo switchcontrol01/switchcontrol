@@ -52,7 +52,7 @@ export function DriverBoardInspector({
       <header className="di-topbar">
         <div className="di-brand">
           <span className="di-brand-icon"><ShieldCheck size={20} /></span>
-          <div><h1 data-testid="text-driver-intel-title">SWITCHCONTROL <span>/ {t("DRIVER INTELLIGENCE")}</span></h1><p>{t("Hardware status, without the guesswork.")}</p></div>
+          <h1 data-testid="text-driver-intel-title">SWITCHCONTROL <span>/ {t("DRIVER INTELLIGENCE")}</span></h1>
         </div>
         <div className="di-top-actions">
           <span className="di-scan-state" aria-live="polite"><i className={scanning ? "is-scanning" : ""} />{scanning ? t("Scanning…") : scannedLabel}</span>
@@ -62,7 +62,7 @@ export function DriverBoardInspector({
       </header>
 
       <section className="di-intro">
-        <div><span className="di-eyebrow"><b>01</b> {t("SYSTEM OVERVIEW")}</span><h2>{t("Know what’s")}<br /><em>{t("under the hood.")}</em></h2><p>{t("Probe a component to see its driver evidence, verification state, and a clear next step.")}</p></div>
+        <div><h2>{t("Know what’s")}<br /><em>{t("under the hood.")}</em></h2><p>{t("Probe a component to see its driver evidence, verification state, and a clear next step.")}</p></div>
         <div className="di-metrics">
           <div className="di-ring" role="img" aria-label={value === null ? t("Run a scan to see your score") : `${t("Health Score")}: ${value}/100`}>
             <svg viewBox="0 0 92 92" aria-hidden="true"><circle className="di-ring-track" cx="46" cy="46" r="38" /><circle className="di-ring-value" cx="46" cy="46" r="38" style={{ strokeDashoffset: 239 - 239 * (value ?? 0) / 100 }} /></svg>
@@ -91,7 +91,6 @@ export function DriverBoardInspector({
               {scanning && <div className="di-sweep" aria-hidden="true" />}
             </div>
           </div>
-          <div className="di-board-caption"><span>X870E AORUS PRO ICE · {t("DRIVER INTELLIGENCE")}</span><small>{t("Component positions are illustrative.")}</small></div>
           {scanning && <div className="di-progress" role="status"><span data-testid="text-scan-step">{stepLabel}</span><progress max={100} value={progress} aria-label={stepLabel} /></div>}
         </div>
 

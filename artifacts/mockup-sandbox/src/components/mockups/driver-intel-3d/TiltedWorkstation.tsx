@@ -90,7 +90,6 @@ export function TiltedWorkstation() {
 
         <section className="tw-overview">
           <div className="tw-overview-copy">
-            <div className="tw-kicker"><span>01</span> SYSTEM OVERVIEW</div>
             <h1>Know what’s<br /><em>actually installed.</em></h1>
             <p>Driver versions, reference releases, and confidence—kept distinct.</p>
             <div className="tw-counts" aria-label="Snapshot summary">

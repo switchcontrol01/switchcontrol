@@ -108,3 +108,4 @@
 - [Retired process inspection](retired-process-inspection.md) — Process Manager removal must not become replacement Advisor enumeration; shared telemetry, Startup, and icons remain.
 - [Retired CPU tweak policy](retired-cpu-tweak-policy.md) — removing the CPU C-States/core-parking toggle must preserve existing Windows settings and recovery history.
 - [Retired adapter tuning policy](retired-adapter-tuning-policy.md) — NIC retirement preserves settings and recovery evidence; legacy RSS badges cannot authorize network expiry writes.
+- [Patch failure recovery](patch-failure-recovery.md) — a failed multi-hunk patch may leave earlier edits applied; inspect files before retrying.

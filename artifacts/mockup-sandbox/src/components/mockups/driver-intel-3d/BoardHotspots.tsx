@@ -90,7 +90,6 @@ export function BoardHotspots() {
             <div className="bh-brand-mark"><ShieldCheck size={18} strokeWidth={1.7} /></div>
             <div>
               <div className="bh-product">SWITCHCONTROL <span> / DRIVER INTELLIGENCE</span></div>
-              <div className="bh-subtitle">Hardware status, without the guesswork.</div>
             </div>
           </div>
           <div className="bh-top-actions">
@@ -110,7 +109,6 @@ export function BoardHotspots() {
 
         <section className="bh-intro">
           <div>
-            <div className="bh-eyebrow"><span>01</span> SYSTEM OVERVIEW</div>
             <h1>Know what’s<br /><em>under the hood.</em></h1>
             <p>Probe a component to see its driver evidence, verification state, and a clear next step.</p>
           </div>
@@ -189,7 +187,6 @@ export function BoardHotspots() {
                 })}
                 <div className="bh-scan-sweep" aria-hidden="true" />
               </div>
-              <div className="bh-image-caption"><span>X870E AORUS PRO ICE</span><i /> DRIVER INTELLIGENCE</div>
             </div>
             {scanning && <div className="bh-scan-ribbon" aria-live="polite"><Waves size={14} /> SAMPLE PASS IN PROGRESS <span>01—08</span></div>}
           </div>

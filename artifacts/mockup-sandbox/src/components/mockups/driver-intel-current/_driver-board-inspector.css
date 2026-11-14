@@ -17,7 +17,6 @@
 .driver-intel-page .di-brand-icon { color: var(--di-blue); padding: 9px; border: 1px solid #8ecde744; border-radius: 10px; background: #8ecde70c; }
 .driver-intel-page .di-brand h1 { font-size: 12px; font-weight: 800; letter-spacing: .09em; margin: 0; }
 .driver-intel-page .di-brand h1 span { color: var(--di-muted); font-weight: 500; }
-.driver-intel-page .di-brand p { font-size: 12px; color: var(--di-muted); margin: 5px 0 0; }
 .driver-intel-page .di-top-actions { display: flex; align-items: center; gap: 15px; }
 .driver-intel-page .di-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 13px; border: 1px solid #8ecde740; border-radius: 7px; background: #8ecde70b; color: var(--di-text); font: 600 12px "Manrope", sans-serif; transition: background .18s, border-color .18s; }
 .driver-intel-page .di-button:hover:not(:disabled) { background: #8ecde71d; border-color: #8ecde780; }
@@ -70,9 +69,6 @@
 .driver-intel-page .di-hotspot-left .di-callout-label { left: auto; right: 49px; text-align: right; }
 .driver-intel-page .di-hotspot-top .di-callout-line { width: 1px; height: 25px; top: auto; bottom: 16px; left: 8px; }
 .driver-intel-page .di-hotspot-top .di-callout-label { left: -30px; top: auto; bottom: 44px; }
-.driver-intel-page .di-board-caption { position: absolute; bottom: 15px; left: 20px; right: 20px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 9px; font: 8px "DM Mono", monospace; letter-spacing: .04em; color: var(--di-muted); }
-.driver-intel-page .di-board-caption>span { padding: 6px 9px; background: #09131eaa; border: 1px solid var(--di-line); border-radius: 30px; }
-.driver-intel-page .di-board-caption small { font: inherit; align-self: center; }
 .driver-intel-page .di-inspector { grid-column: 1; grid-row: 1; padding: 24px 20px; display: flex; flex-direction: column; background: linear-gradient(145deg, #223247, #151f2d); }
 .driver-intel-page .di-inspector-top { display: flex; justify-content: space-between; padding-bottom: 22px; border-bottom: 1px solid var(--di-line); }
 .driver-intel-page .di-inspector-top>span:last-child { color: var(--di-muted); font: 10px "DM Mono", monospace; }
