@@ -17,3 +17,16 @@ casting them to double after collection cannot recover activity below 1%.
 
 **How to apply:** Use consecutive native counter timestamps as the denominator.
 First reads and provider resets establish a baseline, not a zero measurement.
+
+For a separate app-event response test, use event timestamps and actual
+`performance.now()` at handler/callback entry in one renderer clock domain.
+Never treat the `requestAnimationFrame` argument as a paint/completion timestamp.
+
+**Why:** A measured Chromium experiment found that the rAF argument can predate
+the input event even when the callback executes after it. CDP-injected events also
+report `isTrusted`, so that flag cannot prove physical hardware input.
+
+**How to apply:** Keep this separate from PerfOS and mouse-to-photon claims.
+See `docs/input-delay-investigation.md` for measured evidence, native timing
+candidates, and the Windows validation boundary. A Linux headless probe proves
+browser interval behavior, not physical Windows input or display latency.

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Input event timing experiment</title>
+<style>
+  body { font: 16px system-ui; margin: 32px auto; max-width: 850px; padding: 0 16px; }
+  button { display: block; padding: 40px; margin: 24px 0; color: white; background: #204a87; font: inherit; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #eee; padding: 16px; }
+</style>
+<h1>Input event timing experiment</h1>
+<p>Research only. Measures browser event creation → handler entry → next animation-frame callback entry.
+  The callback runs before paint. This does not measure mouse hardware, display scan-out, or pixel response.</p>
+<label><input id="workload" type="checkbox"> Add 40 ms of measured handler work</label>
+<button id="pad" type="button">Press here to record one sample</button>
+<p>Keep this document visible and focused. Synthetic JavaScript events are rejected.
+  Raw timestamps are milliseconds relative to performance.timeOrigin, not UTC.</p>
+<pre id="output" aria-live="polite">No samples yet.</pre>
+<script type="module">
+  import { installProbe } from "./probe.mjs";
+  installProbe();
+</script>
+</html>
