@@ -185,7 +185,13 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
 
   useEffect(() => {
     refresh();
+    const handlePresetRecovery = (event: Event) => {
+      const changedTweakId = (event as CustomEvent<{ tweakId?: string }>).detail?.tweakId;
+      if (!changedTweakId || changedTweakId === tweakId) void refresh();
+    };
+    window.addEventListener('sc:preset-state-changed', handlePresetRecovery);
     return () => {
+      window.removeEventListener('sc:preset-state-changed', handlePresetRecovery);
       clearResultTimer();
       if (retryTimerRef.current) {
         clearTimeout(retryTimerRef.current);
@@ -220,7 +226,7 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
     try {
       const api = getPresetAPI();
       if (!api?.apply || !api?.getState) throw new Error('Preset verification is unavailable.');
-      const result: { ok: boolean; error: string | null } = await api.apply(tweakId, optionToApply);
+      const result: { ok: boolean; error: string | null; persisted?: boolean } = await api.apply(tweakId, optionToApply);
 
       if (result.ok) {
         const readback = await api.getState(tweakId);
@@ -241,7 +247,13 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
           lastError:        null,
         }));
         const label = config.options.find(o => o.id === optionToApply)?.label ?? optionToApply;
-        toast({ title: 'Profile Applied', description: `${label} applied and verified on your system.` });
+        toast({
+          title: result.persisted === false ? 'Profile Applied, Restart Restore Not Saved' : 'Profile Applied',
+          description: result.persisted === false
+            ? `${label} is active and verified, but SwitchControl could not save it for automatic restoration after a restart.`
+            : `${label} applied and verified on your system.`,
+          variant: result.persisted === false ? 'destructive' : undefined,
+        });
         logHistory(`Preset: ${label}`, "Tweaks", "Applied", `Tweak ID: ${tweakId} | Option: ${optionToApply}`, {
           category: "preset", targetId: tweakId, restoreValue: restoreOptionId, reversible: restoreOptionId !== null,
           reason: restoreOptionId === null ? "No prior preset value was available." : undefined,
@@ -281,7 +293,7 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
     try {
       const api = getPresetAPI();
       if (!api?.revert || !api?.getState) throw new Error('Preset verification is unavailable.');
-      const result: { ok: boolean; optionId?: string; error: string | null } = await api.revert(tweakId);
+      const result: { ok: boolean; optionId?: string; error: string | null; persisted?: boolean } = await api.revert(tweakId);
       if (result.ok) {
         const resetId = result.optionId ?? config.defaultOptionId;
         const readback = await api.getState(tweakId);
@@ -301,7 +313,13 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
           verifyResult:     { ok: true, error: null },
           lastError:        null,
         }));
-        toast({ title: 'Reverted', description: 'Restored to previous profile.' });
+        toast({
+          title: result.persisted === false ? 'Reverted, Restore State Not Saved' : 'Reverted',
+          description: result.persisted === false
+            ? 'Windows restored the previous profile, but SwitchControl could not clear the saved startup target.'
+            : 'Restored to previous profile.',
+          variant: result.persisted === false ? 'destructive' : undefined,
+        });
         scheduleResultDismiss();
       } else {
         setState(s => ({ ...s, status: 'failed', lastError: result.error }));

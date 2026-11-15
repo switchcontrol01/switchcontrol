@@ -5463,11 +5463,12 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
       file: 'main.js', fn: 'tweak:reconcileOwnedTargets', reason: 'owned-tweak-recovery',
     });
     if (!token) {
-      return { ok: false, busy: true, sliders: null, toggles: null, network: null };
+      return { ok: false, busy: true, sliders: null, presets: null, toggles: null, network: null };
     }
     const empty = { reapplied: [], unchanged: [], skipped: [], failed: [] };
     try {
       const sliders = await sliderTweakExecutor.reapplyAppliedSliderValues(premiumActive);
+      const presets = await presetTweakExecutor.reapplyAppliedPresetValues(premiumActive);
       const sliderTargetIds = new Set([
         ...(sliders?.reapplied ?? []),
         ...(sliders?.unchanged ?? []),
@@ -5498,13 +5499,14 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
         ok: sliders?.ok !== false,
         busy: false,
         sliders: sliders || empty,
+        presets,
         toggles,
         network,
         ownershipCleanupWarnings,
       };
     } catch (e) {
       console.error('[IPC] tweak:reconcileOwnedTargets error:', e.message);
-      return { ok: false, busy: false, error: e.message, sliders: null, toggles: null, network: null };
+      return { ok: false, busy: false, error: e.message, sliders: null, presets: null, toggles: null, network: null };
     } finally {
       psLimiter.release(token);
     }

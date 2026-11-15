@@ -34,24 +34,74 @@ function ensureDir() {
 function loadPresetState() {
   try {
     ensureDir();
-    if (!fs.existsSync(PRESET_STATE_FILE)) return { originalValues: {} };
+    if (!fs.existsSync(PRESET_STATE_FILE)) return { originalValues: {}, appliedOptions: {} };
     const raw = fs.readFileSync(PRESET_STATE_FILE, 'utf8');
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return { originalValues: {} };
-    if (!parsed.originalValues || typeof parsed.originalValues !== 'object') parsed.originalValues = {};
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { originalValues: {}, appliedOptions: {} };
+    }
+    if (!parsed.originalValues || typeof parsed.originalValues !== 'object' || Array.isArray(parsed.originalValues)) {
+      parsed.originalValues = {};
+    }
+    if (!parsed.appliedOptions || typeof parsed.appliedOptions !== 'object' || Array.isArray(parsed.appliedOptions)) {
+      parsed.appliedOptions = {};
+    }
+    parsed.appliedOptions = Object.fromEntries(
+      Object.entries(parsed.appliedOptions).filter(([, optionId]) => typeof optionId === 'string'),
+    );
     return parsed;
   } catch {
-    return { originalValues: {} };
+    return { originalValues: {}, appliedOptions: {} };
   }
 }
 
 function savePresetState(state) {
+  let tempFile = null;
   try {
     ensureDir();
-    fs.writeFileSync(PRESET_STATE_FILE, JSON.stringify(state, null, 2));
+    tempFile = `${PRESET_STATE_FILE}.tmp`;
+    fs.writeFileSync(tempFile, JSON.stringify(state, null, 2), 'utf8');
+    fs.renameSync(tempFile, PRESET_STATE_FILE);
+    return true;
   } catch (e) {
+    if (tempFile) {
+      try { fs.unlinkSync(tempFile); } catch {}
+    }
     console.error('[PresetExecutor] savePresetState failed:', e.message);
+    return false;
   }
+}
+
+function migrateLegacyAppliedPresetTargets(state) {
+  if (state.appliedOptionsMigrationVersion === 1) return state;
+
+  const seen = new Set();
+  try {
+    if (fs.existsSync(PRESET_LOG_FILE)) {
+      const entries = JSON.parse(fs.readFileSync(PRESET_LOG_FILE, 'utf8'));
+      if (Array.isArray(entries)) {
+        for (const entry of entries) {
+          if (!entry || typeof entry.tweakId !== 'string' || seen.has(entry.tweakId)) continue;
+          if (entry.success !== true || !['apply', 'revert'].includes(entry.action)) continue;
+          seen.add(entry.tweakId);
+          if (
+            entry.action === 'apply' &&
+            state.originalValues[entry.tweakId] &&
+            typeof entry.newOptionId === 'string' &&
+            !Object.prototype.hasOwnProperty.call(state.appliedOptions, entry.tweakId)
+          ) {
+            state.appliedOptions[entry.tweakId] = entry.newOptionId;
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[PresetExecutor] legacy applied-option migration could not read audit log:', err.message);
+  }
+
+  state.appliedOptionsMigrationVersion = 1;
+  savePresetState(state);
+  return state;
 }
 
 function logPresetEntry(entry) {
@@ -329,6 +379,21 @@ async function applyPresetValue(tweakId, optionId) {
     const verification = await readPresetValue(tweakId);
     clearCrashSentinel();
     const verified = verification.optionId === optionId;
+    let persisted = false;
+    if (verified) {
+      const persistedState = loadPresetState();
+      if (!persistedState.originalValues[tweakId]) {
+        persistedState.originalValues[tweakId] = {
+          optionId: previousOptionId || def.defaultOptionId,
+          capturedAt: new Date().toISOString(),
+        };
+      }
+      persistedState.appliedOptions[tweakId] = optionId;
+      persisted = savePresetState(persistedState);
+      if (!persisted) {
+        console.warn(`[PresetExecutor] ${tweakId}: applied value verified but could not be saved for startup restore`);
+      }
+    }
 
     logPresetEntry({
       tweakId,
@@ -336,6 +401,7 @@ async function applyPresetValue(tweakId, optionId) {
       previousOptionId,
       newOptionId: optionId,
       success: verified,
+      persisted,
       actualOptionId: verification.optionId,
       error: verified ? null : (verification.error || 'Verification mismatch after write.'),
     });
@@ -345,6 +411,7 @@ async function applyPresetValue(tweakId, optionId) {
       verified,
       actualOptionId: verification.optionId,
       previousOptionId,
+      persisted,
       error: verified ? null : (verification.error || `Verification failed — expected "${optionId}", read back "${verification.optionId}".`),
     };
   } catch (err) {
@@ -399,14 +466,16 @@ async function resetPresetValue(tweakId) {
 
   if (verified) {
     delete state.originalValues[tweakId];
-    savePresetState(state);
+    delete state.appliedOptions[tweakId];
   }
+  const persisted = verified ? savePresetState(state) : false;
 
   logPresetEntry({
     tweakId,
     action: 'revert',
     restoredTo,
     success: verified,
+    persisted,
     actualOptionId: verification.optionId,
     error: verified ? null : (verification.error || 'Verification mismatch after revert.'),
   });
@@ -416,6 +485,7 @@ async function resetPresetValue(tweakId) {
     verified,
     actualOptionId: verification.optionId,
     restoredTo,
+    persisted,
     error: verified ? null : (verification.error || `Revert verification failed — expected "${restoredTo}", read back "${verification.optionId}".`),
   };
 }
@@ -503,18 +573,19 @@ async function forceRevertPresetToDefault(tweakId) {
   const verification = await readPresetValue(tweakId);
   const verified = verification.optionId === restoredTo;
 
-  // Clear stale backup so next manual apply captures fresh original
   const state = loadPresetState();
-  if (state.originalValues[tweakId]) {
+  if (verified) {
     delete state.originalValues[tweakId];
-    savePresetState(state);
+    delete state.appliedOptions[tweakId];
   }
+  const persisted = verified ? savePresetState(state) : false;
 
   logPresetEntry({
     tweakId,
     action: 'revert',
     restoredTo,
     success: verified,
+    persisted,
     actualOptionId: verification.optionId,
     error: verified ? null : (verification.error || 'Verification mismatch after revert.'),
   });
@@ -524,6 +595,7 @@ async function forceRevertPresetToDefault(tweakId) {
     verified,
     actualOptionId: verification.optionId,
     restoredTo,
+    persisted,
     error: verified ? null : (verification.error || `Revert verification failed — expected "${restoredTo}", read back "${verification.optionId}".`),
   };
 }
@@ -568,10 +640,84 @@ async function revertAllPremiumPresets() {
   return { success: true, reverted, failed };
 }
 
+/**
+ * Restore only preset options that SwitchControl previously applied and
+ * verified. Current Windows state alone is never treated as ownership.
+ */
+async function reapplyAppliedPresetValues(premiumActive = false) {
+  const state = migrateLegacyAppliedPresetTargets(loadPresetState());
+  const reapplied = [];
+  const unchanged = [];
+  const skipped = [];
+  const failed = [];
+  const candidates = [];
+  let stateChanged = false;
+
+  for (const [tweakId, optionId] of Object.entries(state.appliedOptions)) {
+    const def = PRESET_TWEAKS[tweakId];
+    if (!def || !def.options[optionId]) {
+      delete state.appliedOptions[tweakId];
+      stateChanged = true;
+      skipped.push({ tweakId, reason: def ? 'invalid_saved_option' : 'unknown_preset' });
+      continue;
+    }
+    if (def.premium && premiumActive !== true) {
+      skipped.push({ tweakId, reason: 'premium_not_verified_active' });
+      continue;
+    }
+    candidates.push({ tweakId, optionId, def });
+  }
+
+  if (stateChanged) savePresetState(state);
+  const needsAdmin = candidates.some(({ def }) => def.requiresAdmin);
+  let isAdmin = false;
+  if (needsAdmin) {
+    try { isAdmin = await checkIsAdmin(); } catch {}
+  }
+
+  console.info(`[PresetExecutor] Startup restore checking ${candidates.length} explicitly applied preset values`);
+  for (const { tweakId, optionId, def } of candidates) {
+    if (def.requiresAdmin && !isAdmin) {
+      skipped.push({ tweakId, reason: 'administrator_required' });
+      continue;
+    }
+    try {
+      const current = await readPresetValue(tweakId);
+      if (current.error || current.optionId === null) {
+        failed.push({ tweakId, error: current.error || 'Current profile could not be read.' });
+        continue;
+      }
+      if (current.optionId === optionId) {
+        unchanged.push({ tweakId, optionId });
+        continue;
+      }
+
+      console.info(`[PresetExecutor] Startup restore ${tweakId}: restoring saved option ${optionId}`);
+      const result = await applyPresetValue(tweakId, optionId);
+      if (result.ok && result.verified && result.actualOptionId === optionId && result.persisted !== false) {
+        reapplied.push({ tweakId, optionId, requiresReboot: def.requiresReboot });
+      } else {
+        failed.push({
+          tweakId,
+          error: result.error || (result.persisted === false
+            ? 'Profile was restored but its recovery target could not be saved.'
+            : `Windows did not retain option "${optionId}".`),
+        });
+      }
+    } catch (err) {
+      failed.push({ tweakId, error: err.message || 'Unexpected preset startup-restore error.' });
+    }
+  }
+
+  console.info(`[PresetExecutor] Startup restore complete — reapplied=${reapplied.length} unchanged=${unchanged.length} skipped=${skipped.length} failed=${failed.length}`);
+  return { ok: failed.length === 0, reapplied, unchanged, skipped, failed };
+}
+
 module.exports = {
   readPresetValue,
   applyPresetValue,
   resetPresetValue,
+  reapplyAppliedPresetValues,
   revertAllPremiumPresets,
   checkCrashSentinel,
   getPresetTweakMeta,

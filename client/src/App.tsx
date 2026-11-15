@@ -780,6 +780,14 @@ function ElectronAppContent() {
           }
         }
 
+        const restoredPresets = (result?.presets?.reapplied ?? [])
+          .filter((item: any) => typeof item?.tweakId === "string" && typeof item?.optionId === "string");
+        for (const item of restoredPresets) {
+          window.dispatchEvent(new CustomEvent("sc:preset-state-changed", {
+            detail: { tweakId: item.tweakId, optionId: item.optionId },
+          }));
+        }
+
         const restoredToggleIds = (result?.toggles?.reapplied ?? [])
           .map((item: any) => item?.tweakId)
           .filter((id: unknown): id is string => typeof id === "string");
@@ -808,6 +816,7 @@ function ElectronAppContent() {
 
         const skipped = [
           ...(Array.isArray(sliderResult?.skipped) ? sliderResult.skipped : []),
+          ...(Array.isArray(result?.presets?.skipped) ? result.presets.skipped : []),
           ...(Array.isArray(result?.toggles?.skipped) ? result.toggles.skipped : []),
           ...(Array.isArray(result?.network?.skipped) ? result.network.skipped : []),
         ];
@@ -816,6 +825,7 @@ function ElectronAppContent() {
           item?.reason === "administrator_required" || item?.reason === "requires_admin",
         ).length;
         const failures = (Array.isArray(sliderResult?.failed) ? sliderResult.failed.length : 0) +
+          (result?.presets?.failed?.length ?? 0) +
           (result?.toggles?.failed?.length ?? 0) +
           (result?.network?.failed?.length ?? 0);
         if (awaitingPremium) {
@@ -824,11 +834,15 @@ function ElectronAppContent() {
         }
 
         sliderStartupRestoreAttemptedForUserRef.current = restoreUserId;
-        const restoredCount = restored.length + restoredToggleIds.length + restoredNetworkIds.length;
+        const restoredCount = restored.length + restoredPresets.length + restoredToggleIds.length + restoredNetworkIds.length;
         console.info(`[OwnedTweakRecovery] Startup check complete restored=${restoredCount} skipped=${skipped.length} failed=${failures}.`);
         if (restoredCount > 0 || adminSkipped > 0 || failures > 0) {
           const details = [
             restored.length > 0 ? `Restored ${restored.length} saved slider value${restored.length === 1 ? "" : "s"}.` : "",
+            restoredPresets.length > 0 ? `Restored ${restoredPresets.length} saved preset profile${restoredPresets.length === 1 ? "" : "s"}.` : "",
+            restoredPresets.some((item: any) => item.requiresReboot)
+              ? "Restart Windows again for reboot-required profiles to take effect."
+              : "",
             restoredToggleIds.length > 0 ? `Restored ${restoredToggleIds.length} saved tweak toggle${restoredToggleIds.length === 1 ? "" : "s"}.` : "",
             restoredNetworkIds.length > 0 ? `Restored ${restoredNetworkIds.length} saved network setting${restoredNetworkIds.length === 1 ? "" : "s"}.` : "",
             adminSkipped > 0 ? `${adminSkipped} system-wide value${adminSkipped === 1 ? "" : "s"} need SwitchControl to run as administrator.` : "",
@@ -904,6 +918,13 @@ function ElectronAppContent() {
       try {
         const result = await api.reconcileOwnedTargets(premiumIsActive === true);
         if (stopped || !result?.ok || result.busy) return;
+
+        for (const item of result?.presets?.reapplied ?? []) {
+          if (typeof item?.tweakId !== "string" || typeof item?.optionId !== "string") continue;
+          window.dispatchEvent(new CustomEvent("sc:preset-state-changed", {
+            detail: { tweakId: item.tweakId, optionId: item.optionId },
+          }));
+        }
 
         const restoredSliders = [
           ...(result.sliders?.reapplied ?? []),

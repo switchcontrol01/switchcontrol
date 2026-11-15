@@ -59,6 +59,7 @@
       "shared-read-probe.js",
       "startup-entry.js",
       "firewall-status.js",
+      "tamper-protection-state.js",
       "debloat-helper.js",
       "debloat-contract.cjs",
       "file-icon.js",

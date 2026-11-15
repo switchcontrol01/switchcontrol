@@ -115,5 +115,5 @@
 - [Patch failure recovery](patch-failure-recovery.md) — a failed multi-hunk patch may leave earlier edits applied; inspect files before retrying.
 - [Feature light surfaces](feature-light-surfaces.md) — light feature themes must pair text and background overrides, including shared controls and portal notices.
 - [Power Plan and Debloater references](power-debloater-reference-fidelity.md) — recreate the approved watercolor references, not the green Depth palette; verify actual production components.
-- [Defender Tamper Protection detection](tamper-protection-detection.md) — use IsTamperProtected, not policy-source metadata; keep unknown distinct from confirmed off.
+- [Defender Tamper Protection detection](tamper-protection-detection.md) — prefer IsTamperProtected; map registry enum values explicitly because 4 means off, not generic enabled.
 - [Debloater installed-app clarity](debloater-installed-app-clarity.md) — keep tabs and filters easy to read; prefer actual app icons over cached generic uninstaller art.

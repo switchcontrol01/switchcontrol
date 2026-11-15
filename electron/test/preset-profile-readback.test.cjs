@@ -21,6 +21,12 @@ const registry = fs.readFileSync(
   path.join(process.cwd(), "client/src/lib/tweak-registry.ts"),
   "utf8",
 );
+const presetExecutor = fs.readFileSync(
+  path.join(process.cwd(), "electron/preset-tweak-executor.js"),
+  "utf8",
+);
+const main = fs.readFileSync(path.join(process.cwd(), "electron/main.js"), "utf8");
+const app = fs.readFileSync(path.join(process.cwd(), "client/src/App.tsx"), "utf8");
 
 test("IRQ readback distinguishes an absent override from an unknown value", async () => {
   registryRead = "";
@@ -67,6 +73,15 @@ test("IRQ profile copy describes its actual single registry value", () => {
   assert.match(irqProfile, /legacy Windows IRQ8Priority registry value/);
   assert.match(irqProfile, /not per-device interrupt affinity/);
   assert.doesNotMatch(irqProfile, /coordinated set of PriorityControl registry values/);
+});
+
+test("verified preset targets are persisted and included in authenticated startup recovery", () => {
+  assert.match(presetExecutor, /appliedOptions\[tweakId\] = optionId/);
+  assert.match(presetExecutor, /async function reapplyAppliedPresetValues/);
+  assert.match(presetExecutor, /premium_not_verified_active/);
+  assert.match(main, /presetTweakExecutor\.reapplyAppliedPresetValues\(premiumActive\)/);
+  assert.match(app, /sc:preset-state-changed/);
+  assert.match(hook, /sc:preset-state-changed/);
 });
 
 test.after(() => {

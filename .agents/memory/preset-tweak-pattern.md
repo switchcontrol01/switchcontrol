@@ -14,3 +14,9 @@ Preset-profile tweaks (e.g. IRQ/IO/DirectX optimization profiles) are implemente
 - Zustand `presetOptions: Record<string, string>` mirrors `sliderValues`, with the same onRehydrateStorage sanitize-guard pattern (reject non-object/array, drop non-string values) to survive corrupted localStorage.
 - UI: `TweakPresetCard.tsx` mirrors `TweakSliderCard.tsx`'s structure (badges, VerifyBanner, AdvancedDetails, apply/revert buttons) but renders option cards instead of a slider.
 - Tweaks flagged `isAdvancedTuning: true` in `tweak-registry.ts` are excluded from the normal category/chip filtering and rendered together in one dedicated "Advanced Tuning" section in `TweaksList.tsx`, regardless of controlType (slider or preset).
+
+**Preset restart recovery:** Persist the last successfully applied option separately from both `originalValues` (the revert baseline) and `presetOptions` (a UI cache of last observed Windows state). Only restore explicit verified targets after entitlement verification; clear them only after a verified user reset or premium downgrade. Older installs can migrate a target from the latest successful audit-log action only when the original baseline proves SwitchControl previously applied that profile.
+
+**Why:** Windows may remove a preset registry value during reboot. Reading the live default back into the UI without restoring a saved, app-owned target silently loses the user's selected profile; treating the UI cache alone as ownership could instead apply a value the user never chose.
+
+**How to apply:** Any preset apply/reset/downgrade or startup-reconciliation change must preserve this three-way separation, verify the live registry after writes, and keep premium entitlement checks in the native executor.

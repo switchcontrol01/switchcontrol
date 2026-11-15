@@ -282,6 +282,13 @@ declare global {
             skipped: Array<{ tweakId: string; reason: string }>;
             failed: Array<{ tweakId: string; error: string }>;
           } | null;
+          presets: {
+            ok: boolean;
+            reapplied: Array<{ tweakId: string; optionId: string; requiresReboot: boolean }>;
+            unchanged: Array<{ tweakId: string; optionId: string }>;
+            skipped: Array<{ tweakId: string; reason: string }>;
+            failed: Array<{ tweakId: string; error: string }>;
+          } | null;
           toggles: {
             reapplied: Array<{ tweakId: string }>;
             unchanged: Array<{ tweakId: string }>;
@@ -299,8 +306,8 @@ declare global {
 
       presetTweaks: {
         getState: (tweakId: string) => Promise<{ optionId: string | null; error: string | null }>;
-        apply: (tweakId: string, optionId: string) => Promise<{ ok: boolean; error: string | null }>;
-        revert: (tweakId: string) => Promise<{ ok: boolean; optionId?: string; error: string | null }>;
+        apply: (tweakId: string, optionId: string) => Promise<{ ok: boolean; persisted?: boolean; error: string | null }>;
+        revert: (tweakId: string) => Promise<{ ok: boolean; optionId?: string; persisted?: boolean; error: string | null }>;
         getMeta: (tweakId: string) => Promise<{ requiresAdmin: boolean; requiresReboot: boolean } | null>;
         checkCrashSentinel: () => Promise<{ ok: boolean; hadCrash: boolean; error?: string }>;
       };

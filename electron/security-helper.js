@@ -11,6 +11,7 @@ const fs = require('fs');
 const os = require('os');
 const psLimiter = require('./powershell-limiter');
 const { normalizeFirewallProbe } = require('./firewall-status');
+const { parseTamperProtectionRegistryValue } = require('./tamper-protection-state');
 const { classifyPowerShellFailure } = require('./probe-status');
 const { createSharedReadProbe } = require('./shared-read-probe');
 const {
@@ -163,6 +164,7 @@ registerSharedRead('security:getStatus', async () => {
         TamperProtectionEnabled   = $null
         TamperProtectionRaw       = $null
         TamperProtectionRawType   = $null
+        TamperProtectionRegistryValue = $null
         AMEngineVersion           = $null
         AntivirusSignatureVersion = $null
         QuickScanEndTime          = $null
@@ -230,8 +232,7 @@ registerSharedRead('security:getStatus', async () => {
       }
       if ($out.TamperProtectionEnabled -eq $null) {
         try {
-          $v = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows Defender\\Features' -Name TamperProtection -EA Stop).TamperProtection
-          $out.TamperProtectionEnabled = ($v -ne 0)
+          $out.TamperProtectionRegistryValue = [int](Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows Defender\\Features' -Name TamperProtection -EA Stop).TamperProtection
         } catch {}
       }
       if (-not $out.AntivirusSignatureVersion) {
@@ -245,6 +246,13 @@ registerSharedRead('security:getStatus', async () => {
     const mpRaw = await runPowerShell(mpCmd, 15000);
     let mpData = null;
     try { mpData = JSON.parse(mpRaw); } catch {}
+    const directTamperValue = mpData?.TamperProtectionEnabled;
+    const registryTamperValue = parseTamperProtectionRegistryValue(mpData?.TamperProtectionRegistryValue);
+    const tamperProtection =
+      typeof directTamperValue === 'boolean' ? directTamperValue : registryTamperValue;
+    const tamperProtectionSource =
+      typeof directTamperValue === 'boolean' ? 'Defender IsTamperProtected' :
+      registryTamperValue === null ? 'unknown' : 'Defender registry value';
 
     // Query every profile and the active network category. Checking only the
     // Private profile produced false "firewall disabled" results on machines
@@ -301,7 +309,7 @@ registerSharedRead('security:getStatus', async () => {
     result.available = true;
     result.data = {
       realtimeProtection: mpData?.RealTimeProtectionEnabled ?? null,
-      tamperProtection:   mpData?.TamperProtectionEnabled   ?? null,
+      tamperProtection,
       antispywareEnabled: mpData?.AntispywareEnabled        ?? null,
       defenderAvailable:  mpData?.DefenderAvailable         ?? false,
       firewallEnabled,
@@ -314,7 +322,7 @@ registerSharedRead('security:getStatus', async () => {
       source: 'electron',
     };
 
-    console.log(`[Security] getStatus OK | realtime=${result.data.realtimeProtection} tamper=${result.data.tamperProtection} tamperRaw=${JSON.stringify(mpData?.TamperProtectionRaw ?? null)} tamperRawType=${mpData?.TamperProtectionRawType ?? 'unknown'} firewall=${firewallEnabled} profiles=${JSON.stringify(firewallProfiles)} active=${JSON.stringify(activeFirewallCategories)}`);
+    console.log(`[Security] getStatus OK | realtime=${result.data.realtimeProtection} tamper=${result.data.tamperProtection} tamperSource=${tamperProtectionSource} tamperRaw=${JSON.stringify(mpData?.TamperProtectionRaw ?? null)} tamperRawType=${mpData?.TamperProtectionRawType ?? 'unknown'} tamperRegistryRaw=${JSON.stringify(mpData?.TamperProtectionRegistryValue ?? null)} firewall=${firewallEnabled} profiles=${JSON.stringify(firewallProfiles)} active=${JSON.stringify(activeFirewallCategories)}`);
     return result;
   } catch (err) {
     console.warn(`[Security] getStatus ERROR: ${err?.message}`);

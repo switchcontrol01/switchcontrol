@@ -189,7 +189,7 @@ export function SecurityLayersOverview(props: Props) {
       <div className="security-layer-map-grid">
         <div className="security-layer-visual">
           <div className="security-layer-axis" aria-hidden="true">
-            <span>CONTROL PLANE</span><span>EVIDENCE DEPTH ↓</span>
+            <span>CONTROL PLANE</span>
           </div>
           <div className="security-layer-stack" aria-label="Interactive 3D map of Windows security evidence layers">
             {layers.map((layer, index) => {

@@ -76,6 +76,9 @@ test('all Smart Scan read stages share probes; destructive actions do not', () =
   assert.ok(source.includes("['IsTamperProtected']"), 'Tamper Protection uses Defender state, not policy source');
   assert.ok(!source.includes('$mp.TamperProtectionSource'), 'policy source must not be interpreted as enabled/disabled');
   assert.ok(source.includes("if ($tamperValue -is [bool])"), 'native booleans retain their value');
+  assert.ok(source.includes('TamperProtectionRegistryValue'), 'registry fallback preserves the raw Windows value for explicit mapping');
+  assert.ok(source.includes('parseTamperProtectionRegistryValue(mpData?.TamperProtectionRegistryValue)'), 'registry fallback uses explicit state mapping');
+  assert.ok(source.includes("typeof directTamperValue === 'boolean'"), 'explicit Defender state takes precedence over the registry');
   assert.ok(source.includes("if ($tamperText -match '^(false|0|no|off)$')"), 'false strings must parse as off, not as PowerShell truthy strings');
   assert.ok(!source.includes('[bool]$tamperProp.Value'), 'do not cast a non-empty "False" string to true');
   for (const channel of ['getStatus', 'getAdvancedProtection', 'getStartupApps', 'getProcessDetails', 'getTopProcesses']) {
