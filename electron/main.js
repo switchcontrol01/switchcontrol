@@ -6361,12 +6361,14 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
       // premium revert pipeline sees a single coherent record per registry value.
       if (tweakId === 'tcp-nagle') {
         const r = await tweakExecutor.executeTweakWithOwnership('tcp-no-delay', normalizedAction, {});
-        console.log(`[PS-Exec] done fn=networkTweaks:execute:${tweakId} (→tcp-no-delay) success=${r.success} verified=${r.verified}`);
+        console.log(`[PS-Exec] done fn=networkTweaks:execute:${tweakId} (→tcp-no-delay) success=${r.success} verified=${r.verified} error=${JSON.stringify(r.error || null)}`);
         return {
           tweakId, action: normalizedAction,
           success:        r.success,
           verified:       r.verified || false,
-          message:        r.message || (r.success ? 'ok' : 'failed'),
+          message:        r.message || r.error || (r.success ? 'ok' : 'failed'),
+          error:          r.error || null,
+          failureType:    r.failureType || null,
           requiresRestart: r.requiresRestart || false,
         };
       }

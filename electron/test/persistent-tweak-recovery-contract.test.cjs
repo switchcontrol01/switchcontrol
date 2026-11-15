@@ -60,13 +60,22 @@ test("owned target recovery is periodic and refreshes network UI state", () => {
 test("Nagle uses one canonical owner for both network and Tweaks surfaces", () => {
   const main = read("electron/main.js");
   const executor = read("electron/tweak-executor.js");
+  const networkData = read("client/src/lib/network-tweaks-data.ts");
   assert.match(main, /networkTweakExecutor\.normalizeNetworkAction\(action\)/);
   assert.match(main, /tweakExecutor\.executeTweakWithOwnership\('tcp-no-delay', normalizedAction/);
+  assert.match(main, /message:\s*r\.message\s*\|\|\s*r\.error/);
   assert.match(main, /normalizedAction === 'apply'\s*\?\s*await sliderTweakExecutor\.applySliderValue\('net-throttle-index', 4294967295\)/);
   assert.match(executor, /record\.itemId === 'tcp-nagle'/);
   assert.match(executor, /recordRevert\(legacyNagle\.scopeKey\)/);
-  assert.match(executor, /Name "TcpNoDelay"/);
-  assert.match(executor, /Name "TcpAckFrequency"/);
+  const tcpNoDelay = executor.slice(
+    executor.indexOf("'tcp-no-delay':"),
+    executor.indexOf("'optimize-windowed-games':"),
+  );
+  assert.match(tcpNoDelay, /New-ItemProperty[\s\S]*?Name "TcpNoDelay"[\s\S]*?PropertyType DWord/);
+  assert.match(tcpNoDelay, /New-ItemProperty[\s\S]*?Name "TcpAckFrequency"[\s\S]*?PropertyType DWord/);
+  assert.match(tcpNoDelay, /\$values\.TcpNoDelay -ne 1[\s\S]*?\$values\.TcpAckFrequency -ne 1/);
+  assert.doesNotMatch(tcpNoDelay, /Set-ItemProperty[^`]*-Type DWord/);
+  assert.doesNotMatch(networkData, /TcpNoDelay=1 globally and per adapter/);
 });
 
 test("priority and timer controls use one persisted target across toggle and slider surfaces", () => {

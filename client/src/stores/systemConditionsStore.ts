@@ -2,8 +2,9 @@
  * systemConditionsStore.ts, Tracks OS-level conditions that affect whether
  * applied tweaks will stick: Tamper Protection state and elevation (admin) status.
  *
- * Read at startup in App.tsx, refreshed by the Tweaks page on entry/focus and
- * by the Security page. Used by TweaksList to show a root-cause banner.
+ * Read during startup reconciliation in App.tsx and refreshed explicitly on
+ * the Security page. TweaksList uses this shared snapshot without rescanning
+ * Windows whenever the user navigates to the section.
  */
 
 import { create } from "zustand";

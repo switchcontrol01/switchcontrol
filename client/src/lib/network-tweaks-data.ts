@@ -209,7 +209,7 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Disable Nagle's Algorithm",
     category: "TCP/IP",
     summary: "Sends small packets sooner.",
-    description: "Sets TcpNoDelay=1 globally and per adapter, plus TcpAckFrequency=1 — disables Nagle so small TCP packets are not delayed waiting for aggregation. This is a global change that affects all TCP traffic, not just games.",
+    description: "Sets TcpNoDelay=1 and TcpAckFrequency=1 on each TCP/IP interface so small TCP packets are not delayed waiting for aggregation. This affects TCP traffic system-wide, not UDP, and requires a restart.",
     impact: [
       "Lower latency for TCP-based real-time apps",
       "Slightly higher packet count",

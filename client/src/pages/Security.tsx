@@ -1275,8 +1275,7 @@ export default function Security() {
           className="security-page-header flex items-start justify-between gap-4"
         >
           <div>
-            <div className="security-page-kicker">{t("System Integrity")} <span>·</span> Windows evidence</div>
-            <div className="flex items-center gap-3 mt-1">
+            <div className="flex items-center gap-3">
               <Shield className="size-6 text-primary security-page-icon" />
               <h1 className="text-2xl font-bold tracking-tight">Protection, in layers.</h1>
             </div>

@@ -75,6 +75,9 @@ test('all Smart Scan read stages share probes; destructive actions do not', () =
   const source = fs.readFileSync('electron/security-helper.js', 'utf8');
   assert.ok(source.includes("['IsTamperProtected']"), 'Tamper Protection uses Defender state, not policy source');
   assert.ok(!source.includes('$mp.TamperProtectionSource'), 'policy source must not be interpreted as enabled/disabled');
+  assert.ok(source.includes("if ($tamperValue -is [bool])"), 'native booleans retain their value');
+  assert.ok(source.includes("if ($tamperText -match '^(false|0|no|off)$')"), 'false strings must parse as off, not as PowerShell truthy strings');
+  assert.ok(!source.includes('[bool]$tamperProp.Value'), 'do not cast a non-empty "False" string to true');
   for (const channel of ['getStatus', 'getAdvancedProtection', 'getStartupApps', 'getProcessDetails', 'getTopProcesses']) {
     assert.ok(source.includes(`registerSharedRead('security:${channel}'`));
   }
@@ -82,6 +85,15 @@ test('all Smart Scan read stages share probes; destructive actions do not', () =
   assert.ok(source.includes("ipcMain.handle('security:setDefenderOption'"));
   const packaged = JSON.parse(fs.readFileSync('electron/package.json', 'utf8'));
   assert.ok(packaged.build.files.includes('shared-read-probe.js'));
+});
+
+test('Tweaks reuses startup Tamper Protection status instead of probing on every visit', () => {
+  const tweaks = fs.readFileSync('client/src/components/tweaks/TweaksList.tsx', 'utf8');
+  const app = fs.readFileSync('client/src/App.tsx', 'utf8');
+  assert.ok(tweaks.includes('const conditionsRefreshing = isElectron && !conditionsChecked'));
+  assert.ok(!tweaks.includes('api.security.getStatus'), 'Tweaks navigation must not start another Windows query');
+  assert.ok(!tweaks.includes('window.addEventListener("focus"'), 'focus changes must not start another Windows query');
+  assert.ok(app.includes('electronAPI?.security?.getStatus?.()'), 'startup reconciliation remains the source of the shared status');
 });
 
 test('actual protection IPC shares the successful Windows result during the reported race', async () => {

@@ -161,6 +161,8 @@ registerSharedRead('security:getStatus', async () => {
         RealTimeProtectionEnabled = $null
         AntispywareEnabled        = $null
         TamperProtectionEnabled   = $null
+        TamperProtectionRaw       = $null
+        TamperProtectionRawType   = $null
         AMEngineVersion           = $null
         AntivirusSignatureVersion = $null
         QuickScanEndTime          = $null
@@ -184,10 +186,24 @@ registerSharedRead('security:getStatus', async () => {
         # IsTamperProtected is the actual Defender state. TamperProtectionSource
         # identifies where policy came from and must not be treated as on/off.
         $tamperProp = $mp.PSObject.Properties['IsTamperProtected']
-        $out.TamperProtectionEnabled = if ($tamperProp -and $tamperProp.Value -ne $null) {
-          [bool]$tamperProp.Value
-        } else {
-          $null
+        if ($tamperProp -and $tamperProp.Value -ne $null) {
+          $tamperValue = $tamperProp.Value
+          $out.TamperProtectionRaw = [string]$tamperValue
+          $out.TamperProtectionRawType = $tamperValue.GetType().FullName
+          if ($tamperValue -is [bool]) {
+            $out.TamperProtectionEnabled = $tamperValue
+          } else {
+            # [bool]"False" evaluates to $true in PowerShell because the string
+            # is non-empty. Parse the value explicitly instead.
+            $tamperText = ([string]$tamperValue).Trim()
+            if ($tamperText -match '^(true|1|yes|on)$') {
+              $out.TamperProtectionEnabled = $true
+            } elseif ($tamperText -match '^(false|0|no|off)$') {
+              $out.TamperProtectionEnabled = $false
+            } else {
+              $out.TamperProtectionEnabled = $null
+            }
+          }
         }
         $out.AMEngineVersion           = $mp.AMEngineVersion
         $out.AntivirusSignatureVersion = $mp.AntivirusSignatureVersion
@@ -298,7 +314,7 @@ registerSharedRead('security:getStatus', async () => {
       source: 'electron',
     };
 
-    console.log(`[Security] getStatus OK | realtime=${result.data.realtimeProtection} tamper=${result.data.tamperProtection} firewall=${firewallEnabled} profiles=${JSON.stringify(firewallProfiles)} active=${JSON.stringify(activeFirewallCategories)}`);
+    console.log(`[Security] getStatus OK | realtime=${result.data.realtimeProtection} tamper=${result.data.tamperProtection} tamperRaw=${JSON.stringify(mpData?.TamperProtectionRaw ?? null)} tamperRawType=${mpData?.TamperProtectionRawType ?? 'unknown'} firewall=${firewallEnabled} profiles=${JSON.stringify(firewallProfiles)} active=${JSON.stringify(activeFirewallCategories)}`);
     return result;
   } catch (err) {
     console.warn(`[Security] getStatus ERROR: ${err?.message}`);

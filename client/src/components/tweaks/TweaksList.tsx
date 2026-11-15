@@ -202,7 +202,7 @@ export function TweaksList() {
   const { isPremium } = useAuth();
   const { openUpgradeModal } = useUpgradeModal();
   const {
-    isAdmin, tamperProtection, conditionsChecked, setIsAdmin, setTamperProtection,
+    isAdmin, tamperProtection, conditionsChecked,
   } = useSystemConditionsStore();
   const { overrides: dynOverrides } = useDynamicRecommendations();
   const {
@@ -232,97 +232,12 @@ export function TweaksList() {
   // Session-only dismiss for the revert root-cause banner — re-shows on next launch if
   // conditions persist (banner is informational, not a one-time consent gate).
   const [revertBannerDismissed, setRevertBannerDismissed] = useState(false);
-  const [conditionsRefreshing, setConditionsRefreshing] = useState(isElectron);
   const seenWarnings = useRef<Set<string>>(new Set());
 
-  // Re-read Windows when Tweaks opens and when the Electron window returns to
-  // the foreground. Windows Security can be changed outside the app, so the
-  // startup snapshot must not remain the visible status indefinitely.
-  useEffect(() => {
-    if (!isElectron) return;
-
-    let disposed = false;
-    let inFlight = false;
-    let lastStartedAt = 0;
-    let retryTimer: number | undefined;
-    const api = (window as any).electronAPI;
-
-    const refreshConditions = async (
-      cause: "page-open" | "window-focus",
-      retry = 0,
-      force = false,
-    ) => {
-      if (disposed || inFlight) return;
-      if (!force && Date.now() - lastStartedAt < 1500) return;
-
-      inFlight = true;
-      lastStartedAt = Date.now();
-      setConditionsRefreshing(true);
-      if (retry === 0) setTamperProtection(null);
-
-      if (!api?.security?.getStatus) {
-        if (!disposed) {
-          setTamperProtection(null);
-          setConditionsRefreshing(false);
-        }
-        inFlight = false;
-        return;
-      }
-
-      const [adminResult, securityResult] = await Promise.allSettled([
-        Promise.resolve().then(() => api.isAdmin?.()),
-        Promise.resolve().then(() => api.security.getStatus()),
-      ]);
-      if (disposed) {
-        inFlight = false;
-        return;
-      }
-
-      const security = securityResult.status === "fulfilled" ? securityResult.value : null;
-      const securityReadBusy =
-        security?.reason === "busy" ||
-        (security?.reason === "temporarily_failed" && /busy|already_running|global_cap_reached/i.test(security?.detail ?? ""));
-      if (securityReadBusy && retry < 2) {
-        retryTimer = window.setTimeout(() => {
-          inFlight = false;
-          void refreshConditions(cause, retry + 1, true);
-        }, 1200 * (retry + 1));
-        return;
-      }
-
-      if (adminResult.status === "fulfilled" && typeof adminResult.value === "boolean") {
-        setIsAdmin(adminResult.value);
-      }
-      const tamperValue: boolean | null =
-        security?.available === true && typeof security?.data?.tamperProtection === "boolean"
-          ? security.data.tamperProtection
-          : null;
-      setTamperProtection(tamperValue);
-      setConditionsRefreshing(false);
-      inFlight = false;
-      console.info(
-        `[Tweaks:SecurityConditions] source=${cause} isAdmin=${adminResult.status === "fulfilled" ? adminResult.value : "unknown"} tamperProtection=${tamperValue}`,
-      );
-    };
-
-    const openTimer = window.setTimeout(() => {
-      void refreshConditions("page-open", 0, true);
-    }, 300);
-    const onFocus = () => void refreshConditions("window-focus");
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") void refreshConditions("window-focus");
-    };
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onVisibilityChange);
-
-    return () => {
-      disposed = true;
-      window.clearTimeout(openTimer);
-      if (retryTimer !== undefined) window.clearTimeout(retryTimer);
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-    };
-  }, [isElectron, setIsAdmin, setTamperProtection]);
+  // App startup reconciliation already verifies tweak state and reads these
+  // Windows conditions. Reuse that shared snapshot instead of issuing another
+  // Defender/PowerShell query on every Tweaks-page visit or window focus.
+  const conditionsRefreshing = isElectron && !conditionsChecked;
 
   // Show a positive status only when Windows explicitly reports Tamper
   // Protection is off. Keep the warning for enabled protection or missing
