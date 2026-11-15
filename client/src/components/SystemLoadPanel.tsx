@@ -48,11 +48,12 @@ export function SystemLoadPanel({
   const visibleState = staleByClock ? "stale" : data.state;
   const presentation = statePresentation(visibleState);
   const StateIcon = presentation.icon;
-  const hasMeasurements =
-    data.cpuUsagePct != null &&
-    data.ramUsedGb != null &&
-    data.ramTotalGb != null &&
-    data.ramUsagePct != null &&
+  const hasAnyMeasurements =
+    data.cpuUsagePct != null ||
+    data.cpuCoreCount != null ||
+    data.ramUsedGb != null ||
+    data.ramTotalGb != null ||
+    data.ramUsagePct != null ||
     data.processCount != null;
 
   return (
@@ -72,12 +73,36 @@ export function SystemLoadPanel({
         )}
       </div>
 
-      {hasMeasurements ? (
-        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Metric icon={Cpu} label="CPU utilization" value={`${data.cpuUsagePct!.toFixed(1)}%`} note={`${data.cpuCoreCount} logical cores`} />
-          <Metric icon={MemoryStick} label="RAM in use" value={`${data.ramUsedGb!.toFixed(1)} / ${data.ramTotalGb!.toFixed(1)} GiB`} note={`${data.ramUsagePct!.toFixed(1)}% used`} />
-          <Metric icon={Activity} label="Process count" value={Math.round(data.processCount!).toLocaleString()} note="system-wide count" />
-        </div>
+      {hasAnyMeasurements ? (
+        <>
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Metric
+              icon={Cpu}
+              label="CPU utilization"
+              value={data.cpuUsagePct == null ? "—" : `${data.cpuUsagePct.toFixed(1)}%`}
+              note={data.cpuCoreCount == null ? "Core count unavailable" : `${data.cpuCoreCount} logical cores`}
+            />
+            <Metric
+              icon={MemoryStick}
+              label="RAM in use"
+              value={data.ramUsedGb == null || data.ramTotalGb == null
+                ? "—"
+                : `${data.ramUsedGb.toFixed(1)} / ${data.ramTotalGb.toFixed(1)} GiB`}
+              note={data.ramUsagePct == null ? "Memory reading unavailable" : `${data.ramUsagePct.toFixed(1)}% used`}
+            />
+            <Metric
+              icon={Activity}
+              label="Process count"
+              value={data.processCount == null ? "—" : Math.round(data.processCount).toLocaleString()}
+              note={data.processCount == null ? "Count unavailable" : "system-wide count"}
+            />
+          </div>
+          {data.state !== "live" && (
+            <p className="la-bench-system-empty mt-3 text-xs text-[#8792A0]" role="status">
+              {data.reason}
+            </p>
+          )}
+        </>
       ) : (
         <div className="la-bench-system-empty mt-5 rounded-lg border border-white/[0.06] bg-[#111820]/70 px-3 py-4 text-xs text-[#8792A0]" data-testid="text-system-load-empty">
           {data.reason}

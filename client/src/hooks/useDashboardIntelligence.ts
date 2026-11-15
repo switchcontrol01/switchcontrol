@@ -180,7 +180,7 @@ export function useLatencyEstimate(
                   stale: true,
                   reason: current.reason || waiting.reason,
                 }
-              : waiting,
+              : { ...waiting, reason: current.reason || waiting.reason },
           );
         }
         timer = setTimeout(() => void poll(), 8_000);

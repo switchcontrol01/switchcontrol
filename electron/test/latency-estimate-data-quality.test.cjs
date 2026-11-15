@@ -14,6 +14,8 @@ test("latency estimate refuses incomplete telemetry instead of returning the flo
   const estimator = read("server/lib/latencyEstimate.ts");
   const dashboardHook = read("client/src/hooks/useDashboardIntelligence.ts");
   const electronMain = read("electron/main.js");
+  const systemLoadPanel = read("client/src/components/SystemLoadPanel.tsx");
+  const responsiveness = read("client/src/lib/responsivenessMetrics.ts");
 
   assert.match(route, /await getSnapshot\(\)/);
   assert.match(route, /buildLatencyEstimate\(snap\)/);
@@ -36,11 +38,16 @@ test("latency estimate refuses incomplete telemetry instead of returning the flo
   assert.match(dashboardHook, /processCount/);
   assert.match(electronMain, /function getLiveProcessCount\(\)/);
   assert.match(electronMain, /processes: liveProcessCount/);
+  assert.match(electronMain, /siWithTimeout\(\s*\(\) => si\.processes\(\),\s*6_000,\s*'telemetry\.processes',?\s*\)/);
   assert.match(
     electronMain,
-    /Get-Process -ErrorAction Stop \| Measure-Object/,
-    "Windows process count must have a native fallback when systeminformation returns zero",
+    /runMainPsDetailed\(script,\s*\{\s*timeout: 8_000,\s*label: 'telemetry:getProcessCount'/,
+    "Windows process count must have a bounded native fallback when systeminformation hangs or returns zero",
   );
+  assert.match(electronMain, /processProbe\.reason !== 'busy'/);
+  assert.match(responsiveness, /Missing or invalid local Windows \$\{missing\.join/);
+  assert.match(systemLoadPanel, /hasAnyMeasurements/);
+  assert.match(dashboardHook, /\.\.\.waiting,\s*reason: current\.reason \|\| waiting\.reason/);
   assert.match(
     electronMain,
     /label: 'telemetry:getProcessCount'/,
@@ -56,6 +63,26 @@ test("latency estimate refuses incomplete telemetry instead of returning the flo
     /lastReadyLatencyRef/,
     "the dashboard must retain the last complete estimate during a transient incomplete sample",
   );
+});
+
+test("partial local telemetry keeps valid readings visible but does not complete the model sample", async () => {
+  const { normalizeSystemLoad } = await import("../../client/src/lib/responsivenessMetrics.ts");
+  const now = Date.now();
+  const partial = normalizeSystemLoad({
+    collectionState: "ready",
+    demandMode: "full",
+    cpuRamSampledAt: now,
+    processesSampledAt: now,
+    cpu: { usagePct: 24, coreCount: 8 },
+    ram: { usedGb: 8, totalGb: 32, usagePct: 25 },
+    processes: { total: 0 },
+  }, now);
+
+  assert.equal(partial.state, "unavailable");
+  assert.equal(partial.cpuUsagePct, 24);
+  assert.equal(partial.ramUsedGb, 8);
+  assert.equal(partial.processCount, null);
+  assert.match(partial.reason, /system process count/);
 });
 
 test("zero systeminformation process count recovers from native Windows count", () => {

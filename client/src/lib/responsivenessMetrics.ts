@@ -73,34 +73,75 @@ export function normalizeSystemLoad(
   if (raw.collectionState === "warming") {
     return { ...EMPTY_SYSTEM_LOAD, state: "warming", reason: "Waiting for the first local Windows telemetry sample." };
   }
-  if (raw.collectionState === "unavailable") {
-    return { ...EMPTY_SYSTEM_LOAD, state: "unavailable", reason: "Local Windows telemetry is unavailable." };
-  }
 
-  const valuesValid =
-    finiteInRange(cpuUsagePct, 0, 100) &&
+  const cpuSourceAvailable = raw.collectionState !== "unavailable";
+  const cpuUsageValid = cpuSourceAvailable && finiteInRange(cpuUsagePct, 0, 100);
+  const cpuCoreCountValid =
+    cpuSourceAvailable &&
     finiteInRange(cpuCoreCount, 1, 4096) &&
-    Number.isInteger(cpuCoreCount) &&
+    Number.isInteger(cpuCoreCount);
+  const ramReadingValid =
     finiteInRange(ramUsedGb, 0, 1_000_000) &&
     finiteInRange(ramTotalGb, 0.01, 1_000_000) &&
     ramUsedGb <= ramTotalGb &&
-    finiteInRange(ramUsagePct, 0, 100) &&
+    finiteInRange(ramUsagePct, 0, 100);
+  const processCountValid =
     finiteInRange(processCount, 1, 100_000) &&
     Number.isInteger(processCount);
+  const cpuRamTimestampValid = validTimestamp(cpuRamSampledAt, now);
+  const processesTimestampValid = validTimestamp(processesSampledAt, now);
+  const valuesValid =
+    cpuUsageValid &&
+    cpuCoreCountValid &&
+    ramReadingValid &&
+    processCountValid;
+  const timestampsValid = cpuRamTimestampValid && processesTimestampValid;
 
-  if (!valuesValid) {
+  if (!valuesValid || !timestampsValid) {
+    const cpuUsageAvailable = cpuRamTimestampValid && cpuUsageValid;
+    const cpuCoresAvailable = cpuRamTimestampValid && cpuCoreCountValid;
+    const ramAvailable = cpuRamTimestampValid && ramReadingValid;
+    const processesAvailable = processesTimestampValid && processCountValid;
+    const validSamples: number[] = [];
+    if (cpuRamTimestampValid && (cpuUsageAvailable || cpuCoresAvailable || ramAvailable)) {
+      validSamples.push(cpuRamSampledAt);
+    }
+    if (processesAvailable) validSamples.push(processesSampledAt);
+    const missing: string[] = [];
+    if (!cpuUsageValid) missing.push("CPU utilization");
+    if (!cpuCoreCountValid) missing.push("logical core count");
+    if (!ramReadingValid) missing.push("RAM readings");
+    if (!processCountValid) missing.push("system process count");
+    if (!cpuRamTimestampValid) missing.push("CPU/RAM sample time");
+    if (!processesTimestampValid) missing.push("process sample time");
+    const staleCpuRam = cpuRamTimestampValid && now - cpuRamSampledAt > CPU_RAM_MAX_AGE_MS;
+    const staleProcesses = processesTimestampValid && now - processesSampledAt > PROCESS_MAX_AGE_MS;
+    const isPaused = raw.demandMode === "paused" || raw.collectionPaused === true;
+    const isStale = staleCpuRam || staleProcesses;
+    const hasPartialData =
+      cpuUsageAvailable ||
+      cpuCoresAvailable ||
+      ramAvailable ||
+      processesAvailable;
+
     return {
       ...EMPTY_SYSTEM_LOAD,
-      state: raw.demandMode === "paused" || raw.collectionPaused === true ? "paused" : "unavailable",
-      reason: "One or more local Windows readings are missing or invalid.",
+      state: isPaused ? "paused" : isStale ? "stale" : "unavailable",
+      source: hasPartialData ? "Local Windows system telemetry" : null,
+      sampledAt: validSamples.length ? Math.min(...validSamples) : null,
+      ageMs: validSamples.length ? Math.max(...validSamples.map(sampledAt => now - sampledAt)) : null,
+      cpuUsagePct: cpuUsageAvailable ? cpuUsagePct : null,
+      cpuCoreCount: cpuCoresAvailable ? cpuCoreCount : null,
+      ramUsedGb: ramAvailable ? ramUsedGb : null,
+      ramTotalGb: ramAvailable ? ramTotalGb : null,
+      ramUsagePct: ramAvailable ? ramUsagePct : null,
+      processCount: processesAvailable ? processCount : null,
+      cpuRamSampledAt: cpuRamTimestampValid && (cpuUsageAvailable || cpuCoresAvailable || ramAvailable)
+        ? cpuRamSampledAt
+        : null,
+      processesSampledAt: processesAvailable ? processesSampledAt : null,
+      reason: `Missing or invalid local Windows ${missing.join(", ")}.`,
     };
-  }
-
-  if (
-    !validTimestamp(cpuRamSampledAt, now) ||
-    !validTimestamp(processesSampledAt, now)
-  ) {
-    return { ...EMPTY_SYSTEM_LOAD, state: "unavailable", reason: "Windows telemetry sample timestamps are missing or invalid." };
   }
 
   const ageMs = Math.max(now - cpuRamSampledAt, now - processesSampledAt);

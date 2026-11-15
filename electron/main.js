@@ -488,7 +488,11 @@ function Write-SwitchControlProbe($status, $data, $message) {
     if (liveProcessFlight) return liveProcessFlight;
 
     liveProcessFlight = Promise.resolve()
-      .then(() => si.processes())
+      .then(() => siWithTimeout(
+        () => si.processes(),
+        6_000,
+        'telemetry.processes',
+      ))
       .catch(error => {
         console.warn(
           '[Telemetry] systeminformation process count failed:',
@@ -507,13 +511,27 @@ function Write-SwitchControlProbe($status, $data, $message) {
         // telemetry remain valid in that case, but the responsiveness model
         // would be blocked forever by total=0. Use a count-only native probe
         // as a fallback; it does not inspect process names or command lines.
-        const rawCount = systemInformationCount.total > 0
-          ? null
-          : await runMainPs(
+        let rawCount = null;
+        if (systemInformationCount.total <= 0) {
+          const script =
             "$ErrorActionPreference = 'Stop'; " +
-            "(Get-Process -ErrorAction Stop | Measure-Object).Count",
-            { timeout: 8_000, label: 'telemetry:getProcessCount' },
-          );
+            "(Get-Process -ErrorAction Stop | Measure-Object).Count";
+          let processProbe = null;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            processProbe = await runMainPsDetailed(script, {
+              timeout: 8_000,
+              label: 'telemetry:getProcessCount',
+            });
+            if (processProbe.ok || processProbe.reason !== 'busy' || attempt === 2) break;
+            await new Promise(resolve => setTimeout(resolve, 1_000));
+          }
+          rawCount = processProbe?.ok ? processProbe.stdout : null;
+          if (!processProbe?.ok) {
+            console.warn(
+              `[Telemetry] count-only Get-Process probe unavailable status=${processProbe?.status || 'unknown'} reason=${processProbe?.reason || 'no-result'}`,
+            );
+          }
+        }
         const selected = selectProcessCount(systemInformationCount, rawCount);
 
         if (selected.source === 'systeminformation') {
