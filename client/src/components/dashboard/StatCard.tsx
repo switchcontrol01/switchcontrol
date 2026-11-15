@@ -18,6 +18,8 @@ interface StatCardProps {
   subtext?: string;
   className?: string;
   loading?: boolean;
+  valueLoading?: boolean;
+  progressLoading?: boolean;
 }
 
 export const StatCard = memo(function StatCard({
@@ -33,6 +35,8 @@ export const StatCard = memo(function StatCard({
   subtext,
   className,
   loading = false,
+  valueLoading = false,
+  progressLoading = false,
 }: StatCardProps) {
   return (
     <GlassCard blur="none" className={cn("relative overflow-hidden", className)}>
@@ -62,14 +66,20 @@ export const StatCard = memo(function StatCard({
             <div className="space-y-1 relative z-10 w-full">
               {loading ? (
                 <>
+                  <span className="block text-xs font-medium text-[#6B7380]" role="status" aria-live="polite">Loading…</span>
                   <div className="sc-shimmer h-7 w-36 mt-0.5" />
                   <div className="sc-shimmer h-3 w-24 mt-1.5" />
                 </>
               ) : (
                 <>
                   <div className="text-2xl font-bold font-data tracking-tight text-[#E6EAF0] tabular-nums">
-                    {value}
-                    {unit && <span className="text-sm font-normal text-[#6B7380] ml-1 tabular-nums">{unit}</span>}
+                    {valueLoading
+                      ? <span className="text-sm font-medium text-[#6B7380]" role="status" aria-live="polite" data-testid="text-stat-value-loading">Loading…</span>
+                      : <>
+                          {value}
+                          {unit && <span className="text-sm font-normal text-[#6B7380] ml-1 tabular-nums">{unit}</span>}
+                        </>
+                    }
                     {total && <span className="text-sm font-normal text-[#6B7380] ml-1 tabular-nums">/ {total} {unit}</span>}
                   </div>
                   {subtext && (
@@ -93,16 +103,24 @@ export const StatCard = memo(function StatCard({
             )}
           </div>
 
-          {progress !== undefined && (
+          {(progress !== undefined || progressLoading) && (
             <div className="mt-4 space-y-1.5 relative z-10">
-              {loading ? (
-                <div className="sc-shimmer h-1.5 w-full rounded-full" />
+              {loading || progressLoading ? (
+                <>
+                  <div className="sc-shimmer h-1.5 w-full rounded-full" />
+                  {progressLoading && !loading && (
+                    <div className="flex justify-between text-[10px] uppercase font-medium text-[#6B7380] tracking-wider">
+                      <span>Usage</span>
+                      <span role="status" aria-live="polite" data-testid="text-stat-progress-loading">Loading…</span>
+                    </div>
+                  )}
+                </>
               ) : (
                 <>
-                  <Progress value={progress} className="h-1.5" />
+                  <Progress value={progress ?? 0} className="h-1.5" />
                   <div className="flex justify-between text-[10px] uppercase font-medium text-[#6B7380] tracking-wider">
                     <span>Usage</span>
-                    <span className={cn(progress > 90 ? "text-[#EF4444]" : progress > 70 ? "text-[#F59E0B]" : "text-[#00D4FF]")}>{Math.round(progress)}%</span>
+                    <span className={cn((progress ?? 0) > 90 ? "text-[#EF4444]" : (progress ?? 0) > 70 ? "text-[#F59E0B]" : "text-[#00D4FF]")}>{Math.round(progress ?? 0)}%</span>
                   </div>
                 </>
               )}

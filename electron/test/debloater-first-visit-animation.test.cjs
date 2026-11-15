@@ -13,7 +13,7 @@ const styles = fs.readFileSync(
 );
 
 test("Debloater entry fade is persisted after the first visit", () => {
-  assert.match(page, /DEBLOATER_ENTRY_FADE_SEEN_KEY = "switchcontrol-debloater-entry-fade-seen-v2"/);
+  assert.match(page, /DEBLOATER_ENTRY_FADE_SEEN_KEY = "switchcontrol-debloater-entry-fade-seen-v3"/);
   assert.match(page, /const \[firstVisitFade\] = useState\(\(\) => !hasSeenDebloaterEntryFade\(\)\)/);
   const handlerStart = page.indexOf("const handleEntryFadeEnd");
   const handlerEnd = page.indexOf("}, []);", handlerStart);
@@ -32,12 +32,12 @@ test("Debloater entry fade is persisted after the first visit", () => {
   );
 });
 
-test("the full Debloater frame fades in over one second and respects reduced motion", () => {
+test("the full Debloater frame fades in over 500 ms and respects reduced motion", () => {
   assert.match(
     styles,
     /@keyframes debloater-first-visit-fade-in\s*\{\s*from\s*\{\s*opacity:\s*0;\s*\}\s*to\s*\{\s*opacity:\s*1;\s*\}\s*\}/,
   );
-  assert.match(styles, /animation:\s*debloater-first-visit-fade-in 1000ms/);
+  assert.match(styles, /animation:\s*debloater-first-visit-fade-in 500ms/);
   assert.match(
     styles,
     /html\.sc-reduced-motion \.debloater-first-visit-fade\s*\{\s*animation:\s*none !important;/,

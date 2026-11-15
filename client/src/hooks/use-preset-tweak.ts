@@ -36,6 +36,8 @@ export interface PresetTweakActions {
   dismissResult: () => void;
 }
 
+const MAX_BUSY_READ_RETRIES = 6;
+
 export function getPresetOption(optionId: string | null, config: PresetConfig): PresetOption | undefined {
   if (optionId === null) return undefined;
   return config.options.find(o => o.id === optionId);
@@ -78,15 +80,16 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
     }, 6000);
   }, [clearResultTimer]);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (scheduledRetry = false) => {
+    if (!scheduledRetry) retryCountRef.current = 0;
     // Always restore the user's last-applied option first — this survives app restarts
-    // and any registry-read failure. The live read only updates currentOptionId for display.
+    // as the pending selection. Only a successful Windows read may set currentOptionId.
     const cached = useStore.getState().presetOptions?.[tweakId] ?? null;
 
     if (!isElectron) {
       setState(s => ({
         ...s,
-        currentOptionId: cached ?? config.defaultOptionId,
+        currentOptionId: null,
         pendingOptionId: s.pendingOptionId ?? cached ?? config.defaultOptionId,
         status:          'idle',
       }));
@@ -97,63 +100,85 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
     try {
       const api = getPresetAPI();
       if (!api?.getState) {
-        // API missing — keep cached option, never fall back to default
+        // API missing — preserve the selection, but do not claim a system read.
         setState(s => ({
           ...s,
-          currentOptionId: cached ?? config.defaultOptionId,
+          currentOptionId: s.currentOptionId,
           pendingOptionId: s.pendingOptionId ?? cached ?? config.defaultOptionId,
           status:          'idle',
+          lastError:       'The Windows preset reader is unavailable.',
         }));
         return;
       }
       const result: { optionId: string | null; error: string | null } = await api.getState(tweakId);
 
-      if (result.error && result.optionId === null) {
-        const isBusy = result.error === 'busy';
-        if (isBusy) {
-          console.info(`[PresetHydration] ${tweakId}: read skipped — limiter busy (expected at startup)`);
-          if (retryCountRef.current < 2) {
-            retryCountRef.current += 1;
-            if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
-            retryTimerRef.current = setTimeout(() => {
-              retryTimerRef.current = null;
-              refresh();
-            }, 3500);
-          }
-        } else {
-          console.warn(`[PresetHydration] ${tweakId}: read failed — ${result.error}`);
+      if (result.error === 'busy' && result.optionId === null) {
+        console.info(`[PresetHydration] ${tweakId}: Windows read busy; retry ${retryCountRef.current + 1}/${MAX_BUSY_READ_RETRIES}`);
+        if (retryCountRef.current < MAX_BUSY_READ_RETRIES) {
+          const attempt = retryCountRef.current++;
+          const delayMs = Math.min(1500 * (2 ** attempt), 8000);
+          if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+          retryTimerRef.current = setTimeout(() => {
+            retryTimerRef.current = null;
+            void refresh(true);
+          }, delayMs);
+          setState(s => ({
+            ...s,
+            currentOptionId: s.currentOptionId,
+            pendingOptionId: s.pendingOptionId ?? cached ?? config.defaultOptionId,
+            status:          'loading',
+            lastError:       null,
+          }));
+          return;
         }
-        // Keep cached option — the user's choice never gets overwritten by a default
+
+        const message = 'Windows is still busy; the current profile was not verified. Retry the read before applying.';
+        console.warn(`[PresetHydration] ${tweakId}: ${message}`);
         setState(s => ({
           ...s,
-          currentOptionId: cached ?? config.defaultOptionId,
+          currentOptionId: s.currentOptionId,
           pendingOptionId: s.pendingOptionId ?? cached ?? config.defaultOptionId,
           status:          'idle',
-          lastError:       result.error,
+          lastError:       message,
         }));
-      } else {
-        const resolvedId = result.optionId ?? config.defaultOptionId;
-        retryCountRef.current = 0;
-        setPresetOption(tweakId, resolvedId);
-        // currentOptionId shows the live registry state; pendingOptionId stays
-        // locked to the user's cached choice so the UI never "jumps" on them.
+        return;
+      }
+
+      if (result.error || result.optionId === null) {
+        const message = result.error ?? 'Windows returned an unrecognized preset value.';
+        console.warn(`[PresetHydration] ${tweakId}: read failed — ${message}`);
         setState(s => ({
           ...s,
-          currentOptionId: resolvedId,
-          pendingOptionId: s.pendingOptionId ?? cached ?? resolvedId,
+          currentOptionId: s.currentOptionId,
+          pendingOptionId: s.pendingOptionId ?? cached ?? config.defaultOptionId,
           status:          'idle',
-          lastError:       null,
+          lastError:       message,
         }));
+        return;
       }
-    } catch (err) {
-      // Any unexpected crash — keep cached option, never fall back to default
-      const cached = useStore.getState().presetOptions?.[tweakId] ?? null;
+
+      const resolvedId = result.optionId;
+      retryCountRef.current = 0;
+      setPresetOption(tweakId, resolvedId);
+      // The current row is live Windows readback; the pending choice preserves
+      // the last user-applied option until they explicitly select something else.
       setState(s => ({
         ...s,
-        currentOptionId: cached ?? config.defaultOptionId,
+        currentOptionId: resolvedId,
+        pendingOptionId: s.pendingOptionId ?? cached ?? resolvedId,
+        status:          'idle',
+        lastError:       null,
+      }));
+    } catch (err) {
+      // A failed read is unknown state, not proof that the Windows default is active.
+      const cached = useStore.getState().presetOptions?.[tweakId] ?? null;
+      const message = err instanceof Error ? err.message : 'Read failed';
+      setState(s => ({
+        ...s,
+        currentOptionId: s.currentOptionId,
         pendingOptionId: s.pendingOptionId ?? cached ?? config.defaultOptionId,
         status:          'idle',
-        lastError:       err instanceof Error ? err.message : 'Read failed',
+        lastError:       message,
       }));
     }
   }, [isElectron, tweakId, config.defaultOptionId]);
@@ -294,7 +319,11 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
     setState(s => ({ ...s, verifyResult: null, status: s.status === 'verified' || s.status === 'failed' ? 'idle' : s.status }));
   }, [clearResultTimer]);
 
-  const isDirty = state.pendingOptionId !== null && state.pendingOptionId !== state.currentOptionId;
+  const isDirty = state.currentOptionId !== null &&
+    state.pendingOptionId !== null &&
+    state.pendingOptionId !== state.currentOptionId;
 
-  return { state, isDirty, select, apply, revert, refresh, dismissResult };
+  const retryRead = useCallback(() => refresh(), [refresh]);
+
+  return { state, isDirty, select, apply, revert, refresh: retryRead, dismissResult };
 }

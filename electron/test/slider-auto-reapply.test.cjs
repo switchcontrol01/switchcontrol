@@ -17,12 +17,15 @@ function createHarness({ admin = true } = {}) {
     SLIDER_STATE_FILE: path.join(dir, "slider-state.json"),
     SLIDER_LOG_FILE: path.join(dir, "slider-log.json"),
     SLIDER_CRASH_SENTINEL_FILE: path.join(dir, "slider-crash-sentinel.json"),
+    TIMER_RESOLUTION_STATE_FILE: path.join(dir, "timer-resolution-state.json"),
   };
   const registry = new Map();
   const elevatedCommands = [];
+  const killedPids = [];
   const state = { admin };
   let timerMs10 = 156;
   let timerAgentRunning = false;
+  let nextQueryPause = null;
 
   function applyCommand(command) {
     const writes = [
@@ -50,6 +53,12 @@ function createHarness({ admin = true } = {}) {
   }
 
   async function queryPS(command) {
+    if (nextQueryPause) {
+      const pause = nextQueryPause;
+      nextQueryPause = null;
+      pause.started();
+      await pause.resumePromise;
+    }
     if (command.includes("timer-resolution-state.json")) {
       const expectedTimer = command.match(/\$s\.ms10 -eq (\d+)\)/);
       if (expectedTimer) {
@@ -91,7 +100,7 @@ function createHarness({ admin = true } = {}) {
       module,
       exports: module.exports,
       console: { log() {}, info() {}, warn() {}, error() {} },
-      process: { kill() {} },
+      process: { kill(pid) { killedPids.push(pid); } },
       setTimeout,
       clearTimeout,
     }, { filename: "slider-tweak-executor.js" });
@@ -103,10 +112,19 @@ function createHarness({ admin = true } = {}) {
     files,
     registry,
     elevatedCommands,
+    killedPids,
     state,
     setTimerState(value, running) {
       timerMs10 = value;
       timerAgentRunning = running;
+    },
+    pauseNextQuery() {
+      let signalStarted;
+      let resume;
+      const started = new Promise(resolve => { signalStarted = resolve; });
+      const resumePromise = new Promise(resolve => { resume = resolve; });
+      nextQueryPause = { started: signalStarted, resumePromise };
+      return { started, resume };
     },
     loadExecutor,
     cleanup() {
@@ -146,6 +164,52 @@ test("restores verified slider values after restart with one UAC batch", async (
     assert.equal(result.reapplied.find((item) => item.tweakId === "sys-responsiveness").value, 18);
     assert.equal(h.elevatedCommands.length, 1, "system-wide restores should share one UAC prompt");
     assert.equal([...h.elevatedCommands[0].matchAll(/-Name '/g)].length, 2, "the single elevated script should contain both writes");
+  } finally {
+    h.cleanup();
+  }
+});
+
+test("startup recovery cannot overwrite a newer user slider selection", async () => {
+  const h = createHarness({ admin: true });
+  try {
+    h.registry.set("Win32PrioritySeparation", 38);
+    const executor = h.loadExecutor();
+    assert.equal((await executor.applySliderValue("win32-priority-sep", 26)).ok, true);
+
+    // Simulate Windows drifting after startup, then pause recovery during its
+    // read so a user applies a newer value while the old target is in flight.
+    h.registry.set("Win32PrioritySeparation", 38);
+    const pause = h.pauseNextQuery();
+    const recovery = executor.reapplyAppliedSliderValues(true);
+    await pause.started;
+    const userApply = executor.applySliderValue("win32-priority-sep", 18);
+    pause.resume();
+
+    const [recoveryResult, userResult] = await Promise.all([recovery, userApply]);
+    assert.equal(userResult.ok, true);
+    assert.equal(recoveryResult.failed.length, 0);
+    assert.equal(h.registry.get("Win32PrioritySeparation"), 18);
+    assert.equal(
+      JSON.parse(fs.readFileSync(h.files.SLIDER_STATE_FILE, "utf8")).appliedValues["win32-priority-sep"],
+      18,
+    );
+  } finally {
+    h.cleanup();
+  }
+});
+
+test("timer keeper cleanup reads its shared state path and removes the stale marker", () => {
+  const h = createHarness({ admin: true });
+  try {
+    fs.writeFileSync(
+      h.files.TIMER_RESOLUTION_STATE_FILE,
+      JSON.stringify({ pid: 4321, ms10: 50 }),
+    );
+    const executor = h.loadExecutor();
+    executor.stopTimerResolutionKeeper();
+
+    assert.deepEqual(h.killedPids, [4321]);
+    assert.equal(fs.existsSync(h.files.TIMER_RESOLUTION_STATE_FILE), false);
   } finally {
     h.cleanup();
   }

@@ -2,8 +2,8 @@
  * systemConditionsStore.ts, Tracks OS-level conditions that affect whether
  * applied tweaks will stick: Tamper Protection state and elevation (admin) status.
  *
- * Read at startup in App.tsx alongside the startup reconcile, refreshed whenever
- * Security page calls getStatus. Used by TweaksList to show a root-cause banner.
+ * Read at startup in App.tsx, refreshed by the Tweaks page on entry/focus and
+ * by the Security page. Used by TweaksList to show a root-cause banner.
  */
 
 import { create } from "zustand";
@@ -17,7 +17,7 @@ interface SystemConditionsState {
   conditionsChecked: boolean;
 
   setIsAdmin: (v: boolean) => void;
-  setTamperProtection: (v: boolean) => void;
+  setTamperProtection: (v: boolean | null) => void;
   setConditions: (isAdmin: boolean | null, tamperProtection: boolean | null) => void;
 }
 

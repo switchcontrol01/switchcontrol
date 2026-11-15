@@ -23,6 +23,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { PremiumHeaderBadge, PremiumPageOverlay } from "@/components/ui/premium-page-overlay";
 import { useTranslation } from "@/lib/i18n";
+import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 import {
   PowerPlanHeroPresentation,
   PowerPlanProfileCards,
@@ -803,6 +804,8 @@ export default function PowerPlan() {
   const { isPremium } = useAuth();
   const { toast } = useToast();
   const { prefersReducedMotion } = useMotion();
+  const userReducedMotion = useUserPreferencesStore((state) => state.reducedMotion);
+  const reducedMotion = prefersReducedMotion || userReducedMotion;
 
   const [localState, setLocalState] = useState(loadLocalState);
   const [activeTab, setActiveTab]   = useState<"profiles" | "custom">("profiles");
@@ -1256,7 +1259,7 @@ export default function PowerPlan() {
 
   return (
     <AppLayout>
-      <div className={!prefersReducedMotion ? "power-plan-entry-motion" : undefined}>
+      <div className={!reducedMotion ? "power-plan-entry-motion" : undefined}>
         <motion.div
           className={cn("power-plan-page space-y-6 relative", !isPremium && "opacity-60 blur-[2px]")}
           variants={pageTransition}
@@ -1294,6 +1297,7 @@ export default function PowerPlan() {
             SECTION 1, HERO STATUS PANEL
         ══════════════════════════════════════════════════════════════════ */}
         <PowerPlanHeroPresentation
+          reducedMotion={reducedMotion}
           planLoading={planLoading}
           planName={backendState?.activeScheme?.name ?? (planError ? "Power Plan Unreadable" : "No active plan reported")}
           planDescription={backendState
@@ -1350,6 +1354,7 @@ export default function PowerPlan() {
           <TabsContent value="profiles" className="space-y-6">
 
             <PowerPlanProfileCards
+              reducedMotion={reducedMotion}
               profiles={POWER_PROFILES.map(profile => ({
                 ...profile,
                 theme: PROFILE_THEME[profile.id],

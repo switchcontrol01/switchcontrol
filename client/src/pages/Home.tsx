@@ -2,6 +2,9 @@
 // the entire app session. Prevents the spec-load effect from re-running when
 // the user navigates back to Home after specs were already successfully loaded.
 let _homeSpecsEverLoaded = false;
+// Delay live dashboard readings once per renderer session so startup work is
+// not mistaken for the user's normal system load.
+let _dashboardMetricsDelayCompleted = false;
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -746,6 +749,62 @@ export default function Home() {
     return () => clearTimeout(fallback);
   }, [specStatus]);
 
+  const [dashboardMetricsReady, setDashboardMetricsReady] = useState(_dashboardMetricsDelayCompleted);
+  useEffect(() => {
+    if (!contentReady || _dashboardMetricsDelayCompleted) {
+      if (_dashboardMetricsDelayCompleted) setDashboardMetricsReady(true);
+      return;
+    }
+
+    setDashboardMetricsReady(false);
+    let remainingMs = 5000;
+    let startedAt = 0;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const finishDelay = () => {
+      timer = null;
+      _dashboardMetricsDelayCompleted = true;
+      setDashboardMetricsReady(true);
+    };
+    const startDelay = () => {
+      if (
+        timer ||
+        remainingMs <= 0 ||
+        document.visibilityState !== "visible" ||
+        !document.hasFocus()
+      ) {
+        if (remainingMs <= 0) finishDelay();
+        return;
+      }
+      startedAt = performance.now();
+      timer = setTimeout(finishDelay, remainingMs);
+    };
+    const pauseDelay = () => {
+      if (!timer) return;
+      clearTimeout(timer);
+      timer = null;
+      remainingMs = Math.max(0, remainingMs - (performance.now() - startedAt));
+      if (remainingMs <= 0) finishDelay();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") startDelay();
+      else pauseDelay();
+    };
+
+    startDelay();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", startDelay);
+    window.addEventListener("blur", pauseDelay);
+    return () => {
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", startDelay);
+      window.removeEventListener("blur", pauseDelay);
+    };
+  }, [contentReady]);
+
+  const dashboardMetricsLoading = !dashboardMetricsReady;
+
   return (
     <AppLayout>
       <div className="space-y-8">
@@ -872,6 +931,8 @@ export default function Home() {
                 actionLabel={t("Clear RAM")}
                 onAction={() => setMemCleanerOpen(true)}
                 className="border-teal-500/20 shadow-[0_0_20px_-10px_hsl(170_100%_50%/0.1)]"
+                valueLoading={dashboardMetricsLoading}
+                progressLoading={dashboardMetricsLoading}
                  loading={ramRefreshing || (specStatus === "loading" && stats.totalRamGb === 0)}
                />
               </div>}
@@ -887,6 +948,7 @@ export default function Home() {
                    threads: stats.cpuThreads,
                  })}
                 progress={liveTel ? liveTel.cpu.load : undefined}
+                progressLoading={dashboardMetricsLoading}
                 className="border-primary/40 shadow-[0_0_20px_-10px_hsl(var(--primary)/0.1)]"
                  loading={specStatus === "loading"}
                />
@@ -965,6 +1027,7 @@ export default function Home() {
                 onIconClick={() => setDiskModalOpen(true)}
                 progress={diskPercent}
                 subtext={selectedDisk?.name || stats.diskName}
+                progressLoading={dashboardMetricsLoading}
                 className="border-amber-500/20 shadow-[0_0_20px_-10px_hsl(40_100%_50%/0.1)]"
                  loading={specStatus === "loading"}
                />

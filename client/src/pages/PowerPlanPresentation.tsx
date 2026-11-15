@@ -38,6 +38,7 @@ export interface CustomCardPresentation {
 }
 
 export interface PowerPlanHeroPresentationProps {
+  reducedMotion?: boolean;
   planLoading: boolean;
   planName: string;
   planDescription: string;
@@ -49,6 +50,7 @@ export interface PowerPlanHeroPresentationProps {
 }
 
 export function PowerPlanHeroPresentation({
+  reducedMotion = false,
   planLoading,
   planName,
   planDescription,
@@ -59,7 +61,13 @@ export function PowerPlanHeroPresentation({
   onRefresh,
 }: PowerPlanHeroPresentationProps) {
   return (
-    <section className="power-plan-hero relative overflow-hidden rounded-2xl border border-[#2A313A] p-6 md:p-8" data-testid="power-plan-hero">
+    <motion.section
+      className="power-plan-hero relative overflow-hidden rounded-2xl border border-[#2A313A] p-6 md:p-8"
+      data-testid="power-plan-hero"
+      initial={reducedMotion ? false : { opacity: 0, y: 8, filter: "blur(8px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: reducedMotion ? 0 : 0.5, ease: [0.22, 1, 0.36, 1] }}
+    >
       <div className="relative z-10">
         <div className="flex items-start justify-between mb-5">
           <PageHeader
@@ -96,7 +104,7 @@ export function PowerPlanHeroPresentation({
           {statusBadges}
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 }
 
@@ -134,6 +142,7 @@ function ImpactReadout({ impact, accent }: { impact: PowerPlanImpact; accent: st
 }
 
 export interface PowerPlanProfileCardsProps {
+  reducedMotion?: boolean;
   profiles: ProfileCardPresentation[];
   custom: CustomCardPresentation;
   expandedProfileId: PowerPlanProfileId | null;
@@ -147,6 +156,7 @@ export interface PowerPlanProfileCardsProps {
 }
 
 export function PowerPlanProfileCards({
+  reducedMotion = false,
   profiles,
   custom,
   expandedProfileId,
@@ -160,15 +170,16 @@ export function PowerPlanProfileCards({
 }: PowerPlanProfileCardsProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" data-testid="power-profile-grid">
-      {profiles.map(profile => {
+      {profiles.map((profile, index) => {
         const Icon = profile.icon;
         const theme = profile.theme;
         return (
           <motion.div
             key={profile.id}
-            initial={{ opacity: 1, y: 0 }}
-            animate={{ opacity: 1, y: 0 }}
-            whileHover={{ y: -6, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
+            initial={reducedMotion ? false : { opacity: 0, y: 9, filter: "blur(7px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: reducedMotion ? 0 : 0.5, delay: reducedMotion ? 0 : index * 0.045, ease: [0.22, 1, 0.36, 1] }}
+            whileHover={reducedMotion ? undefined : { y: -6, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
             className="h-full"
           >
             <div
@@ -235,9 +246,10 @@ export function PowerPlanProfileCards({
         );
       })}
       <motion.div
-        initial={{ opacity: 1, y: 0 }}
-        animate={{ opacity: 1, y: 0 }}
-        whileHover={{ y: -6, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
+        initial={reducedMotion ? false : { opacity: 0, y: 9, filter: "blur(7px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ duration: reducedMotion ? 0 : 0.5, delay: reducedMotion ? 0 : profiles.length * 0.045, ease: [0.22, 1, 0.36, 1] }}
+        whileHover={reducedMotion ? undefined : { y: -6, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
         className="h-full"
       >
         <div

@@ -7,7 +7,7 @@ import { TWEAKS_DATA, TweakCategory, TweakLevel, Tweak } from "@/lib/mock-data";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
-import { Search, SlidersHorizontal, AlertTriangle, ShieldCheck, FlaskConical, Cpu, X } from "lucide-react";
+import { Search, SlidersHorizontal, AlertTriangle, ShieldCheck, FlaskConical, Cpu, X, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTweakExecutor, isElectronWithTweaks, isRealTweak, isSliderTweak, SLIDER_TWEAKS } from "@/hooks/use-tweak-executor";
@@ -201,7 +201,9 @@ export function TweaksList() {
   const { toast } = useToast();
   const { isPremium } = useAuth();
   const { openUpgradeModal } = useUpgradeModal();
-  const { isAdmin, tamperProtection, conditionsChecked } = useSystemConditionsStore();
+  const {
+    isAdmin, tamperProtection, conditionsChecked, setIsAdmin, setTamperProtection,
+  } = useSystemConditionsStore();
   const { overrides: dynOverrides } = useDynamicRecommendations();
   const {
     showAppliedFirst,
@@ -230,18 +232,108 @@ export function TweaksList() {
   // Session-only dismiss for the revert root-cause banner — re-shows on next launch if
   // conditions persist (banner is informational, not a one-time consent gate).
   const [revertBannerDismissed, setRevertBannerDismissed] = useState(false);
+  const [conditionsRefreshing, setConditionsRefreshing] = useState(isElectron);
   const seenWarnings = useRef<Set<string>>(new Set());
+
+  // Re-read Windows when Tweaks opens and when the Electron window returns to
+  // the foreground. Windows Security can be changed outside the app, so the
+  // startup snapshot must not remain the visible status indefinitely.
+  useEffect(() => {
+    if (!isElectron) return;
+
+    let disposed = false;
+    let inFlight = false;
+    let lastStartedAt = 0;
+    let retryTimer: number | undefined;
+    const api = (window as any).electronAPI;
+
+    const refreshConditions = async (
+      cause: "page-open" | "window-focus",
+      retry = 0,
+      force = false,
+    ) => {
+      if (disposed || inFlight) return;
+      if (!force && Date.now() - lastStartedAt < 1500) return;
+
+      inFlight = true;
+      lastStartedAt = Date.now();
+      setConditionsRefreshing(true);
+      if (retry === 0) setTamperProtection(null);
+
+      if (!api?.security?.getStatus) {
+        if (!disposed) {
+          setTamperProtection(null);
+          setConditionsRefreshing(false);
+        }
+        inFlight = false;
+        return;
+      }
+
+      const [adminResult, securityResult] = await Promise.allSettled([
+        Promise.resolve().then(() => api.isAdmin?.()),
+        Promise.resolve().then(() => api.security.getStatus()),
+      ]);
+      if (disposed) {
+        inFlight = false;
+        return;
+      }
+
+      const security = securityResult.status === "fulfilled" ? securityResult.value : null;
+      const securityReadBusy =
+        security?.reason === "busy" ||
+        (security?.reason === "temporarily_failed" && /busy|already_running|global_cap_reached/i.test(security?.detail ?? ""));
+      if (securityReadBusy && retry < 2) {
+        retryTimer = window.setTimeout(() => {
+          inFlight = false;
+          void refreshConditions(cause, retry + 1, true);
+        }, 1200 * (retry + 1));
+        return;
+      }
+
+      if (adminResult.status === "fulfilled" && typeof adminResult.value === "boolean") {
+        setIsAdmin(adminResult.value);
+      }
+      const tamperValue: boolean | null =
+        security?.available === true && typeof security?.data?.tamperProtection === "boolean"
+          ? security.data.tamperProtection
+          : null;
+      setTamperProtection(tamperValue);
+      setConditionsRefreshing(false);
+      inFlight = false;
+      console.info(
+        `[Tweaks:SecurityConditions] source=${cause} isAdmin=${adminResult.status === "fulfilled" ? adminResult.value : "unknown"} tamperProtection=${tamperValue}`,
+      );
+    };
+
+    const openTimer = window.setTimeout(() => {
+      void refreshConditions("page-open", 0, true);
+    }, 300);
+    const onFocus = () => void refreshConditions("window-focus");
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") void refreshConditions("window-focus");
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      disposed = true;
+      window.clearTimeout(openTimer);
+      if (retryTimer !== undefined) window.clearTimeout(retryTimer);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [isElectron, setIsAdmin, setTamperProtection]);
 
   // Show a positive status only when Windows explicitly reports Tamper
   // Protection is off. Keep the warning for enabled protection or missing
   // elevation; unknown protection state is never presented as green.
   const tamperProtectionOff = tamperProtection === false;
-  const showGreenTamperStatus = tamperProtectionOff && isAdmin !== false;
-  const hasRevertRisk = tamperProtection === true || isAdmin === false;
+  const showGreenTamperStatus = !conditionsRefreshing && tamperProtectionOff && isAdmin !== false;
+  const hasRevertRisk = !conditionsRefreshing && (tamperProtection === true || isAdmin === false);
   const showRevertBanner =
     isElectron &&
     !revertBannerDismissed &&
-    (conditionsChecked || isAdmin === false);
+    (conditionsRefreshing || conditionsChecked || isAdmin === false);
 
   // Read ?tweak=<id> deep-link param on mount and scroll to that card.
   // The Electron app uses a hash-based router, so the param may live inside
@@ -511,19 +603,27 @@ export function TweaksList() {
           >
             <div className={cn(
               "flex items-start gap-3 px-4 py-3 rounded-xl border",
-              showGreenTamperStatus
+              conditionsRefreshing
+                ? "bg-blue-500/10 border-blue-500/25 text-blue-300"
+                : showGreenTamperStatus
                 ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-300"
                 : "bg-amber-500/10 border-amber-500/25 text-amber-300",
             )}>
-              {showGreenTamperStatus
+              {conditionsRefreshing
+                ? <RefreshCw className="size-4 shrink-0 mt-0.5 text-blue-400 animate-spin" />
+                : showGreenTamperStatus
                 ? <ShieldCheck className="size-4 shrink-0 mt-0.5 text-emerald-400" />
                 : <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-400" />}
               <div className="flex-1 min-w-0 space-y-1.5">
                 <p className={cn(
                   "text-sm font-semibold",
-                  showGreenTamperStatus ? "text-emerald-200" : "text-amber-200",
+                  conditionsRefreshing
+                    ? "text-blue-200"
+                    : showGreenTamperStatus ? "text-emerald-200" : "text-amber-200",
                 )}>
-                  {showGreenTamperStatus
+                  {conditionsRefreshing
+                    ? t("Checking current Windows security status…")
+                    : showGreenTamperStatus
                     ? t("Tamper Protection is off")
                     : isAdmin === false && tamperProtection !== true
                       ? t("Some tweaks may not apply")
@@ -531,21 +631,26 @@ export function TweaksList() {
                         ? t("Tamper Protection status could not be verified")
                       : t("Tweaks may revert automatically")}
                 </p>
+                {conditionsRefreshing && (
+                  <p className="text-xs text-blue-200/75">
+                    {t("Refreshing the Tamper Protection state directly from Windows.")}
+                  </p>
+                )}
                 <ul className="text-xs space-y-0.5 list-disc list-inside">
-                  {tamperProtectionOff && (
+                  {!conditionsRefreshing && tamperProtectionOff && (
                     <li className="text-emerald-300/90">
                       {t("Windows is less likely to block registry and service tweaks because of Tamper Protection")}
                     </li>
                   )}
-                  {tamperProtection === true && (
+                  {!conditionsRefreshing && tamperProtection === true && (
                     <li className="text-amber-300/80">{t("Windows Tamper Protection is enabled — it may block registry and service changes")}</li>
                   )}
-                  {tamperProtection === null && (
+                  {!conditionsRefreshing && tamperProtection === null && (
                     <li className="text-amber-300/80">
                       {t("Windows did not confirm whether Tamper Protection is on or off; do not assume it is off")}
                     </li>
                   )}
-                  {isAdmin === false && (
+                  {!conditionsRefreshing && isAdmin === false && (
                     <li className="text-amber-300/80">{t("App is not running as Administrator — some tweaks require elevated privileges")}</li>
                   )}
                 </ul>

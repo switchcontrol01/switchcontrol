@@ -28,7 +28,9 @@ import { DebloaterIntensityCards, DebloaterOverviewStats } from "@/components/de
   import "@/components/debloater/Debloater.css";
 import { DebloaterNotebookFrame } from "@/components/debloater/DebloaterNotebookFrame";
   
-  const DEBLOATER_ENTRY_FADE_SEEN_KEY = "switchcontrol-debloater-entry-fade-seen-v2";
+  // Bump the key when the entry animation changes so existing installs see the
+  // improved transition once instead of inheriting an earlier "already seen".
+  const DEBLOATER_ENTRY_FADE_SEEN_KEY = "switchcontrol-debloater-entry-fade-seen-v3";
 
   function hasSeenDebloaterEntryFade() {
     if (typeof window === "undefined") return true;

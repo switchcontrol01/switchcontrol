@@ -137,9 +137,9 @@ const PRESET_TWEAKS = {
   },
 
   /**
-   * IRQ8Priority — elevated PCI interrupt priority class.
+   * IRQ8Priority — legacy system-wide Windows priority value.
    * balanced = key removed (Windows default scheme).
-   * gaming = 1 (elevated), streaming = 2 (moderate elevated, shared w/ audio).
+   * gaming = 1, streaming = 2. This does not configure per-device IRQ affinity.
    */
   'irq-optimization-profile': {
     name: 'IRQ Priority Profile',
@@ -240,20 +240,33 @@ async function readPresetValue(tweakId) {
   try {
     const raw = await queryPS(def.readCommand());
     if (raw === null) {
-      return { optionId: null, raw: null, error: 'Registry read failed (PowerShell timeout or access denied)' };
+      const result = { optionId: null, raw: null, error: 'Registry read failed (PowerShell timeout or access denied)' };
+      console.warn(`[PresetExecutor] read failed ${tweakId}: ${result.error}`);
+      return result;
     }
+    const rawValue = String(raw).trim();
 
     // Empty/false means the value is absent — match against the option whose value is null.
-    if (raw === '' || raw.toLowerCase() === 'false') {
+    if (rawValue === '' || rawValue.toLowerCase() === 'false') {
       const defaultEntry = Object.entries(def.options).find(([, o]) => o.value === null);
-      return { optionId: defaultEntry ? defaultEntry[0] : def.defaultOptionId, raw: null, error: null };
+      const result = { optionId: defaultEntry ? defaultEntry[0] : def.defaultOptionId, raw: null, error: null };
+      console.info(`[PresetExecutor] read ${tweakId}: raw=<absent> option=${result.optionId}`);
+      return result;
     }
 
-    const num = parseInt(raw, 10);
+    const num = parseInt(rawValue, 10);
     const match = Object.entries(def.options).find(([, o]) => o.value === num);
-    return { optionId: match ? match[0] : null, raw, error: null };
+    if (!match) {
+      const result = { optionId: null, raw: rawValue, error: `Unrecognized registry value: ${rawValue}` };
+      console.warn(`[PresetExecutor] read ${tweakId}: raw=${JSON.stringify(rawValue)} option=<unrecognized>`);
+      return result;
+    }
+    console.info(`[PresetExecutor] read ${tweakId}: raw=${JSON.stringify(rawValue)} option=${match[0]}`);
+    return { optionId: match[0], raw: rawValue, error: null };
   } catch (err) {
-    return { optionId: null, raw: null, error: err.message };
+    const error = err.message || String(err);
+    console.warn(`[PresetExecutor] read failed ${tweakId}: ${error}`);
+    return { optionId: null, raw: null, error };
   }
 }
 

@@ -4,27 +4,30 @@
  * ink navy #101728, cyan #16bfd2, and four restrained mineral profile colors.
  * All rules are deliberately scoped to this page.
  */
-@keyframes power-plan-entry-fade-blur {
+@keyframes power-plan-backdrop-entry {
   from {
     opacity: 0;
-    filter: blur(5px);
+    filter: blur(8px);
+    transform: scale(.995);
   }
   to {
-    opacity: 1;
+    opacity: .96;
     filter: blur(0);
+    transform: scale(1);
   }
 }
 
-.power-plan-entry-motion {
-  animation: power-plan-entry-fade-blur 500ms cubic-bezier(.22, 1, .36, 1) both;
+.power-plan-entry-motion .power-plan-page::before {
+  animation: power-plan-backdrop-entry 500ms cubic-bezier(.22, 1, .36, 1) both;
+  will-change: opacity, filter, transform;
 }
 
-html.sc-reduced-motion .power-plan-entry-motion {
+html.sc-reduced-motion .power-plan-entry-motion .power-plan-page::before {
   animation: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .power-plan-entry-motion {
+  .power-plan-entry-motion .power-plan-page::before {
     animation: none !important;
   }
 }

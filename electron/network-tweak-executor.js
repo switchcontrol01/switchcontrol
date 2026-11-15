@@ -84,6 +84,12 @@ function isNetworkActionVerified(action, observedApplied) {
   return false;
 }
 
+function normalizeNetworkAction(action) {
+  if (action === 'apply' || action === 'enable') return 'apply';
+  if (action === 'revert' || action === 'disable') return 'revert';
+  return null;
+}
+
 // ── tweak definitions ─────────────────────────────────────────────────────────
 
 /**
@@ -1202,5 +1208,6 @@ module.exports = {
   // normalization helpers
   normalizePSBoolOutput,
   isNetworkActionVerified,
+  normalizeNetworkAction,
   // normalizeNetshOutput is defined above but currently unused by callers
 };

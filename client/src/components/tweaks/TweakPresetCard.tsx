@@ -161,7 +161,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
   const isLocked = isPremiumTweak && !isPremium;
 
   const config = tweak.presetConfig!;
-  const { state, isDirty, select, apply, revert, dismissResult } = usePresetTweak(tweak.id, config);
+  const { state, isDirty, select, apply, revert, refresh, dismissResult } = usePresetTweak(tweak.id, config);
 
   // Compute effective recommendation — dynamic override takes precedence over static
   const effectiveRec = getEffectivePresetRecommendation(tweak.id, config, dynamicOverride ? { [tweak.id]: dynamicOverride } : null);
@@ -170,7 +170,8 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
 
   const isLoading  = state.status === 'loading';
   const isApplying = state.status === 'applying' || state.status === 'reverting';
-  const disabled   = isLoading || isApplying || isLocked;
+  const disabled   = isLoading || isApplying || isLocked ||
+    (state.currentOptionId === null && !!state.lastError);
 
   const pendingOption = getPresetOption(state.pendingOptionId, config);
   const currentOption = getPresetOption(state.currentOptionId, config);
@@ -257,7 +258,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
             <div className="flex-1">
               <span className="text-[#6B7380] block mb-0.5 text-[10px]">{t("Current (system)")}</span>
               <span className={cn("font-medium", isElectron ? "text-[#E6EAF0]" : "text-[#6B7380]")}>
-                {currentOption?.label ?? "—"}
+                {currentOption?.label ?? (state.lastError ? t("Not verified") : "—")}
               </span>
             </div>
             <div className="flex-1">
@@ -267,6 +268,15 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
               </span>
             </div>
           </div>
+
+          {state.currentOptionId === null && state.lastError && state.status === 'idle' && (
+            <div role="status" className="flex items-center justify-between gap-3 rounded-lg border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2 text-[10px] text-amber-200/80">
+              <span>{t("The Windows profile could not be verified. No default is assumed.")}</span>
+              <button type="button" onClick={() => void refresh()} className="shrink-0 font-semibold text-amber-200 underline underline-offset-2">
+                {t("Retry read")}
+              </button>
+            </div>
+          )}
 
           {/* Preset option cards */}
           <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${config.options.length}, 1fr)` }}>

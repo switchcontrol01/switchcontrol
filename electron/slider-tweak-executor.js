@@ -21,8 +21,37 @@ const {
   SLIDER_STATE_FILE,
   SLIDER_LOG_FILE,
   SLIDER_CRASH_SENTINEL_FILE,
+  TIMER_RESOLUTION_STATE_FILE,
   APPDATA_DIR,
 } = require('./user-data-paths');
+
+// A startup recovery and a fresh user selection can target the same registry
+// value. Serialize those operations per slider so recovery cannot write an
+// older saved target after a newer user selection.
+const sliderOperationTails = new Map();
+
+function withSliderOperationLock(tweakId, operation) {
+  const previous = sliderOperationTails.get(tweakId) || Promise.resolve();
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const tail = previous.catch(() => {}).then(() => gate);
+  sliderOperationTails.set(tweakId, tail);
+
+  return previous.catch(() => {}).then(operation).finally(() => {
+    release();
+    if (sliderOperationTails.get(tweakId) === tail) {
+      sliderOperationTails.delete(tweakId);
+    }
+  });
+}
+
+function withSliderOperationLocks(tweakIds, operation) {
+  const orderedIds = [...new Set(tweakIds)].sort();
+  const acquireNext = (index) => index >= orderedIds.length
+    ? operation()
+    : withSliderOperationLock(orderedIds[index], () => acquireNext(index + 1));
+  return acquireNext(0);
+}
 
 // ─── File helpers ─────────────────────────────────────────────────────────────
 
@@ -576,6 +605,10 @@ async function readSliderValue(tweakId) {
  * Returns { ok, verified, actualValue, error, blocked, previousValue }
  */
 async function applySliderValue(tweakId, value) {
+  return withSliderOperationLock(tweakId, () => applySliderValueUnlocked(tweakId, value));
+}
+
+async function applySliderValueUnlocked(tweakId, value) {
   const def = SLIDER_TWEAKS[tweakId];
   if (!def) {
     logSliderEntry({ tweakId, action: 'apply', value, blocked: true, success: false, error: 'Unknown slider tweak' });
@@ -719,6 +752,10 @@ async function verifySliderValue(tweakId, expectedValue) {
  * Returns { ok, verified, actualValue, restoredTo, error }
  */
 async function resetSliderValue(tweakId) {
+  return withSliderOperationLock(tweakId, () => resetSliderValueUnlocked(tweakId));
+}
+
+async function resetSliderValueUnlocked(tweakId) {
   const def = SLIDER_TWEAKS[tweakId];
   if (!def) return { ok: false, error: `Unknown slider tweak: ${tweakId}` };
 
@@ -856,6 +893,10 @@ const DISABLED_SLIDER_TWEAKS = Object.fromEntries(
  * Returns { ok, verified, actualValue, restoredTo, error }
  */
 async function forceRevertSliderToDefault(tweakId) {
+  return withSliderOperationLock(tweakId, () => forceRevertSliderToDefaultUnlocked(tweakId));
+}
+
+async function forceRevertSliderToDefaultUnlocked(tweakId) {
   const def = SLIDER_TWEAKS[tweakId];
   if (!def) return { ok: false, error: `Unknown slider tweak: ${tweakId}` };
 
@@ -938,6 +979,13 @@ async function forceRevertSliderToDefault(tweakId) {
  * PowerShell batch so startup never triggers a stack of UAC prompts.
  */
 async function reapplyAppliedSliderValues(premiumActive = false) {
+  const initialState = loadSliderState();
+  const candidateIds = Object.keys(initialState.appliedValues || {})
+    .filter(tweakId => !!SLIDER_TWEAKS[tweakId]);
+  return withSliderOperationLocks(candidateIds, () => reapplyAppliedSliderValuesUnlocked(premiumActive));
+}
+
+async function reapplyAppliedSliderValuesUnlocked(premiumActive = false) {
   const state = loadSliderState();
   const saved = state.appliedValues || {};
   const candidates = [];
@@ -1003,7 +1051,10 @@ async function reapplyAppliedSliderValues(premiumActive = false) {
   for (const { tweakId, value } of direct) {
     try {
       console.info(`[SliderExecutor] Startup restore ${tweakId}: restoring saved ${value}`);
-      const result = await applySliderValue(tweakId, value);
+      // reapplyAppliedSliderValuesUnlocked runs while holding all candidate
+      // locks, so call the unlocked implementation to avoid acquiring them
+      // recursively. A user apply queued behind recovery will run afterward.
+      const result = await applySliderValueUnlocked(tweakId, value);
       if (result.ok && result.verified && result.actualValue === value) {
         reapplied.push({ tweakId, value });
       } else {

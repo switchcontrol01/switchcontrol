@@ -538,7 +538,7 @@ html.sc-reduced-motion .debloater-scan-root * {
   to { opacity: 1; }
 }
 .debloater-first-visit-fade {
-  animation: debloater-first-visit-fade-in 1000ms cubic-bezier(.22, 1, .36, 1) both;
+  animation: debloater-first-visit-fade-in 500ms cubic-bezier(.22, 1, .36, 1) both;
 }
 html.sc-reduced-motion .debloater-first-visit-fade {
   animation: none !important;

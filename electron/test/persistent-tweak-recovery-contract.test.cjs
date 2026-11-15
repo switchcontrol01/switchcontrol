@@ -60,7 +60,9 @@ test("owned target recovery is periodic and refreshes network UI state", () => {
 test("Nagle uses one canonical owner for both network and Tweaks surfaces", () => {
   const main = read("electron/main.js");
   const executor = read("electron/tweak-executor.js");
-  assert.match(main, /tweakExecutor\.executeTweakWithOwnership\('tcp-no-delay', ipcAction/);
+  assert.match(main, /networkTweakExecutor\.normalizeNetworkAction\(action\)/);
+  assert.match(main, /tweakExecutor\.executeTweakWithOwnership\('tcp-no-delay', normalizedAction/);
+  assert.match(main, /normalizedAction === 'apply'\s*\?\s*await sliderTweakExecutor\.applySliderValue\('net-throttle-index', 4294967295\)/);
   assert.match(executor, /record\.itemId === 'tcp-nagle'/);
   assert.match(executor, /recordRevert\(legacyNagle\.scopeKey\)/);
   assert.match(executor, /Name "TcpNoDelay"/);

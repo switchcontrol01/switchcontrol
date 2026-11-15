@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const {
   TWEAK_REGISTRY,
   isNetworkActionVerified,
+  normalizeNetworkAction,
 } = require("../network-tweak-executor");
 
 test("every enabled network tweak has an apply, revert, and readback check", () => {
@@ -23,4 +24,12 @@ test("network apply and revert only count as success when readback matches the t
   assert.equal(isNetworkActionVerified("revert", true), false);
   assert.equal(isNetworkActionVerified("revert", null), false);
   assert.equal(isNetworkActionVerified("other", true), false);
+});
+
+test("renderer network actions normalize to the correct executor direction", () => {
+  assert.equal(normalizeNetworkAction("apply"), "apply");
+  assert.equal(normalizeNetworkAction("enable"), "apply");
+  assert.equal(normalizeNetworkAction("revert"), "revert");
+  assert.equal(normalizeNetworkAction("disable"), "revert");
+  assert.equal(normalizeNetworkAction("unknown"), null);
 });

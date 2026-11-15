@@ -30,6 +30,8 @@ import {
 import { SecurityStartupTab } from "@/components/security/SecurityStartupTab";
 import { SecurityProcessesTab } from "@/components/security/SecurityProcessesTab";
 import { SecurityAuditTab } from "@/components/security/SecurityAuditTab";
+import { SecurityLayersOverview } from "@/components/security/SecurityLayersOverview";
+import "./security-layers.css";
 import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
 import { useTranslation } from "@/lib/i18n";
 
@@ -968,6 +970,7 @@ export default function Security() {
 
   const [scanStatus, setScanStatus] = useState<"idle"|"scanning"|"complete"|"error">("idle");
   const [scanStage,  setScanStage]  = useState(0);
+  const [scanType, setScanType] = useState<"quick"|"smart"|null>(null);
   const scanAbort = useRef(false);
 
   // ── Timing ──────────────────────────────────────────────────────────────────
@@ -1136,6 +1139,7 @@ export default function Security() {
   const startScan = useCallback(async (type: "quick" | "smart") => {
     if (scanStatus === "scanning") return;
     scanAbort.current = false;
+    setScanType(type);
     setScanStatus("scanning");
     setScanStage(0);
 
@@ -1262,21 +1266,22 @@ export default function Security() {
 
   return (
     <AppLayout>
-      <div className="flex flex-col gap-5 pb-10">
+      <div className="security-layers-ui flex flex-col gap-5 pb-10" data-reduced-motion={prefersReducedMotion}>
         {/* Header */}
         <motion.div
           initial={prefersReducedMotion ? {} : { opacity: 0, y: -14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
-          className="flex items-start justify-between gap-4"
+          className="security-page-header flex items-start justify-between gap-4"
         >
           <div>
-            <div className="flex items-center gap-3">
-              <Shield className="size-6 text-primary" />
-              <h1 className="text-2xl font-bold tracking-tight">{t("System Integrity")}</h1>
+            <div className="security-page-kicker">{t("System Integrity")} <span>·</span> Windows evidence</div>
+            <div className="flex items-center gap-3 mt-1">
+              <Shield className="size-6 text-primary security-page-icon" />
+              <h1 className="text-2xl font-bold tracking-tight">Protection, in layers.</h1>
             </div>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Security posture, startup analysis, process trust, and advanced audit.
+            <p className="text-sm text-muted-foreground mt-1">
+              See what each Windows safeguard can verify—and what remains outside the scan.
             </p>
           </div>
           <div className="flex items-center gap-2 mt-1 shrink-0 flex-wrap justify-end">
@@ -1302,7 +1307,7 @@ export default function Security() {
         )}
 
         {/* Scan controls */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="security-scan-controls flex items-center gap-2 flex-wrap">
           {scanning ? (
             <div className="flex items-center gap-3 flex-1">
               <div className="flex-1 space-y-1">
@@ -1337,14 +1342,15 @@ export default function Security() {
         </div>
 
         {/* Tab nav */}
-        <div className="flex gap-0 ">
+        <div className="security-tabs-rail">
+          <div className="security-tabs flex gap-0">
           {TABS.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               data-testid={`tab-${tab.id}`}
               className={cn(
-                "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+                "security-tab flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
                 activeTab === tab.id
                   ? "border-primary text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground/80"
@@ -1354,6 +1360,7 @@ export default function Security() {
               {tab.label}
             </button>
           ))}
+          </div>
         </div>
 
         {/* Tab content */}
@@ -1366,14 +1373,31 @@ export default function Security() {
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
           >
             {activeTab === "overview" && (
-              <OverviewTab
-                scanSummary={scanSummary} healthScore={healthScore}
-                systemState={systemState} stateColor={stateColor} stateLabel={stateLabel}
-                scanHistory={scanHistory} recentChanges={recentChanges}
-                recommendations={recommendations} scanStatus={scanStatus}
-                advancedProtection={advancedProtection}
-                startupItems={startupItems} processTrust={processTrust}
-              />
+              <>
+                <SecurityLayersOverview
+                  hasSecurity={hasSecurity}
+                  scanStatus={scanStatus}
+                  scanStage={scanStage}
+                  scanType={scanType}
+                  scanSummary={scanSummary}
+                  scanHistory={scanHistory}
+                  securityStatus={securityStatus}
+                  advancedProtection={advancedProtection}
+                  startupItems={startupItems}
+                  processTrust={processTrust}
+                  onOpenTab={setActiveTab}
+                />
+                <div className="mt-5">
+                  <OverviewTab
+                    scanSummary={scanSummary} healthScore={healthScore}
+                    systemState={systemState} stateColor={stateColor} stateLabel={stateLabel}
+                    scanHistory={scanHistory} recentChanges={recentChanges}
+                    recommendations={recommendations} scanStatus={scanStatus}
+                    advancedProtection={advancedProtection}
+                    startupItems={startupItems} processTrust={processTrust}
+                  />
+                </div>
+              </>
             )}
             {activeTab === "protection" && (
               <ProtectionTab

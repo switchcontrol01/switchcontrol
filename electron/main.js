@@ -6329,20 +6329,28 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   // ── Network Tweaks ────────────────────────────────────────────────────────────
   
   ipcMain.handle('networkTweaks:execute', async (event, tweakId, action) => {
+    const normalizedAction = networkTweakExecutor.normalizeNetworkAction(action);
+    if (!normalizedAction) {
+      return {
+        tweakId, action, success: false, verified: false,
+        message: `Invalid network tweak action: ${String(action)}`,
+        requiresRestart: false,
+      };
+    }
     // Per-tweakId single-flight: prevents duplicate execute calls for the same network tweak
     // when a component remounts while a previous operation is still in flight.
     const _token = psLimiter.tryAcquire({
-      file: 'main.js', fn: `networkTweaks:execute:${tweakId}`, reason: `net-tweak-${action}`,
+      file: 'main.js', fn: `networkTweaks:execute:${tweakId}`, reason: `net-tweak-${normalizedAction}`,
     });
     if (!_token) {
-      console.log(`[networkTweaks:execute] SKIPPED — ${tweakId} already executing (action=${action})`);
+      console.log(`[networkTweaks:execute] SKIPPED — ${tweakId} already executing (action=${normalizedAction})`);
       return {
-        tweakId, action, success: false, skipped: true,
+        tweakId, action: normalizedAction, success: false, skipped: true,
         verified: false, message: 'Another operation on this network tweak is already in progress.',
         requiresRestart: false,
       };
     }
-    console.log(`[PS-Exec] start file=main.js fn=networkTweaks:execute:${tweakId} reason=net-tweak-${action}`);
+    console.log(`[PS-Exec] start file=main.js fn=networkTweaks:execute:${tweakId} reason=net-tweak-${normalizedAction}`);
     try {
       // ── Canonical redirects ───────────────────────────────────────────────────
       // 'tcp-nagle' and 'tcp-throttling-index' were duplicate owners of the same
@@ -6352,11 +6360,10 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
       // now routed to their canonical owners so ownership is recorded once and the
       // premium revert pipeline sees a single coherent record per registry value.
       if (tweakId === 'tcp-nagle') {
-        const ipcAction = action === 'enable' ? 'apply' : 'revert';
-        const r = await tweakExecutor.executeTweakWithOwnership('tcp-no-delay', ipcAction, {});
+        const r = await tweakExecutor.executeTweakWithOwnership('tcp-no-delay', normalizedAction, {});
         console.log(`[PS-Exec] done fn=networkTweaks:execute:${tweakId} (→tcp-no-delay) success=${r.success} verified=${r.verified}`);
         return {
-          tweakId, action,
+          tweakId, action: normalizedAction,
           success:        r.success,
           verified:       r.verified || false,
           message:        r.message || (r.success ? 'ok' : 'failed'),
@@ -6364,12 +6371,12 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
         };
       }
       if (tweakId === 'tcp-throttling-index') {
-        const r = action === 'enable'
+        const r = normalizedAction === 'apply'
           ? await sliderTweakExecutor.applySliderValue('net-throttle-index', 4294967295)
           : await sliderTweakExecutor.resetSliderValue('net-throttle-index');
         console.log(`[PS-Exec] done fn=networkTweaks:execute:${tweakId} (→net-throttle-index) ok=${r.ok} verified=${r.verified}`);
         return {
-          tweakId, action,
+          tweakId, action: normalizedAction,
           success:        r.ok === true,
           verified:       r.verified || false,
           message:        r.error || (r.ok ? 'ok' : 'failed'),
@@ -6377,7 +6384,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
         };
       }
       // ─────────────────────────────────────────────────────────────────────────
-      const result = await networkTweakExecutor.executeNetworkTweakWithOwnership(tweakId, action);
+      const result = await networkTweakExecutor.executeNetworkTweakWithOwnership(tweakId, normalizedAction);
       console.log(`[PS-Exec] done fn=networkTweaks:execute:${tweakId} success=${result.success} verified=${result.verified}`);
       return result;
     } catch (e) {
