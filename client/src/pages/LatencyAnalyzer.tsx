@@ -33,6 +33,15 @@ const DURATIONS = [
   { label: "Unlimited", seconds: 0 },
 ];
 
+function formatEstimateAge(sampledAt: number | null): string | null {
+  if (sampledAt == null || !Number.isFinite(sampledAt)) return null;
+  const ageSeconds = Math.max(0, Math.floor((Date.now() - sampledAt) / 1000));
+  if (ageSeconds < 60) return `${ageSeconds}s old`;
+  const ageMinutes = Math.floor(ageSeconds / 60);
+  if (ageMinutes < 60) return `${ageMinutes}m old`;
+  return `${Math.floor(ageMinutes / 60)}h old`;
+}
+
 function Controls({ onStart, onStop, onReset }: { onStart: () => void; onStop: () => void; onReset: () => void }) {
   const { t } = useTranslation();
   const { sessionStatus, sessionError, durationSec, setDuration, sampleCount, elapsedSec } = useLatencyAnalyzerStore();
@@ -306,7 +315,10 @@ export default function LatencyAnalyzer() {
                 <p className="mt-1 text-[10px] text-[#778292]">{t(latency.reason)}</p>
               )}
               {latency?.stale && (
-                <p className="mt-1 text-[10px] text-amber-300">{t("Showing the last complete sample")}</p>
+                <p className="mt-1 text-[10px] text-amber-300">
+                  {t("Showing the last complete sample")}
+                  {formatEstimateAge(latency.sampledAt) ? ` · ${formatEstimateAge(latency.sampledAt)}` : ""}
+                </p>
               )}
             </div>
           </div>

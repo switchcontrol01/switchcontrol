@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { SystemLoadMeasurement } from "@/lib/responsivenessMetrics";
+import {
+  hasUsableSystemLoadForEstimate,
+  type SystemLoadMeasurement,
+} from "@/lib/responsivenessMetrics";
 import { useMeasuredSystemLoad } from "@/hooks/useMeasuredSystemLoad";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -52,6 +55,8 @@ export interface LatencyEstimateData {
   sampledAt: number | null;
   stale?: boolean;
 }
+
+let dashboardLastReadyEstimate: LatencyEstimateData | null = null;
 
 // ── Display Signal profile ─────────────────────────────────────────────────────
 
@@ -113,8 +118,8 @@ export function useLatencyEstimate(
   enabled: boolean,
   systemLoad: SystemLoadMeasurement,
 ): { data: LatencyEstimateData | null; refresh: () => void } {
-  const [data, setData] = useState<LatencyEstimateData | null>(null);
-  const lastReadyLatencyRef = useRef<LatencyEstimateData | null>(null);
+  const [data, setData] = useState<LatencyEstimateData | null>(() => dashboardLastReadyEstimate);
+  const lastReadyLatencyRef = useRef<LatencyEstimateData | null>(dashboardLastReadyEstimate);
   const systemLoadRef = useRef(systemLoad);
   const pollRef = useRef<() => void>(() => {});
   systemLoadRef.current = systemLoad;
@@ -124,6 +129,8 @@ export function useLatencyEstimate(
   useEffect(() => {
     if (!enabled) {
       setData(null);
+      lastReadyLatencyRef.current = null;
+      dashboardLastReadyEstimate = null;
       pollRef.current = () => {};
       return;
     }
@@ -150,26 +157,7 @@ export function useLatencyEstimate(
       }
 
       const current = systemLoadRef.current;
-      const cpuCores = current.cpuCoreCount;
-      const ramTotalGB = current.ramTotalGb;
-      const processCount = current.processCount;
-      const localSampleReady =
-        current.state === "live" &&
-        typeof current.cpuUsagePct === "number" &&
-        Number.isFinite(current.cpuUsagePct) &&
-        typeof cpuCores === "number" &&
-        Number.isInteger(cpuCores) &&
-        cpuCores > 0 &&
-        typeof current.ramUsedGb === "number" &&
-        Number.isFinite(current.ramUsedGb) &&
-        typeof ramTotalGB === "number" &&
-        Number.isFinite(ramTotalGB) &&
-        ramTotalGB > 0 &&
-        typeof current.ramUsagePct === "number" &&
-        Number.isFinite(current.ramUsagePct) &&
-        typeof processCount === "number" &&
-        Number.isInteger(processCount) &&
-        processCount > 0;
+      const localSampleReady = hasUsableSystemLoadForEstimate(current);
 
       if (!localSampleReady) {
         if (!cancelled) {
@@ -192,8 +180,19 @@ export function useLatencyEstimate(
         const next = await fetchJSON<LatencyEstimateData>(getLatencyEstimateUrl(current));
         if (cancelled) return;
         if (next.ready && typeof next.estimatedMs === "number" && Number.isFinite(next.estimatedMs)) {
-          lastReadyLatencyRef.current = next;
-          setData(next);
+          const estimate = current.state === "live"
+            ? next
+            : {
+                ...next,
+                stale: true,
+                sampledAt: current.sampledAt ?? next.sampledAt,
+                reason: current.state === "paused"
+                  ? "Telemetry is paused; this uses the last complete local Windows sample."
+                  : "This uses an older complete local Windows sample.",
+              };
+          lastReadyLatencyRef.current = estimate;
+          dashboardLastReadyEstimate = estimate;
+          setData(estimate);
         } else if (lastReadyLatencyRef.current) {
           setData({
             ...lastReadyLatencyRef.current,

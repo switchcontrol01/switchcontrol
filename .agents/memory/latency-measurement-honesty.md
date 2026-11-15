@@ -9,6 +9,12 @@ Load-based CPU/RAM/process heuristics and DPC/interrupt/page-fault counters must
 
 **How to apply:** Keep direct input-latency wording only for a future feature that actually measures the input-to-display path; otherwise label the source signals and their limitations explicitly. Treat loading, missing CPU cores/RAM totals, or missing process counts as insufficient data in the backend response, and render an explicit unavailable state rather than `0.0` or the minimum estimate.
 
+For the dashboard's load-based estimate, a complete paused or stale Windows sample may still produce a last-known estimate, but it must be labeled stale and show its age. Preserve the last complete estimate across route changes within the authenticated session; clear it on logout. Never present paused/stale data as live.
+
+**Why:** Losing focus or navigating to a paused route stopped polling, and a live-only gate hid a complete available sample. Component-local state also vanished when leaving and returning to the Dashboard.
+
+**How to apply:** Require all CPU, RAM, core-count, process-count, and sample-time fields before estimating. Keep the pause/staleness reason visible, show the sample age, and do not substitute the separate PerfOS DPC/interrupt capture for load telemetry.
+
 Preserve fractional DPC/interrupt percentages using raw 100ns counter deltas, with
 64-bit values transported as strings. Never add artificial fluctuation.
 

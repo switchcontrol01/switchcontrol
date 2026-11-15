@@ -353,8 +353,18 @@ function SystemResponsivenessCard({ data }: { data: SystemLoadMeasurement }) {
   );
 }
 
+function formatEstimateAge(sampledAt: number | null): string | null {
+  if (sampledAt == null || !Number.isFinite(sampledAt)) return null;
+  const ageSeconds = Math.max(0, Math.floor((Date.now() - sampledAt) / 1000));
+  if (ageSeconds < 60) return `${ageSeconds}s old`;
+  const ageMinutes = Math.floor(ageSeconds / 60);
+  if (ageMinutes < 60) return `${ageMinutes}m old`;
+  return `${Math.floor(ageMinutes / 60)}h old`;
+}
+
 function LatencyEstimateCard({ data }: { data: LatencyEstimateData | null }) {
   const hasEstimate = !!data?.ready && data.estimatedMs != null;
+  const estimateAge = data?.stale ? formatEstimateAge(data.sampledAt) : null;
 
   return (
     <GlassCard className="md:col-span-3" data-testid="card-latency-estimate">
@@ -381,8 +391,13 @@ function LatencyEstimateCard({ data }: { data: LatencyEstimateData | null }) {
                 {data.estimatedMs!.toFixed(1)} ms
               </p>
               <p className="text-[10px] text-muted-foreground" data-testid="text-latency-quality">
-                {data.stale ? "Last complete estimate" : data.quality}
+                {data.stale
+                  ? `Last complete estimate${estimateAge ? ` · ${estimateAge}` : ""}`
+                  : data.quality}
               </p>
+              {data.stale && data.reason && (
+                <p className="text-[10px] text-muted-foreground/80">{data.reason}</p>
+              )}
             </div>
           )}
         </div>

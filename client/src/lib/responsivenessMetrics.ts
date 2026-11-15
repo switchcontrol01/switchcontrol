@@ -22,6 +22,31 @@ export interface SystemLoadMeasurement {
   reason: string;
 }
 
+export function hasUsableSystemLoadForEstimate(
+  sample: SystemLoadMeasurement,
+): boolean {
+  const statusHasCompleteValues =
+    sample.state === "live" || sample.state === "paused" || sample.state === "stale";
+  return (
+    statusHasCompleteValues &&
+    typeof sample.sampledAt === "number" &&
+    Number.isFinite(sample.sampledAt) &&
+    typeof sample.cpuRamSampledAt === "number" &&
+    Number.isFinite(sample.cpuRamSampledAt) &&
+    typeof sample.processesSampledAt === "number" &&
+    Number.isFinite(sample.processesSampledAt) &&
+    finiteInRange(sample.cpuUsagePct, 0, 100) &&
+    finiteInRange(sample.cpuCoreCount, 1, 4096) &&
+    Number.isInteger(sample.cpuCoreCount) &&
+    finiteInRange(sample.ramUsedGb, 0, 1_000_000) &&
+    finiteInRange(sample.ramTotalGb, 0.01, 1_000_000) &&
+    sample.ramUsedGb <= sample.ramTotalGb &&
+    finiteInRange(sample.ramUsagePct, 0, 100) &&
+    finiteInRange(sample.processCount, 1, 100_000) &&
+    Number.isInteger(sample.processCount)
+  );
+}
+
 export const EMPTY_SYSTEM_LOAD: SystemLoadMeasurement = {
   state: "warming",
   source: null,

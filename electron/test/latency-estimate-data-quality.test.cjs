@@ -32,6 +32,7 @@ test("latency estimate refuses incomplete telemetry instead of returning the flo
   assert.match(analyzer, /const hasEstimate = !!latency\?\.ready && latency\.estimatedMs != null/);
   assert.match(analyzer, /latency \?[\s\S]*Not enough data/);
   assert.match(analyzer, /Derived from live OS metrics — not a hardware measurement/);
+  assert.match(analyzer, /formatEstimateAge\(latency\.sampledAt\)/);
   assert.match(dashboardHook, /getLatencyEstimateUrl/);
   assert.match(dashboardHook, /cpuCores/);
   assert.match(dashboardHook, /ramTotalGB/);
@@ -63,10 +64,13 @@ test("latency estimate refuses incomplete telemetry instead of returning the flo
     /lastReadyLatencyRef/,
     "the dashboard must retain the last complete estimate during a transient incomplete sample",
   );
+  assert.match(dashboardHook, /hasUsableSystemLoadForEstimate\(current\)/);
+  assert.match(dashboardHook, /dashboardLastReadyEstimate/);
+  assert.match(card, /Last complete estimate/);
 });
 
 test("partial local telemetry keeps valid readings visible but does not complete the model sample", async () => {
-  const { normalizeSystemLoad } = await import("../../client/src/lib/responsivenessMetrics.ts");
+  const { normalizeSystemLoad, hasUsableSystemLoadForEstimate } = await import("../../client/src/lib/responsivenessMetrics.ts");
   const now = Date.now();
   const partial = normalizeSystemLoad({
     collectionState: "ready",
@@ -83,6 +87,35 @@ test("partial local telemetry keeps valid readings visible but does not complete
   assert.equal(partial.ramUsedGb, 8);
   assert.equal(partial.processCount, null);
   assert.match(partial.reason, /system process count/);
+  assert.equal(hasUsableSystemLoadForEstimate(partial), false);
+});
+
+test("complete paused or stale local telemetry can back a clearly stale dashboard estimate", async () => {
+  const { normalizeSystemLoad, hasUsableSystemLoadForEstimate } = await import("../../client/src/lib/responsivenessMetrics.ts");
+  const now = Date.now();
+  const completeRaw = {
+    collectionState: "ready",
+    cpuRamSampledAt: now - 2_000,
+    processesSampledAt: now - 3_000,
+    cpu: { usagePct: 24, coreCount: 8 },
+    ram: { usedGb: 8, totalGb: 32, usagePct: 25 },
+    processes: { total: 184 },
+  };
+  const paused = normalizeSystemLoad({
+    ...completeRaw,
+    demandMode: "paused",
+    collectionPaused: true,
+  }, now);
+  assert.equal(paused.state, "paused");
+  assert.equal(hasUsableSystemLoadForEstimate(paused), true);
+
+  const stale = normalizeSystemLoad({
+    ...completeRaw,
+    demandMode: "full",
+    cpuRamSampledAt: now - 60_000,
+  }, now);
+  assert.equal(stale.state, "stale");
+  assert.equal(hasUsableSystemLoadForEstimate(stale), true);
 });
 
 test("zero systeminformation process count recovers from native Windows count", () => {
